@@ -1,0 +1,10 @@
+pandas
+sqlite3
+Pillow
+requests
+urllib3
+tkinter
+tqdm
+ratelimit
+openpyxl
+concurrent.futures
