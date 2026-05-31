@@ -1,0 +1,56 @@
+# =============================================================================
+# Yu-Gi-Oh! Collection Manager — dépendances Python
+# =============================================================================
+# Cible : Python >= 3.10 (utilisation de la syntaxe d'union `str | None`).
+# Testé sur Python 3.13 (cf. fichiers .pyc cpython-313 du projet).
+#
+# Installation :
+#     pip install -r requirements.txt
+#
+# Sur Linux, `tkinter` est dans la stdlib mais nécessite parfois un paquet OS :
+#     Debian/Ubuntu : sudo apt install python3-tk
+#     Fedora        : sudo dnf install python3-tkinter
+# Sur Windows et macOS, tkinter est inclus dans le Python officiel.
+# =============================================================================
+
+# --- UI ------------------------------------------------------------------
+# customtkinter : framework UI moderne par-dessus tkinter (CTkToplevel,
+# CTkFrame, CTkScrollableFrame, CTkOptionMenu, CTkRadioButton, CTkImage…).
+# Utilisé dans tout le module ui/ et import_csv/artwork_alt_ui.py.
+customtkinter>=5.2.2,<6.0
+
+# --- Imagerie ------------------------------------------------------------
+# Pillow : ouverture/redimensionnement des images de cartes
+# (Image, ImageEnhance, ImageTk, UnidentifiedImageError).
+# Utilisé dans gestion_img/, ui/dialog_*, import_csv/artwork_alt_ui.py.
+Pillow>=10.4.0
+
+# --- Réseau --------------------------------------------------------------
+# requests : appels HTTP vers YGOPRODeck et téléchargement d'images.
+# Utilisé dans creation_classeur_service.py, ygoprodeck_enricher.py,
+# img_dl/telechargement_service.py, version/controle_version_database_api.py.
+requests>=2.32.3
+
+# ratelimit : décorateur @limits(calls, period) + @sleep_and_retry pour
+# respecter la limite ~20 req/s de l'API YGOPRODeck.
+# Utilisé dans img_dl/telechargement_service.py.
+ratelimit>=2.2.1
+
+# --- Fenêtre Ko-fi intégrée ---------------------------------------------
+# pywebview : fenêtre native affichant la page Ko-fi (écran Contribution).
+# Lancée dans un process dédié via le flag --kofi (kofi_viewer.run()), car
+# pywebview exige le thread principal (incompatible avec le mainloop Tkinter
+# dans le même process). Sur Windows, le backend par défaut (EdgeChromium)
+# tire automatiquement `pythonnet` et requiert le runtime WebView2
+# (préinstallé sur Windows 10/11 récents).
+# Optionnelle au sens fonctionnel : sans elle, le bouton Ko-fi ouvre le
+# navigateur (fallback géré dans kofi_viewer.run()).
+pywebview>=4.4
+
+# =============================================================================
+# Modules stdlib utilisés (pour information — aucune installation requise) :
+#   csv, os, re, sqlite3, json, threading, queue, collections, contextlib,
+#   concurrent.futures, datetime, enum, io, base64, logging, shutil, stat,
+#   subprocess, sys, tempfile, time, traceback, typing, urllib, webbrowser,
+#   zipfile, tkinter, tkinter.filedialog, tkinter.messagebox
+# =============================================================================
