@@ -1,5 +1,7 @@
 # Yu-Gi-Oh! Collection Manager
 
+DISCLAIMER: Il s'agit d'une application Vibecoder, je l'ai fait pour moi a l'origine afin de simplifier le tri de mes collections de carte dans les classeurs selon les raretés et leur code_set (RA02-FR001 par exemple), ca permet visuellement de ne pas compter et se prendre la tete.
+
 Application de bureau (Windows) pour cataloguer, organiser et suivre une collection de cartes **Yu-Gi-Oh!**, classeur par classeur (set par set), avec images, raretés officielles, statistiques de complétion et import/export de collection.
 
 > Interface bilingue **FR / EN**. Données issues de YGOPRODeck, Yugipedia et YGOJSON.
