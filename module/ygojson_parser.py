@@ -59,6 +59,8 @@ _RARITY_MAP = {
     "platinum":            "Platinum Rare",
     "platinumsecret":      "Platinum Secret Rare",
     "prismaticsecret":     "Prismatic Secret Rare",
+    "grandmaster":         "Grand Master Rare",
+    "grandmasterrare":     "Grand Master Rare",
     "extrasecret":         "Extra Secret Rare",
     "extrasecretparallel": "Extra Secret Parallel Rare",
     "millenium":           "Millennium Rare",

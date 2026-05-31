@@ -1,0 +1,46 @@
+# ─────────────────────────────────────────────────────────────
+# Yu-Gi-Oh! Collection Manager — .gitignore
+# ─────────────────────────────────────────────────────────────
+
+# ── Artefacts d'état runtime (NE JAMAIS versionner ni distribuer) ──
+# first_run.flag : marqueur "init déjà effectuée". S'il est présent
+# dans une distribution, l'initialisation du 1er lancement est sautée.
+first_run.flag
+
+# ── Données générées par l'app (recréées au runtime) ──
+bdd/                  # cardinfo.db, classeurs, caches JSON, last_update.txt, anomalies.json...
+backups/              # sauvegardes auto
+export/               # exports collection
+logs/                 # logs applicatifs (app.log)
+
+# Images téléchargées (pools partagés) — gardez module/img / assets livrés
+img/small/
+img/boosters/
+
+# Bases SQLite isolées éventuelles
+*.db
+*.sqlite
+*.sqlite3
+
+# ── Python ──
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+.venv/
+venv/
+env/
+
+# ── PyInstaller (build .exe) ──
+build/
+dist/
+*.spec
+*.manifest
+
+# ── IDE / OS ──
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db

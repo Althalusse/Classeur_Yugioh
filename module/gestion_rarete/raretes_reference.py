@@ -111,6 +111,11 @@ RARETES: dict[str, dict] = {
     "PRI":  {"fr": "Prismatique",                   "en": "Prismatic Secret Rare", "alias": []},
     "STR":  {"fr": "Starlight Rare",                "en": "Starlight Rare",  "alias": []},
 
+    # ── Overframe / extended art OCG (Limit Over Collection : LOCH, LOCR…) ──
+    # Grand Master Rare (GMR) : rareté serialisée n'existant QUE en extended art.
+    "GMR":  {"fr": "Grand Master Rare",             "en": "Grand Master Rare",
+             "alias": ["Grandmaster Rare", "GMR"]},
+
     # ── 10000 / Quart de Siècle / Ghost ──
     "S10K": {"fr": "Secrète 10000",                 "en": "10000 Secret Rare", "alias": []},
     "GG":   {"fr": "Ghost Gold Rare",               "en": "Ghost/Gold Rare", "alias": []},

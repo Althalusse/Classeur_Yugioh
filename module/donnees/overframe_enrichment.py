@@ -4,26 +4,56 @@ overframe_enrichment.py — Complétion des prints "extended art" (Overframe) vi
 
 PROBLEME RESOLU
   La source YGOJSON (cardinfo.db) est INCOMPLETE pour les sets a traitement
-  Overframe : pour LOCR-JP001 elle ne liste que 3 prints (Ultra / Secret /
-  Prismatic Secret) au lieu de 5. Manquent : l'Ultra Rare *Overframe* et la
-  Grand Master Rare. YGOJSON ne distingue pas non plus le cadre (une meme
-  rarete existe en cadre normal ET en Overframe). Comme l'application place les
-  cartes de maniere sequentielle, tout print manquant DECALE la grille.
+  Overframe : pour une carte chase comme LOCR-JP001 elle ne liste que les prints
+  de base (Secret / Prismatic Secret) au lieu des 5 attendus. Manquent les
+  variantes Overframe : Ultra Rare *extended art*, Prismatic Secret Rare
+  *extended art* et Grand Master Rare. YGOJSON ne distingue pas non plus le
+  cadre (une meme rarete peut exister en cadre normal ET en Overframe). Comme
+  l'application place les cartes sequentiellement, tout print manquant DECALE
+  la grille.
 
-STRATEGIE (validee en reel)
-  Pour un set donne, Yugipedia est la LISTE AUTORITAIRE des prints :
-  chaque (numero, rarete, extended_art) y est present. On reconstruit les
-  set_prints du set a partir de Yugipedia, en HERITANT les metadonnees
-  (card_uuid, card_image_uuid, set_uuid, set_locale_id, edition, qty,
-  print_image_url) depuis les lignes cardinfo existantes du meme set
-  (tous les prints d'un meme numero partagent le meme artwork).
+POINT IMPORTANT — L'OVERFRAME N'EST PAS GLOBAL
+  Dans LOCH et LOCR, l'extended art (Overframe) n'existe QUE sur un sous-ensemble
+  limite de cartes "chase" (cf. Yugipedia LOCH : "18 Prismatic Secret Rares are
+  only available with an extended art, and these extended art cards are also
+  available as Ultra Rare and Grand Master Rare"). La grande majorite des cartes
+  n'a AUCUN print Overframe. La detection ne doit donc jamais marquer une carte
+  en extended art « par defaut ».
+
+STRATEGIE — ADDITIVE + CORRECTION DE CADRE (et non remplacement total)
+  Yugipedia liste, pour chaque carte chase, une entree « extended art » dont les
+  raretes sont les variantes Overframe. On en deduit l'ensemble des prints
+  Overframe {(numero, rarete)}, puis on RECONCILIE cardinfo.db :
+    - print Overframe deja present (extended_art=1) -> rien a faire ;
+    - rarete presente dans les DEUX cadres (ex Prismatic Secret Rare des cartes
+      chase) -> on AJOUTE une ligne extended_art=1 en conservant la normale ;
+    - rarete Overframe-only (ex Ultra Rare / Grand Master Rare des chase) que
+      YGOJSON a importee a tort en cadre normal -> on CORRIGE le flag
+      (extended_art 0 -> 1) sans creer de doublon ;
+    - sinon -> on AJOUTE la ligne extended_art=1.
+  Les metadonnees (card_uuid, card_image_uuid, set_uuid, set_locale_id, edition,
+  qty, print_image_url) sont HERITEES d'un print existant du meme numero (tous
+  les prints d'une meme carte partagent les memes references de carte).
+
+  Cette approche ne SUPPRIME jamais de print existant : aucune perte de donnees,
+  et plus de garde-fou fragile base sur la comparaison des comptes totaux (qui
+  sautait l'enrichissement quand YGOJSON listait plus de prints — artworks
+  alternatifs — que la liste Yugipedia propre).
+
+DETECTION OVERFRAME (robuste)
+  Une entree Yugipedia est consideree « extended art » si :
+    - sa note (apres « // ») contient un mot-cle de _EXTENDED_KEYWORDS, OU
+    - parse_set_list l'a deja taguee extended_art=True, OU
+    - une de ses raretes est dans _ALWAYS_EXTENDED (Grand Master Rare) — la GMR
+      n'existe qu'en Overframe, c'est le signal le plus fiable, presente meme
+      quand la note « // extended art » est absente du wikitext.
+  Quand une entree est extended art, TOUTES ses raretes sont Overframe.
 
 GARDE-FOUS
-  - Si Yugipedia renvoie MOINS de prints que cardinfo -> on N'ECRASE PAS
-    (anomalie loggee). On ne perd jamais de donnees.
   - Idempotent : on memorise le revid Yugipedia ; un set deja a jour est saute.
   - Cible : on n'enrichit que les sets demandes (whitelist au build + hook a la
     creation d'un classeur), jamais les 3300 sets (quota Yugipedia 1 req/s).
+  - Robustesse : les erreurs reseau sont capturees et renvoyees en statut.
 
 DEPENDANCE
   module.donnees.sync_reference  (client Yugipedia : resolve_set_pages,
@@ -69,9 +99,16 @@ OVERFRAME_SETS: list[tuple[str, str, str]] = [
     ("LOCR-JP", "Limit Over Collection: The Rivals", "OCG-JP"),
 ]
 
-# Raretes connues comme "extended art" meme si la ligne Yugipedia n'est pas
-# taguee (filet de securite ; la detection principale reste le tag wikitext).
-_ALWAYS_EXTENDED = {"grand master rare"}
+# Mots-cles signalant un print extended art / Overframe dans la note Yugipedia
+# (partie apres « // » d'une entree de Set list). Compares en minuscules.
+_EXTENDED_KEYWORDS: tuple[str, ...] = (
+    "extended art", "extended artwork", "overframe", "over frame", "over flame",
+)
+
+# Raretes qui n'existent QU'EN extended art (Overframe). Filet de securite : la
+# presence d'une de ces raretes suffit a marquer l'entree Overframe, meme si la
+# note « // extended art » est absente du wikitext. Comparees en minuscules.
+_ALWAYS_EXTENDED: set[str] = {"grand master rare", "grandmaster rare"}
 
 
 # ───────────────────────────────────────────────────────────────────────────
@@ -114,27 +151,57 @@ def _set_revid(conn, prefix, revid):
 
 
 # ───────────────────────────────────────────────────────────────────────────
-# Reconciliation d'un set
+# Classification des prints Yugipedia
 # ───────────────────────────────────────────────────────────────────────────
 
-def _authoritative_prints(entrees: list[dict]) -> list[tuple]:
-    """Transforme les entrees Yugipedia en liste (numero, rarete, extended_art)."""
-    out = []
-    for e in entrees:
-        for rar in e["raretes"]:
-            ext = 1 if (e["extended_art"] or rar.strip().lower() in _ALWAYS_EXTENDED) else 0
-            out.append((e["numero"], rar.strip(), ext))
-    return out
+def _entree_est_overframe(entree: dict, raretes: list[str]) -> bool:
+    """True si l'entree Yugipedia decrit des prints extended art (Overframe).
 
+    Signaux (OR) : note tagee extended art, flag extended_art du parser, ou
+    presence d'une rarete _ALWAYS_EXTENDED (Grand Master Rare)."""
+    note = (entree.get("note") or "").lower()
+    if entree.get("extended_art"):
+        return True
+    if any(k in note for k in _EXTENDED_KEYWORDS):
+        return True
+    if any(r.lower() in _ALWAYS_EXTENDED for r in raretes):
+        return True
+    return False
+
+
+def _classify_prints(entrees: list[dict]) -> tuple[set, set]:
+    """Repartit les (numero, rarete) Yugipedia en deux ensembles.
+
+    Retourne (normal_set, ext_set) :
+      - normal_set : prints en cadre NORMAL ;
+      - ext_set    : prints en cadre EXTENDED ART (Overframe).
+    Une meme (numero, rarete) peut figurer dans les DEUX (rarete existant dans
+    les deux cadres, ex Prismatic Secret Rare des cartes chase)."""
+    normal_set: set = set()
+    ext_set: set = set()
+    for e in entrees:
+        raretes = [r.strip() for r in e.get("raretes", []) if r and r.strip()]
+        if not raretes:
+            continue
+        cible = ext_set if _entree_est_overframe(e, raretes) else normal_set
+        for rar in raretes:
+            cible.add((e["numero"], rar))
+    return normal_set, ext_set
+
+
+# ───────────────────────────────────────────────────────────────────────────
+# Reconciliation d'un set (additive + correction de cadre)
+# ───────────────────────────────────────────────────────────────────────────
 
 def enrich_set(conn: sqlite3.Connection, set_prefix: str, set_name: str,
                region: str, force: bool = False) -> dict:
-    """Reconstruit les set_prints d'un set depuis Yugipedia (liste autoritaire).
+    """Complete les prints Overframe d'un set depuis Yugipedia (approche additive).
 
-    Retourne un dict de statut :
-      {"prefix", "status", "avant", "apres", "revid"}
-    status ∈ {"ok", "deja_a_jour", "page_introuvable", "absent_cardinfo",
-              "anomalie_moins_de_prints", "erreur"}.
+    N'AJOUTE/ne corrige QUE les variantes extended art ; ne supprime jamais de
+    print existant. Retourne un dict de statut :
+      {"prefix", "status", "ajoutes", "corriges", "revid"}
+    status ∈ {"ok", "deja_a_jour", "aucun_overframe", "page_introuvable",
+              "absent_cardinfo", "erreur"}.
     Ne leve pas : les erreurs reseau sont capturees et renvoyees en statut."""
     ensure_extended_art_column(conn)
     try:
@@ -147,70 +214,98 @@ def enrich_set(conn: sqlite3.Connection, set_prefix: str, set_name: str,
         if not force and _get_revid(conn, set_prefix) == str(revid):
             return {"prefix": set_prefix, "status": "deja_a_jour", "revid": revid}
 
-        autoritaire = _authoritative_prints(entrees)
-        if not autoritaire:
-            return {"prefix": set_prefix, "status": "page_introuvable"}
+        normal_set, ext_set = _classify_prints(entrees)
+        if not ext_set:
+            # Set sans aucune carte Overframe selon Yugipedia : on memorise le
+            # revid (pour ne pas re-scraper) et on ne touche a rien.
+            _set_revid(conn, set_prefix, revid)
+            conn.commit()
+            return {"prefix": set_prefix, "status": "aucun_overframe",
+                    "revid": revid, "ajoutes": 0, "corriges": 0}
 
         # SELECT colonnes explicites + accès POSITIONNEL : la connexion passée
         # par le hook de création n'a pas forcément row_factory=sqlite3.Row.
         # (0 set_uuid, 1 set_locale_id, 2 card_uuid, 3 card_image_uuid,
-        #  4 set_code, 5 rarity, 6 edition, 7 qty, 8 print_image_url)
+        #  4 set_code, 5 rarity, 6 edition, 7 qty, 8 print_image_url,
+        #  9 extended_art, 10 id)
         existing = conn.execute(
             """SELECT set_uuid, set_locale_id, card_uuid, card_image_uuid,
-                      set_code, rarity, edition, qty, print_image_url
+                      set_code, rarity, edition, qty, print_image_url,
+                      extended_art, id
                FROM set_prints WHERE set_code LIKE ?""",
             (set_prefix + "%",)).fetchall()
         if not existing:
             return {"prefix": set_prefix, "status": "absent_cardinfo"}
 
-        # GARDE-FOU : ne jamais reduire le set.
-        if len(autoritaire) < len(existing):
-            _log.warning(f"[Overframe] {set_prefix} : Yugipedia {len(autoritaire)} < "
-                         f"cardinfo {len(existing)} -> enrichissement ignore (anomalie).")
-            return {"prefix": set_prefix, "status": "anomalie_moins_de_prints",
-                    "avant": len(existing), "apres": len(existing)}
-
         set_uuid  = existing[0][0]
         locale_id = existing[0][1]
 
-        meta_by_num: dict[str, dict] = {}
+        meta_by_num: dict[str, dict] = {}    # numero -> refs carte heritables
+        present_ext: set = set()             # (set_code, rarity) deja en ext=1
+        normal_rows: dict[tuple, int] = {}   # (set_code, rarity) -> id (ext=0)
         url_by_num_rar: dict[tuple, str] = {}
         for row in existing:
-            su, li, cu, ciu, sc, ra, ed, q, pu = row
+            su, li, cu, ciu, sc, ra, ed, q, pu, ext, rid = row
             meta_by_num.setdefault(sc, {
                 "card_uuid": cu,
                 "card_image_uuid": ciu,
                 "edition": ed if ed is not None else "unlimited",
                 "qty": q if q is not None else 1,
             })
-            url_by_num_rar[(sc, ra)] = pu
+            if int(ext or 0) == 1:
+                present_ext.add((sc, ra))
+            else:
+                normal_rows.setdefault((sc, ra), rid)
+            if pu and (sc, ra) not in url_by_num_rar:
+                url_by_num_rar[(sc, ra)] = pu
 
-        # Reconstruction transactionnelle.
-        conn.execute("DELETE FROM set_prints WHERE set_code LIKE ?",
-                     (set_prefix + "%",))
-        rows = []
-        for num, rar, ext in autoritaire:
-            m = meta_by_num.get(num, {
-                "card_uuid": "", "card_image_uuid": None,
-                "edition": "unlimited", "qty": 1})
-            rows.append((
-                set_uuid, locale_id, (m["card_uuid"] or ""), m["card_image_uuid"],
-                num, rar, m["edition"], m["qty"],
-                url_by_num_rar.get((num, rar)), ext,
-            ))
-        conn.executemany("""
-            INSERT INTO set_prints
-                (set_uuid, set_locale_id, card_uuid, card_image_uuid,
-                 set_code, rarity, edition, qty, print_image_url, extended_art)
-            VALUES (?,?,?,?,?,?,?,?,?,?)
-        """, rows)
+        new_rows: list[tuple] = []
+        updates: list[int] = []
+        for (num, rar) in sorted(ext_set):
+            if (num, rar) in present_ext:
+                continue                              # deja present en Overframe
+            if (num, rar) in normal_set:
+                # Rarete presente dans les DEUX cadres -> ajouter la ligne
+                # Overframe en conservant la normale existante.
+                m = meta_by_num.get(num)
+                if m:
+                    new_rows.append((
+                        set_uuid, locale_id, (m["card_uuid"] or ""),
+                        m["card_image_uuid"], num, rar, m["edition"], m["qty"],
+                        url_by_num_rar.get((num, rar)), 1))
+            else:
+                # Rarete Overframe-only.
+                rid = normal_rows.get((num, rar))
+                if rid is not None:
+                    # YGOJSON l'a importee a tort en cadre normal -> corriger
+                    # le flag (pas de doublon).
+                    updates.append(rid)
+                else:
+                    m = meta_by_num.get(num)
+                    if m:
+                        new_rows.append((
+                            set_uuid, locale_id, (m["card_uuid"] or ""),
+                            m["card_image_uuid"], num, rar, m["edition"],
+                            m["qty"], url_by_num_rar.get((num, rar)), 1))
+
+        if updates:
+            conn.executemany(
+                "UPDATE set_prints SET extended_art=1 WHERE id=?",
+                [(rid,) for rid in updates])
+        if new_rows:
+            conn.executemany("""
+                INSERT INTO set_prints
+                    (set_uuid, set_locale_id, card_uuid, card_image_uuid,
+                     set_code, rarity, edition, qty, print_image_url, extended_art)
+                VALUES (?,?,?,?,?,?,?,?,?,?)
+            """, new_rows)
         _set_revid(conn, set_prefix, revid)
         conn.commit()
 
-        _log.info(f"[Overframe] {set_prefix} : {len(existing)} -> {len(rows)} prints "
-                  f"(rev {revid}).")
+        _log.info(f"[Overframe] {set_prefix} : +{len(new_rows)} prints, "
+                  f"{len(updates)} corriges (rev {revid}).")
         return {"prefix": set_prefix, "status": "ok", "revid": revid,
-                "avant": len(existing), "apres": len(rows)}
+                "ajoutes": len(new_rows), "corriges": len(updates)}
 
     except Exception as e:                          # robustesse : jamais bloquant
         _log.warning(f"[Overframe] {set_prefix} : erreur {e}")
