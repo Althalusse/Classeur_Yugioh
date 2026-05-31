@@ -914,6 +914,11 @@ class EcranOptions(ctk.CTkFrame):
             command=self._recuperer_covers_yugipedia,
         ).pack(side="left", padx=(0, 8))
 
+        icon_button(
+            row, "🃏 Corriger les Overframe (Yugipedia)",
+            command=self._corriger_overframe,
+        ).pack(side="left", padx=(0, 8))
+
         self._lbl_maint = ctk.CTkLabel(
             row, text="", font=("Outfit", 10), text_color=C["text3"],
         )
@@ -1129,6 +1134,111 @@ class EcranOptions(ctk.CTkFrame):
             self._lbl_maint.configure(
                 text="✓ " + " — ".join(parts),
                 text_color=(C["success"] if res["echecs"] == 0 else C["warning"]),
+            )
+
+        try:
+            from module.gestion_img.async_image_loader import run_async
+            run_async(work, self, on_done)
+        except Exception as e:
+            self._lbl_maint.configure(
+                text=f"⚠ Erreur : {e}", text_color=C["danger"],
+            )
+
+    def _corriger_overframe(self):
+        """Force la complétion des prints Overframe dans cardinfo.db existant.
+
+        Contexte : l'enrichissement Overframe ne s'exécute normalement qu'au
+        build de la base ou à la création d'un classeur, et il est idempotent
+        (revid Yugipedia). Si cardinfo.db existe déjà sans avoir reçu les
+        prints Overframe (ou seulement partiellement), ces variantes restent
+        non déclarées. Ce bouton ré-applique la réconciliation pour tous les
+        sets Overframe connus, en ignorant l'idempotence (force=True).
+
+        Réseau (Yugipedia, 1 req/s) → exécuté en arrière-plan (0 freeze UI).
+        N'affecte que cardinfo.db : les classeurs déjà créés doivent être
+        recréés pour intégrer les nouveaux prints (un classeur fige sa table
+        au moment de sa création).
+        """
+        self._lbl_maint.configure(
+            text="🃏 Correction des Overframe en cours…",
+            text_color=C["text2"],
+        )
+
+        def work():
+            from module.donnees.overframe_enrichment import (
+                corriger_overframe_cardinfo,
+            )
+            from module.creation_classeur.creation_classeur_service import (
+                propager_overframe_classeurs_existants,
+            )
+            # 1) Corriger cardinfo.db (force, ignore l'idempotence revid).
+            base = corriger_overframe_cardinfo(force=True)
+            # 2) Propager aux classeurs déjà créés (additif, possession gardée).
+            #    On propage même si cardinfo n'a "rien" changé : un classeur a
+            #    pu être créé AVANT une correction antérieure de cardinfo.db.
+            propag = {"classeurs": 0, "ajoutes": 0, "corriges": 0, "erreurs": 0}
+            if base.get("status") in ("ok", "rien"):
+                propag = propager_overframe_classeurs_existants()
+            return {"base": base, "propag": propag}
+
+        def on_done(res):
+            if not res:
+                self._lbl_maint.configure(
+                    text="⚠ Erreur pendant la correction des Overframe",
+                    text_color=C["danger"],
+                )
+                return
+            base   = res.get("base", {}) or {}
+            propag = res.get("propag", {}) or {}
+            status = base.get("status")
+            if status == "cardinfo_absente":
+                self._lbl_maint.configure(
+                    text="⚠ cardinfo.db introuvable — lancez « Initialiser la base »",
+                    text_color=C["danger"],
+                )
+                return
+            if status == "erreur":
+                self._lbl_maint.configure(
+                    text=f"⚠ Erreur : {base.get('erreur', 'inconnue')}",
+                    text_color=C["danger"],
+                )
+                return
+
+            parts = []
+            # Côté base interne
+            if base.get("ajoutes") or base.get("corriges"):
+                seg = f"cardinfo : +{base.get('ajoutes', 0)} print(s)"
+                if base.get("corriges"):
+                    seg += f", {base['corriges']} cadre(s) corrigé(s)"
+                parts.append(seg)
+            # Côté classeurs
+            if propag.get("classeurs"):
+                seg = f"{propag['classeurs']} classeur(s)"
+                bits = []
+                if propag.get("ajoutes"):
+                    bits.append(f"+{propag['ajoutes']} carte(s)")
+                if propag.get("corriges"):
+                    bits.append(f"{propag['corriges']} cadre(s) corrigé(s)")
+                if bits:
+                    seg += " (" + ", ".join(bits) + ")"
+                parts.append(seg)
+
+            if not parts:
+                self._lbl_maint.configure(
+                    text="✓ Overframe déjà à jour (aucune correction nécessaire)",
+                    text_color=C["success"],
+                )
+                return
+
+            warn = propag.get("erreurs", 0) > 0
+            txt = "✓ " + " — ".join(parts)
+            if propag.get("classeurs"):
+                txt += "  · rouvrez le classeur pour voir les cartes"
+            if warn:
+                txt += f"  · {propag['erreurs']} classeur(s) en erreur"
+            self._lbl_maint.configure(
+                text=txt,
+                text_color=(C["warning"] if warn else C["success"]),
             )
 
         try:

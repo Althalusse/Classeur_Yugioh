@@ -60,6 +60,12 @@ C = {
     # du rouge (danger) et du vert (succès).
     "overframe":      "#7C5CFF",
     "overframe_text": "#FFFFFF",
+
+    # Playset (≥ 3 exemplaires d'une même rareté) : accent émeraude, distinct
+    # du doré (possédée), du violet (overframe) et du vert succès. Signale que
+    # la rareté est complète pour le jeu (3 copies = un playset).
+    "playset":        "#1FB873",
+    "playset_text":   "#03130C",
 }
 
 # ─────────────────────────────────────────────────────────────────────────────

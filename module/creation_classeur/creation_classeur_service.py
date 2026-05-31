@@ -1522,3 +1522,159 @@ def supprimer_classeur(code: str) -> bool:
 
     log.warning(f"supprimer_classeur({code}) : {last_err}")
     return False
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Propagation Overframe aux classeurs EXISTANTS
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# Contexte : la correction manuelle des Overframe (Options) agit sur
+# cardinfo.db. Or un classeur fige sa table `cards` à sa création. Les prints
+# Overframe nouvellement déclarés dans cardinfo.db n'apparaissent donc pas dans
+# les classeurs déjà créés. Ces fonctions propagent la correction de façon
+# ADDITIVE (jamais de suppression), en reproduisant la réconciliation appliquée
+# côté cardinfo.db (cf. module.donnees.overframe_enrichment) :
+#   - rareté présente dans les DEUX cadres (normal + Overframe) absente du
+#     classeur en Overframe -> on INSÈRE la ligne extended_art=1 ;
+#   - rareté Overframe-only importée à tort en cadre normal dans le classeur
+#     -> on CORRIGE le flag (extended_art 0 -> 1), pas de doublon ;
+#   - on renumérote ensuite sort_order pour tout le classeur (même clé de tri
+#     qu'à la création) afin que les cartes s'affichent à leur place.
+# La possession (quantite/qualite/possessed) et les cartes ajoutées
+# manuellement (is_custom) sont intégralement préservées.
+
+def _propager_overframe_un_classeur(code_set: str, db_file: str,
+                                    progress=None) -> tuple[int, int]:
+    """Propage les Overframe de cardinfo.db dans UN classeur existant.
+
+    Retourne (n_inserts, n_corrections_flag).
+    Lève SetNotInLocalDB si le set est absent de cardinfo.db (classeur créé via
+    l'API, par exemple) — le caller l'attrape et passe au classeur suivant.
+    """
+    # Lignes fraîches depuis cardinfo.db (inclut les Overframe corrigés).
+    # Peut lever SetNotInLocalDB.
+    fresh = _build_rows_from_local_db(code_set)
+    fresh_ext = [r for r in fresh if int(r.get("extended_art") or 0) == 1]
+    if not fresh_ext:
+        return (0, 0)
+
+    # Raretés présentes en cadre NORMAL dans l'énumération fraîche : permet de
+    # distinguer une rareté « dual-frame » (à insérer) d'une rareté
+    # « Overframe-only » (flag à corriger).
+    fresh_normal_keys = {
+        ((r.get("set_code") or ""), (r.get("rarity") or ""))
+        for r in fresh if int(r.get("extended_art") or 0) == 0
+    }
+
+    if progress:
+        progress(f"Propagation Overframe : {code_set}…")
+
+    with sqlite_ctx(db_file) as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT name FROM sqlite_master "
+                    "WHERE type='table' AND name='cards'")
+        if not cur.fetchone():
+            return (0, 0)
+
+        present_ext: set = set()          # (set_code, rarity) déjà en ext=1
+        normal_rowids: dict = {}          # (set_code, rarity) -> rowid (ext=0)
+        for rid, sc, ra, ext in cur.execute(
+                "SELECT rowid, set_code, rarity, "
+                "COALESCE(extended_art,0) FROM cards"):
+            sc = sc or ""
+            ra = ra or ""
+            if int(ext or 0) == 1:
+                present_ext.add((sc, ra))
+            else:
+                normal_rowids.setdefault((sc, ra), rid)
+
+        to_insert: list = []
+        updates: list = []
+        seen: set = set()
+        for r in fresh_ext:
+            key = ((r.get("set_code") or ""), (r.get("rarity") or ""))
+            if key in present_ext or key in seen:
+                continue
+            seen.add(key)
+            if key not in fresh_normal_keys and key in normal_rowids:
+                # Overframe-only importée à tort en cadre normal -> corriger.
+                updates.append(normal_rowids[key])
+            else:
+                # Dual-frame (ou print totalement absent) -> insérer ext=1.
+                to_insert.append(r)
+
+        if not updates and not to_insert:
+            return (0, 0)
+
+        if updates:
+            conn.executemany(
+                "UPDATE cards SET extended_art=1 WHERE rowid=?",
+                [(rid,) for rid in updates])
+
+        if to_insert:
+            conn.executemany("""
+                INSERT INTO cards
+                    (card_uuid, card_image_uuid, card_image_id,
+                     set_code, rarity, rarity_code, set_name,
+                     name, name_fr, card_image_url, card_image_small,
+                     sort_order, card_type, atk, def_val, level, attribute,
+                     race, extended_art)
+                VALUES
+                    (:card_uuid, :card_image_uuid, :card_image_id,
+                     :set_code, :rarity, :rarity_code, :set_name,
+                     :name, :name_fr, :card_image_url, :card_image_small,
+                     :sort_order, :card_type, :atk, :def_val, :level,
+                     :attribute, :race, :extended_art)
+            """, to_insert)
+
+        # Renumérotation sort_order sur TOUT le classeur, avec la même clé de
+        # tri qu'à la création (cf. _build_rows_from_local_db étape finale) :
+        # (letter_group, numéro) puis Overframe en bloc distinct puis rareté.
+        rows_all = cur.execute(
+            "SELECT rowid, set_code, COALESCE(extended_art,0), rarity "
+            "FROM cards").fetchall()
+        rows_all.sort(key=lambda x: (
+            _sort_key_from_code(x[1] or ""),
+            1 if int(x[2] or 0) else 0,
+            x[3] or "",
+        ))
+        conn.executemany(
+            "UPDATE cards SET sort_order=? WHERE rowid=?",
+            [(i, rid) for i, (rid, *_rest) in enumerate(rows_all)])
+
+    return (len(to_insert), len(updates))
+
+
+def propager_overframe_classeurs_existants(progress=None) -> dict:
+    """Propage les prints Overframe de cardinfo.db à TOUS les classeurs existants.
+
+    À appeler après `corriger_overframe_cardinfo` pour que les classeurs déjà
+    créés affichent les Overframe sans avoir à les recréer (possession et
+    cartes manuelles préservées — opération purement additive + correction de
+    flag, jamais de suppression).
+
+    Retourne {"classeurs", "ajoutes", "corriges", "erreurs"}.
+    Ne lève pas : les erreurs par classeur sont capturées et comptées.
+    """
+    res = {"classeurs": 0, "ajoutes": 0, "corriges": 0, "erreurs": 0}
+    if not os.path.isdir(CLASSEUR_FOLDER):
+        return res
+
+    for nom in sorted(os.listdir(CLASSEUR_FOLDER)):
+        db_file = os.path.join(CLASSEUR_FOLDER, nom, f"{nom}.db")
+        if not os.path.isfile(db_file):
+            continue
+        try:
+            n_ins, n_upd = _propager_overframe_un_classeur(nom, db_file, progress)
+        except SetNotInLocalDB:
+            continue                     # set absent de cardinfo.db : rien à faire
+        except Exception as e:
+            log.warning(f"propager_overframe {nom}: {e}")
+            res["erreurs"] += 1
+            continue
+        if n_ins or n_upd:
+            res["classeurs"] += 1
+            res["ajoutes"]  += n_ins
+            res["corriges"] += n_upd
+
+    return res

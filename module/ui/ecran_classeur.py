@@ -77,6 +77,13 @@ CARD_W_MAX = 220
 CARD_W_DEFAULT = 140
 CARD_H_DEFAULT = int(CARD_W_DEFAULT * CARD_RATIO_H / CARD_RATIO_W)
 
+# Playset : nombre d'exemplaires d'une même rareté à partir duquel on
+# considère la rareté « complète » (un playset Yu-Gi-Oh! = 3 copies).
+# La quantité étant stockée par couple (numéro + rareté) dans la table cards
+# du classeur, une carte du classeur représente déjà une rareté unique :
+# quantite >= PLAYSET_SEUIL ⇒ playset atteint.
+PLAYSET_SEUIL = 3
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Chargement image avec effets (utilise le cache PIL)
@@ -238,6 +245,21 @@ class CarteWidget(ctk.CTkFrame):
             self._of_badge.place(relx=1.0, rely=1.0, anchor="se", x=-4, y=-4)
         else:
             self._of_badge = None
+
+        # Badge Playset (coin bas-GAUCHE) — signale qu'on possède au moins un
+        # playset (PLAYSET_SEUIL = 3 exemplaires) de cette rareté. Même style
+        # que le badge Overframe, mais à gauche de l'encadré de la carte.
+        # Affiché quoi qu'il arrive dès que la quantité atteint le seuil.
+        if qty >= PLAYSET_SEUIL:
+            self._playset_badge = ctk.CTkLabel(
+                self, text="PLAYSET",
+                fg_color=C["playset"], text_color=C["playset_text"],
+                font=("Outfit", 8, "bold"),
+                corner_radius=3, padx=5, pady=1,
+            )
+            self._playset_badge.place(relx=0.0, rely=1.0, anchor="sw", x=4, y=-4)
+        else:
+            self._playset_badge = None
 
         # Overlay infos (survol) — barre sombre en bas de la carte.
         # Le nom passe sur 2 lignes (wrap) et la rareté est affichée EN ENTIER
@@ -629,6 +651,21 @@ class CarteWidget(ctk.CTkFrame):
                 corner_radius=12, width=22, height=22,
             )
             self._qty_badge.place(relx=1.0, rely=0.0, anchor="ne", x=-3, y=3)
+
+        # Badge Playset : (re)construit selon la quantité courante. Même règle
+        # qu'au _build (qty >= PLAYSET_SEUIL), pour que le badge apparaisse ou
+        # disparaisse aussi sur un simple rafraîchissement local (toggle).
+        if getattr(self, "_playset_badge", None):
+            self._playset_badge.place_forget()
+            self._playset_badge = None
+        if qty >= PLAYSET_SEUIL:
+            self._playset_badge = ctk.CTkLabel(
+                self, text="PLAYSET",
+                fg_color=C["playset"], text_color=C["playset_text"],
+                font=("Outfit", 8, "bold"),
+                corner_radius=3, padx=5, pady=1,
+            )
+            self._playset_badge.place(relx=0.0, rely=1.0, anchor="sw", x=4, y=-4)
 
         self._toggle_btn.configure(
             text="✓" if possessed else "+",

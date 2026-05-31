@@ -316,15 +316,20 @@ def enrich_set(conn: sqlite3.Connection, set_prefix: str, set_name: str,
 # Points d'entree
 # ───────────────────────────────────────────────────────────────────────────
 
-def enrich_whitelist(conn: sqlite3.Connection, progress=None) -> list[dict]:
+def enrich_whitelist(conn: sqlite3.Connection, progress=None,
+                     force: bool = False) -> list[dict]:
     """Enrichit tous les sets de OVERFRAME_SETS (appel au build initial).
-    progress(msg:str) optionnel."""
+    progress(msg:str) optionnel.
+    force=True : ignore le garde-fou d'idempotence (revid) et ré-applique la
+    complétion même si le set a déjà été synchronisé — utilisé par la
+    correction manuelle déclenchée depuis les Options quand cardinfo.db existe
+    déjà mais n'a jamais reçu (ou a partiellement reçu) les prints Overframe."""
     ensure_extended_art_column(conn)
     res = []
     for prefix, name, region in OVERFRAME_SETS:
         if progress:
             progress(f"Complétion Overframe : {prefix}…")
-        res.append(enrich_set(conn, prefix, name, region))
+        res.append(enrich_set(conn, prefix, name, region, force=force))
     return res
 
 
@@ -358,3 +363,59 @@ def enrich_for_classeur(conn: sqlite3.Connection, set_prefix: str,
     if progress:
         progress(f"Vérification Overframe : {set_prefix}…")
     return enrich_set(conn, set_prefix, set_name_en, region)
+
+
+# ───────────────────────────────────────────────────────────────────────────
+# Correction manuelle (depuis les Options)
+# ───────────────────────────────────────────────────────────────────────────
+
+def corriger_overframe_cardinfo(progress=None, force: bool = True) -> dict:
+    """Déclenche manuellement la complétion Overframe sur cardinfo.db existant.
+
+    PROBLEME RESOLU
+      L'enrichissement Overframe ne s'exécute normalement qu'au build de la
+      base OU à la création d'un classeur (hook), et il est idempotent via le
+      revid Yugipedia. Resultat : si cardinfo.db existe deja et qu'un set
+      Overframe a ete marque « synchronise » (ou n'a jamais ete enrichi parce
+      qu'aucun classeur de ce set n'a encore ete cree), les prints Overframe
+      non declares ne sont jamais corriges. Cette fonction force la
+      reconciliation pour TOUS les sets de la whitelist, quel que soit l'etat
+      du revid (force=True par defaut).
+
+    Ouvre cardinfo.db via sqlite_ctx (commit/rollback geres par le contexte ;
+    chaque set est aussi commit individuellement par enrich_set, donc un echec
+    reseau tardif ne perd pas les sets deja traites).
+
+    Reseau (Yugipedia, 1 req/s) : a executer hors thread UI par l'appelant.
+
+    Retourne un dict agrege :
+      {"status", "sets", "ajoutes", "corriges", "details": [<dict enrich_set>]}
+      status ∈ {"ok", "rien", "cardinfo_absente", "erreur"}.
+    Ne leve pas : les erreurs sont capturees et renvoyees en statut."""
+    try:
+        import os
+        from module.centralisation_dossier import CARDINFO_DB, sqlite_ctx
+    except Exception as e:                              # import defensif
+        return {"status": "erreur", "erreur": f"import: {e}",
+                "sets": 0, "ajoutes": 0, "corriges": 0, "details": []}
+
+    if not os.path.isfile(CARDINFO_DB):
+        return {"status": "cardinfo_absente",
+                "sets": 0, "ajoutes": 0, "corriges": 0, "details": []}
+
+    try:
+        with sqlite_ctx(CARDINFO_DB) as conn:
+            details = enrich_whitelist(conn, progress=progress, force=force)
+    except Exception as e:
+        _log.warning(f"corriger_overframe_cardinfo : {e}")
+        return {"status": "erreur", "erreur": str(e),
+                "sets": 0, "ajoutes": 0, "corriges": 0, "details": []}
+
+    ajoutes  = sum(int(d.get("ajoutes", 0) or 0)  for d in details)
+    corriges = sum(int(d.get("corriges", 0) or 0) for d in details)
+    sets_ok  = sum(1 for d in details if d.get("status") == "ok")
+    status   = "ok" if (ajoutes or corriges) else "rien"
+    _log.info(f"[Overframe] correction manuelle : {sets_ok} set(s) modifie(s), "
+              f"+{ajoutes} prints, {corriges} corriges.")
+    return {"status": status, "sets": sets_ok,
+            "ajoutes": ajoutes, "corriges": corriges, "details": details}
