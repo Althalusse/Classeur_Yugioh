@@ -172,6 +172,7 @@ Si cette application vous est utile, vous pouvez soutenir son développement :
 
 ☕ **Ko-fi** : https://ko-fi.com/althalusse
 
+Je préfére cependant que vous donniez aux sources qui ont permis de créer l'application plutot qu'un KO-FI.
 ---
 
 ## Licence
