@@ -159,7 +159,7 @@ module/
 
 ## Sources de données & crédits
 
-Cette application s'appuie sur le travail de plusieurs projets et communautés :
+Cette application s'appuie sur plusieurs projets et communautés :
 
 | Source | Usage | Lien |
 |---|---|---|
@@ -174,7 +174,7 @@ Merci à leurs équipes et à leurs contributeurs.
 
 ## Soutien
 
-**Plutôt que de me soutenir, soutenez les projets et communautés sans lesquels cette application n'existerait pas.** Ce sont eux qui font tout le travail de fond — je n'ai fait que les assembler.
+**Privilégiez les projets et communautés sans lesquels cette application n'existerait pas** — ce sont eux qui rendent tout cela possible, je n'ai fait que les assembler :
 
 - **YGOPRODeck** — base de données des cartes, sets et images — https://ygoprodeck.com
 - **Yugipedia** — raretés officielles, covers et artworks — https://yugipedia.com
@@ -182,13 +182,17 @@ Merci à leurs équipes et à leurs contributeurs.
 
 Un grand merci à leurs équipes et à leurs contributeurs.
 
+Cela dit, si le cœur vous en dit, vous pouvez toujours m'offrir un café :
+
+☕ **Ko-fi** : https://ko-fi.com/althalusse
+
 ---
 
 ## Licence
 
 Ce projet est distribué sous licence **GNU General Public License v3.0** (GPL-3.0). Voir le fichier [`LICENSE`](LICENSE) pour le texte complet.
 
-En résumé : vous êtes libre d'utiliser, étudier, modifier et redistribuer ce logiciel, à condition que tout travail dérivé soit lui aussi publié sous GPL-3.0 et que le code source reste accessible.
+En résumé : vous êtes libre d'utiliser, étudier, modifier et redistribuer ce logiciel, à condition que toute œuvre dérivée soit elle aussi publiée sous GPL-3.0 et que le code source reste accessible.
 
 Copyright © 2026 Althalusse.
 
