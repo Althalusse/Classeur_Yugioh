@@ -4,6 +4,14 @@ Application de bureau (Windows) pour cataloguer, organiser et suivre une collect
 
 > Interface bilingue **FR / EN**. Données issues de YGOPRODeck, Yugipedia et YGOJSON.
 
+---
+
+## ⚠️ Disclaimer
+
+Il s'agit d'une application **« vibecodée »**. Je l'ai faite **pour moi** à l'origine, afin de simplifier le tri de mes collections de cartes dans les classeurs selon les **raretés** et leur **code set** (par exemple `RA02-FR001`). L'idée : visualiser ma collection sans avoir à tout compter à la main et me prendre la tête.
+
+Je la partage au cas où elle servirait à d'autres, mais elle reste un projet personnel, sans garantie ni support.
+
 <!-- Remplacez par vos propres captures -->
 <!-- ![Accueil](docs/screenshot_accueil.png) -->
 <!-- ![Classeur](docs/screenshot_classeur.png) -->
@@ -166,9 +174,13 @@ Merci à leurs équipes et à leurs contributeurs.
 
 ## Soutien
 
-Si cette application vous est utile, vous pouvez soutenir son développement :
+**Plutôt que de me soutenir, soutenez les projets et communautés sans lesquels cette application n'existerait pas.** Ce sont eux qui font tout le travail de fond — je n'ai fait que les assembler.
 
-☕ **Ko-fi** : https://ko-fi.com/althalusse
+- **YGOPRODeck** — base de données des cartes, sets et images — https://ygoprodeck.com
+- **Yugipedia** — raretés officielles, covers et artworks — https://yugipedia.com
+- **YGOJSON** — données de cartes structurées, open source — https://github.com/iconmaster5326/YGOJSON
+
+Un grand merci à leurs équipes et à leurs contributeurs.
 
 ---
 

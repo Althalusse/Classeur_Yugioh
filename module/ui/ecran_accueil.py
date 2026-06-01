@@ -779,6 +779,10 @@ class EcranAccueil(ctk.CTkFrame):
             parent, "📊  Statistiques",
             command=self._ouvrir_statistiques,
         ).pack(side="left", padx=4)
+        icon_button(
+            parent, t("inv.btn_nav"),
+            command=self._ouvrir_inventaire,
+        ).pack(side="left", padx=4)
         # Opérations sur les données
         icon_button(
             parent, "📋  Import/Export",
@@ -815,6 +819,10 @@ class EcranAccueil(ctk.CTkFrame):
     def _ouvrir_statistiques(self):
         if self._navigate_to:
             self._navigate_to("statistique")
+
+    def _ouvrir_inventaire(self):
+        if self._navigate_to:
+            self._navigate_to("inventaire")
 
     def _ouvrir_donation(self):
         if self._navigate_to:

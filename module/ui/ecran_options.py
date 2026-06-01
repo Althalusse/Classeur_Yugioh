@@ -262,17 +262,28 @@ class EcranOptions(ctk.CTkFrame):
             show_back=True, back_command=self._retour,
         ).pack(fill="x")
 
-        # Conteneur fixe du bandeau "redémarrage requis", placé ENTRE la
-        # navbar et le scroll. Le bandeau lui-même est packé/dépacké DANS ce
-        # holder (pas de before= sur le CTkScrollableFrame, qui échouait
-        # silencieusement). Holder transparent et vide tant qu'inutilisé.
-        self._restart_holder = ctk.CTkFrame(self, fg_color="transparent")
+        # Conteneur du bandeau "redémarrage requis", placé entre la navbar et
+        # le scroll (ordre de packing : navbar → holder → scroll). On NE peut
+        # PAS utiliser `before=self._scroll` car CTkScrollableFrame redirige son
+        # pack vers un canvas interne (self._scroll n'est pas le widget packé) :
+        # on packe donc le holder ici, à sa place définitive.
+        #
+        # Pour ne PAS réserver d'espace mort quand le bandeau est masqué (un
+        # CTkFrame vide occupe ~200 px), le holder est forcé à 0 px de hauteur
+        # (pack_propagate False) tant qu'on n'a rien à afficher. À l'affichage,
+        # on réactive pack_propagate(True) → il reprend la hauteur du bandeau.
+        self._restart_holder = ctk.CTkFrame(self, fg_color="transparent",
+                                            height=0)
         self._restart_holder.pack(fill="x")
+        self._restart_holder.pack_propagate(False)   # collapsé tant que vide
 
         self._restart_bar = ctk.CTkFrame(
             self._restart_holder, fg_color=C["bg2"],
             border_color=C["gold"], border_width=1, corner_radius=0,
         )
+        # Le bandeau est packé une fois pour toutes DANS le holder ; on montre /
+        # cache l'ensemble en jouant sur la hauteur du holder (collapse 0 px).
+        self._restart_bar.pack(fill="x")
         inner = ctk.CTkFrame(self._restart_bar, fg_color="transparent")
         inner.pack(fill="x", padx=24, pady=10)
         ctk.CTkLabel(
@@ -1254,14 +1265,16 @@ class EcranOptions(ctk.CTkFrame):
         s'il ne l'est pas déjà. Appelé par les réglages qui ne s'appliquent
         qu'au prochain démarrage (langue UI, taille de police)."""
         try:
-            if not self._restart_bar.winfo_ismapped():
-                self._restart_bar.pack(fill="x")
+            # Réactive l'ajustement à la hauteur du bandeau (sort du collapse).
+            self._restart_holder.pack_propagate(True)
         except Exception as e:
             log.warning(f"_demander_redemarrage: {e}")
 
     def _masquer_redemarrage(self):
         try:
-            self._restart_bar.pack_forget()
+            # Re-collapse le holder à 0 px (aucun espace mort sous la navbar).
+            self._restart_holder.pack_propagate(False)
+            self._restart_holder.configure(height=0)
         except Exception:
             pass
 

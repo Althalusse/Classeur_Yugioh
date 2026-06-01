@@ -27,6 +27,7 @@ from module.ui.ecran_selecteur_set import EcranSelecteurSet
 from module.ui.ecran_classeur import EcranClasseur
 from module.ui.ecran_options import EcranOptions
 from module.ui.ecran_statistique import EcranStatistiques
+from module.ui.ecran_inventaire import EcranInventaire
 from module.ui.ecran_donation import EcranDonation
 from module.ui.ecran_merci import EcranMerci
 from module.utilitaire.raccourcis import activer_raccourcis
@@ -82,6 +83,7 @@ class NavigationController(ctk.CTkFrame):
         self._screens["classeur"]      = EcranClasseur(self,      navigate_to=nav)
         self._screens["options"]       = EcranOptions(self,       navigate_to=nav)
         self._screens["statistique"]   = EcranStatistiques(self,  navigate_to=nav)
+        self._screens["inventaire"]    = EcranInventaire(self,    navigate_to=nav)
         self._screens["donation"]      = EcranDonation(self,      navigate_to=nav)
         self._screens["merci"]         = EcranMerci(self,         navigate_to=nav)
 
@@ -110,6 +112,8 @@ class NavigationController(ctk.CTkFrame):
         elif screen == "options":
             target.after_idle(target.charger)
         elif screen == "statistique":
+            target.after_idle(target.charger)
+        elif screen == "inventaire":
             target.after_idle(target.charger)
 
 
