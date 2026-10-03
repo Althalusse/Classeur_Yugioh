@@ -260,7 +260,9 @@ pub async fn telecharger(
     };
     let cible = destination(paths, code, &adresse);
 
-    client.attendre_quota(&adresse).await;
+    // Le quota est attendu par `get_ok`, avant chaque envoi — pas ici.
+    // Une seule requête Yugipedia en vol, corps compris.
+    let _jeton = ygo_sources::http::en_serie(&adresse).await;
     let Ok(reponse) = client.get_ok(&adresse).await else {
         return Ok(None);
     };

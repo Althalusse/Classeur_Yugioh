@@ -1,0 +1,161 @@
+{
+  "fixtures": [
+    {
+      "fichier": "V1.0.3_CH01.json",
+      "version": "V1.0.3",
+      "classeur": "CH01",
+      "cartes": 62
+    },
+    {
+      "fichier": "V1.0.3_CH02.json",
+      "version": "V1.0.3",
+      "classeur": "CH02",
+      "cartes": 62
+    },
+    {
+      "fichier": "V1.0.3_EGO1.json",
+      "version": "V1.0.3",
+      "classeur": "EGO1",
+      "cartes": 35
+    },
+    {
+      "fichier": "V1.0.3_EGS1.json",
+      "version": "V1.0.3",
+      "classeur": "EGS1",
+      "cartes": 38
+    },
+    {
+      "fichier": "V1.0.3_L26D.json",
+      "version": "V1.0.3",
+      "classeur": "L26D",
+      "cartes": 150
+    },
+    {
+      "fichier": "V1.0.3_LCKC.json",
+      "version": "V1.0.3",
+      "classeur": "LCKC",
+      "cartes": 110
+    },
+    {
+      "fichier": "V1.0.3_LDK2.json",
+      "version": "V1.0.3",
+      "classeur": "LDK2",
+      "cartes": 132
+    },
+    {
+      "fichier": "V1.0.3_LOCH-JP.json",
+      "version": "V1.0.3",
+      "classeur": "LOCH-JP",
+      "cartes": 313
+    },
+    {
+      "fichier": "V1.0.3_LOCR-JP.json",
+      "version": "V1.0.3",
+      "classeur": "LOCR-JP",
+      "cartes": 318
+    },
+    {
+      "fichier": "V1.0.3_MP24.json",
+      "version": "V1.0.3",
+      "classeur": "MP24",
+      "cartes": 398
+    },
+    {
+      "fichier": "V1.0.3_MP25.json",
+      "version": "V1.0.3",
+      "classeur": "MP25",
+      "cartes": 450
+    },
+    {
+      "fichier": "V1.0.3_RA02.json",
+      "version": "V1.0.3",
+      "classeur": "RA02",
+      "cartes": 567
+    },
+    {
+      "fichier": "V1.0.3_RA04.json",
+      "version": "V1.0.3",
+      "classeur": "RA04",
+      "cartes": 961
+    },
+    {
+      "fichier": "V1.0.3_RA05.json",
+      "version": "V1.0.3",
+      "classeur": "RA05",
+      "cartes": 694
+    },
+    {
+      "fichier": "V1.0.3_SDLI.json",
+      "version": "V1.0.3",
+      "classeur": "SDLI",
+      "cartes": 36
+    },
+    {
+      "fichier": "V1.0.3_SDWD.json",
+      "version": "V1.0.3",
+      "classeur": "SDWD",
+      "cartes": 49
+    },
+    {
+      "fichier": "V1.0.3_VASM.json",
+      "version": "V1.0.3",
+      "classeur": "VASM",
+      "cartes": 78
+    },
+    {
+      "fichier": "V1.0.4_EGO1.json",
+      "version": "V1.0.4",
+      "classeur": "EGO1",
+      "cartes": 43
+    },
+    {
+      "fichier": "V1.0.4_EGS1.json",
+      "version": "V1.0.4",
+      "classeur": "EGS1",
+      "cartes": 46
+    },
+    {
+      "fichier": "V1.0.4_LDK2.json",
+      "version": "V1.0.4",
+      "classeur": "LDK2",
+      "cartes": 262
+    },
+    {
+      "fichier": "V1.0.4_LOCR-JP.json",
+      "version": "V1.0.4",
+      "classeur": "LOCR-JP",
+      "cartes": 318
+    },
+    {
+      "fichier": "V1.0.4_RA02.json",
+      "version": "V1.0.4",
+      "classeur": "RA02",
+      "cartes": 1120
+    },
+    {
+      "fichier": "V1.0.4_RA05.json",
+      "version": "V1.0.4",
+      "classeur": "RA05",
+      "cartes": 695
+    },
+    {
+      "fichier": "V1.0.4_SDLI.json",
+      "version": "V1.0.4",
+      "classeur": "SDLI",
+      "cartes": 72
+    },
+    {
+      "fichier": "V1.0.4_SDWD.json",
+      "version": "V1.0.4",
+      "classeur": "SDWD",
+      "cartes": 49
+    },
+    {
+      "fichier": "V1.0.4_VASM.json",
+      "version": "V1.0.4",
+      "classeur": "VASM",
+      "cartes": 78
+    }
+  ],
+  "total_cartes": 7136
+}

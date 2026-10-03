@@ -1,0 +1,291 @@
+{
+  "cas": [
+    {
+      "version": "V1.0.3",
+      "classeur": "CH01",
+      "lignes": 62,
+      "extended_art": 0,
+      "suspect": true,
+      "moyenne": 1.24,
+      "cartes_uniques": 50,
+      "empreinte": "4f479919db268cb4b1b0e79f90b89872a529233a29f7b14aabac939b44a36cb9",
+      "fichier": "V1.0.3_CH01.json"
+    },
+    {
+      "version": "V1.0.3",
+      "classeur": "CH02",
+      "lignes": 62,
+      "extended_art": 0,
+      "suspect": true,
+      "moyenne": 1.24,
+      "cartes_uniques": 50,
+      "empreinte": "2159e52b5f65f5f323d88dd7bc81f6b088dca62f607b08772d0e35de82c2a757",
+      "fichier": "V1.0.3_CH02.json"
+    },
+    {
+      "version": "V1.0.3",
+      "classeur": "EGO1",
+      "lignes": 40,
+      "extended_art": 0,
+      "suspect": true,
+      "moyenne": 1.1428571428571428,
+      "cartes_uniques": 35,
+      "empreinte": "33c767671a0648e02074c5ea77fa2be6ecc4454b44df66ae302e7f69c4d45136",
+      "fichier": "V1.0.3_EGO1.json"
+    },
+    {
+      "version": "V1.0.3",
+      "classeur": "EGS1",
+      "lignes": 42,
+      "extended_art": 0,
+      "suspect": true,
+      "moyenne": 1.105263157894737,
+      "cartes_uniques": 38,
+      "empreinte": "5948602e4edf13ff48109ad481a9665e8f5fc5470dbed34c0003420b5f9774e7",
+      "fichier": "V1.0.3_EGS1.json"
+    },
+    {
+      "version": "V1.0.3",
+      "classeur": "L26D",
+      "lignes": 149,
+      "extended_art": 0,
+      "suspect": true,
+      "moyenne": 1.3925233644859814,
+      "cartes_uniques": 107,
+      "empreinte": "58cf50e1f8924b14681285c3955dc5248855e8c06eb0fa6fb6337dca1f46ea4f",
+      "fichier": "V1.0.3_L26D.json"
+    },
+    {
+      "version": "V1.0.3",
+      "classeur": "LCKC",
+      "lignes": 131,
+      "extended_art": 0,
+      "suspect": true,
+      "moyenne": 1.190909090909091,
+      "cartes_uniques": 110,
+      "empreinte": "58509c47b739730b0dbe2acea4651b841f4400681cdb5e607c27da4613e5411f",
+      "fichier": "V1.0.3_LCKC.json"
+    },
+    {
+      "version": "V1.0.3",
+      "classeur": "LDK2",
+      "lignes": 172,
+      "extended_art": 0,
+      "suspect": true,
+      "moyenne": 1.303030303030303,
+      "cartes_uniques": 132,
+      "empreinte": "93e4cc3ada97098527c3731885c9f8f4fef19fa2651fb43fdc82cfbc7cfd6421",
+      "fichier": "V1.0.3_LDK2.json"
+    },
+    {
+      "version": "V1.0.3",
+      "classeur": "LOCH-JP",
+      "lignes": 279,
+      "extended_art": 0,
+      "suspect": false,
+      "moyenne": 3.5316455696202533,
+      "cartes_uniques": 79,
+      "empreinte": "5782dc5d35a0042ccc642f5fd33b08d5cb24100fa3ab2a810012a24560ace22c",
+      "fichier": "V1.0.3_LOCH-JP.json"
+    },
+    {
+      "version": "V1.0.3",
+      "classeur": "LOCR-JP",
+      "lignes": 282,
+      "extended_art": 0,
+      "suspect": false,
+      "moyenne": 3.525,
+      "cartes_uniques": 80,
+      "empreinte": "3d4350df7715284065ec597c86fc6e3be71964d4e2b71a367293023a952c1803",
+      "fichier": "V1.0.3_LOCR-JP.json"
+    },
+    {
+      "version": "V1.0.3",
+      "classeur": "MP24",
+      "lignes": 400,
+      "extended_art": 0,
+      "suspect": true,
+      "moyenne": 1.0025062656641603,
+      "cartes_uniques": 399,
+      "empreinte": "65d2399c6911e52055aebde98505075b8a52333b93fb695bdec0f68ee0e11dd7",
+      "fichier": "V1.0.3_MP24.json"
+    },
+    {
+      "version": "V1.0.3",
+      "classeur": "MP25",
+      "lignes": 450,
+      "extended_art": 0,
+      "suspect": true,
+      "moyenne": 1.0,
+      "cartes_uniques": 450,
+      "empreinte": "0f601b82e0298de6a45c47e69f90e47bbcbdc7338e2f9cba8cbf1e4d641670f4",
+      "fichier": "V1.0.3_MP25.json"
+    },
+    {
+      "version": "V1.0.3",
+      "classeur": "RA02",
+      "lignes": 553,
+      "extended_art": 0,
+      "suspect": false,
+      "moyenne": 7.0,
+      "cartes_uniques": 79,
+      "empreinte": "c7d1bf9455446e090d965784c3441cf22f9c0595e75d3e3825dd1b791640714e",
+      "fichier": "V1.0.3_RA02.json"
+    },
+    {
+      "version": "V1.0.3",
+      "classeur": "RA04",
+      "lignes": 961,
+      "extended_art": 0,
+      "suspect": false,
+      "moyenne": 3.279863481228669,
+      "cartes_uniques": 293,
+      "empreinte": "d4c75d4dc1b5e4872fa63a1e85a0217d3c247455aad8f2410a2c97a17fd10489",
+      "fichier": "V1.0.3_RA04.json"
+    },
+    {
+      "version": "V1.0.3",
+      "classeur": "RA05",
+      "lignes": 228,
+      "extended_art": 0,
+      "suspect": true,
+      "moyenne": 1.52,
+      "cartes_uniques": 150,
+      "empreinte": "774342dc87d82ae4b6636daa74363bc066ea786f8a04e3773e40332e21e64820",
+      "fichier": "V1.0.3_RA05.json"
+    },
+    {
+      "version": "V1.0.3",
+      "classeur": "SDLI",
+      "lignes": 37,
+      "extended_art": 0,
+      "suspect": true,
+      "moyenne": 1.0277777777777777,
+      "cartes_uniques": 36,
+      "empreinte": "98af1988898453a04e38f75f7033f84e8fafae3b43e7094b647011c9a8cbb5c0",
+      "fichier": "V1.0.3_SDLI.json"
+    },
+    {
+      "version": "V1.0.3",
+      "classeur": "SDWD",
+      "lignes": 47,
+      "extended_art": 0,
+      "suspect": true,
+      "moyenne": 1.146341463414634,
+      "cartes_uniques": 41,
+      "empreinte": "b734e227c2f5cdb1773047242dc2808b12fdb7ca0aa3e73400835dd0a3774913",
+      "fichier": "V1.0.3_SDWD.json"
+    },
+    {
+      "version": "V1.0.3",
+      "classeur": "VASM",
+      "lignes": 78,
+      "extended_art": 0,
+      "suspect": true,
+      "moyenne": 1.3,
+      "cartes_uniques": 60,
+      "empreinte": "31355fbfe5c545a0604fdaa73d872aea16b6162dcfa8740ede98d3245bbd1861",
+      "fichier": "V1.0.3_VASM.json"
+    },
+    {
+      "version": "V1.0.4",
+      "classeur": "EGO1",
+      "lignes": 40,
+      "extended_art": 0,
+      "suspect": true,
+      "moyenne": 1.1428571428571428,
+      "cartes_uniques": 35,
+      "empreinte": "33c767671a0648e02074c5ea77fa2be6ecc4454b44df66ae302e7f69c4d45136",
+      "identique_a": "V1.0.3_EGO1.json"
+    },
+    {
+      "version": "V1.0.4",
+      "classeur": "EGS1",
+      "lignes": 42,
+      "extended_art": 0,
+      "suspect": true,
+      "moyenne": 1.105263157894737,
+      "cartes_uniques": 38,
+      "empreinte": "5948602e4edf13ff48109ad481a9665e8f5fc5470dbed34c0003420b5f9774e7",
+      "identique_a": "V1.0.3_EGS1.json"
+    },
+    {
+      "version": "V1.0.4",
+      "classeur": "LDK2",
+      "lignes": 172,
+      "extended_art": 0,
+      "suspect": true,
+      "moyenne": 1.303030303030303,
+      "cartes_uniques": 132,
+      "empreinte": "93e4cc3ada97098527c3731885c9f8f4fef19fa2651fb43fdc82cfbc7cfd6421",
+      "identique_a": "V1.0.3_LDK2.json"
+    },
+    {
+      "version": "V1.0.4",
+      "classeur": "LOCR-JP",
+      "lignes": 318,
+      "extended_art": 54,
+      "suspect": false,
+      "moyenne": 3.975,
+      "cartes_uniques": 80,
+      "empreinte": "140f63af830129225fae8a3a7ac3bf0fc59ec327fcd480eba7a7473c21d9a713",
+      "fichier": "V1.0.4_LOCR-JP.json"
+    },
+    {
+      "version": "V1.0.4",
+      "classeur": "RA02",
+      "lignes": 553,
+      "extended_art": 0,
+      "suspect": false,
+      "moyenne": 7.0,
+      "cartes_uniques": 79,
+      "empreinte": "c7d1bf9455446e090d965784c3441cf22f9c0595e75d3e3825dd1b791640714e",
+      "identique_a": "V1.0.3_RA02.json"
+    },
+    {
+      "version": "V1.0.4",
+      "classeur": "RA05",
+      "lignes": 228,
+      "extended_art": 0,
+      "suspect": true,
+      "moyenne": 1.52,
+      "cartes_uniques": 150,
+      "empreinte": "774342dc87d82ae4b6636daa74363bc066ea786f8a04e3773e40332e21e64820",
+      "identique_a": "V1.0.3_RA05.json"
+    },
+    {
+      "version": "V1.0.4",
+      "classeur": "SDLI",
+      "lignes": 37,
+      "extended_art": 0,
+      "suspect": true,
+      "moyenne": 1.0277777777777777,
+      "cartes_uniques": 36,
+      "empreinte": "98af1988898453a04e38f75f7033f84e8fafae3b43e7094b647011c9a8cbb5c0",
+      "identique_a": "V1.0.3_SDLI.json"
+    },
+    {
+      "version": "V1.0.4",
+      "classeur": "SDWD",
+      "lignes": 47,
+      "extended_art": 0,
+      "suspect": true,
+      "moyenne": 1.146341463414634,
+      "cartes_uniques": 41,
+      "empreinte": "b734e227c2f5cdb1773047242dc2808b12fdb7ca0aa3e73400835dd0a3774913",
+      "identique_a": "V1.0.3_SDWD.json"
+    },
+    {
+      "version": "V1.0.4",
+      "classeur": "VASM",
+      "lignes": 78,
+      "extended_art": 0,
+      "suspect": true,
+      "moyenne": 1.3,
+      "cartes_uniques": 60,
+      "empreinte": "31355fbfe5c545a0604fdaa73d872aea16b6162dcfa8740ede98d3245bbd1861",
+      "identique_a": "V1.0.3_VASM.json"
+    }
+  ],
+  "total_lignes": 5488
+}

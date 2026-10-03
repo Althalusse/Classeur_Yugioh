@@ -1,0 +1,54 @@
+{
+  "cas": [
+    {
+      "fichier": "L26D.json",
+      "set_code": "L26D",
+      "set_name": "Legendary Modern Decks 2026",
+      "lignes": 148,
+      "cartes_uniques": 0,
+      "moyenne": 0.0,
+      "suspect": false,
+      "fichier_capture": "L26D.json"
+    },
+    {
+      "fichier": "LDK2.json",
+      "set_code": "LDK2",
+      "set_name": "Legendary Decks II",
+      "lignes": 130,
+      "cartes_uniques": 0,
+      "moyenne": 0.0,
+      "suspect": false,
+      "fichier_capture": "LDK2.json"
+    },
+    {
+      "fichier": "RA02.json",
+      "set_code": "RA02",
+      "set_name": "25th Anniversary Rarity Collection II",
+      "lignes": 553,
+      "cartes_uniques": 0,
+      "moyenne": 0.0,
+      "suspect": false,
+      "fichier_capture": "RA02.json"
+    },
+    {
+      "fichier": "RA05.json",
+      "set_code": "RA05",
+      "set_name": "Rarity Collection 5",
+      "lignes": 692,
+      "cartes_uniques": 0,
+      "moyenne": 0.0,
+      "suspect": false,
+      "fichier_capture": "RA05.json"
+    },
+    {
+      "fichier": "SDWD.json",
+      "set_code": "SDWD",
+      "set_name": "Structure Deck: Blue-Eyes White Destiny",
+      "lignes": 49,
+      "cartes_uniques": 0,
+      "moyenne": 0.0,
+      "suspect": false,
+      "fichier_capture": "SDWD.json"
+    }
+  ]
+}

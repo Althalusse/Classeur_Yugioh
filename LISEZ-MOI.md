@@ -21,7 +21,7 @@ configuration à écrire.
 ```
 
 Au premier démarrage, l'application constate qu'elle n'a pas de base de
-référence et propose de la construire : **environ 35 Mo à télécharger, moins
+référence et propose de la construire : **environ 60 Mo à télécharger, moins
 d'une minute**. Elle en profite pour écrire ses priorités de rareté.
 
 Ensuite, `Lancer.ps1` suffit.

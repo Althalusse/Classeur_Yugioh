@@ -44,6 +44,7 @@ use ygo_app::artworks;
 use ygo_app::creation;
 use ygo_app::doublons;
 use ygo_app::images;
+use ygo_app::images_tirage;
 use ygo_app::init::{Etape, Options, Source};
 use ygo_app::overframe;
 use ygo_app::raretes;
@@ -85,6 +86,12 @@ async fn executer() -> anyhow::Result<bool> {
     // Le journal, dès qu'une installation est nommée : les commandes longues
     // — `init`, `creer`, `overframe` — y laissent une trace consultable après
     // coup, et la couche console duplique sur la sortie d'erreur.
+    // La mémoire des requêtes — seulement quand la cible est une installation
+    // (un dossier qui a son `bdd/`) : plusieurs commandes prennent un fichier.
+    if let Some(racine) = cible.as_ref().filter(|r| r.join("bdd").is_dir()) {
+        ygo_sources::cache::activer(&Paths::depuis_racine(racine).cache_http());
+    }
+
     let _journal = cible.as_ref().and_then(|racine| {
         let paths = Paths::depuis_racine(racine);
         let garde = ygo_core::log::installer(paths.logs()).ok()?;
@@ -116,6 +123,16 @@ async fn executer() -> anyhow::Result<bool> {
             cmd_artworks(&cible.context("chemin du .db du classeur attendu")?, reste).await
         }
         "raretes" => cmd_raretes(&cible.context("chemin de l'installation attendu")?, reste),
+        "images-tirage" => {
+            cmd_images_tirage(&cible.context("chemin de l'installation attendu")?, reste)
+        }
+        "noms-fr" => cmd_noms_fr(&cible.context("chemin de l'installation attendu")?, reste),
+        "reprise-images" => {
+            cmd_reprise_images(&cible.context("chemin de l'installation attendu")?, reste).await
+        }
+        "etats-defaut" => {
+            cmd_etats_defaut(&cible.context("chemin de l'installation attendu")?, reste)
+        }
         "doublons" => cmd_doublons(&cible.context("chemin de l'installation attendu")?, reste),
         "anomalies" => cmd_anomalies(&cible.context("chemin de l'installation attendu")?, reste),
         "images" => cmd_images(&cible.context("chemin de l'installation attendu")?, reste).await,
@@ -179,6 +196,17 @@ USAGE
         [--simuler]                   annule tout à la fin — n'écrit rien
         [--detail]                    dit ligne par ligne ce qui change
   ygo-cli raretes <installation>   canonise les libellés de rareté des classeurs
+        [--corriger]                  écrit — sans lui, rien n'est modifié
+        [--classeur CODE]             se limite à un classeur
+  ygo-cli images-tirage <installation>  pose l'image Yugipedia de chaque tirage
+        [--corriger]                  écrit — sans lui, rien n'est modifié
+        [--classeur CODE]             se limite à un classeur
+  ygo-cli noms-fr <installation>   pose les noms FR officiels de la base dans les classeurs
+        [--corriger]                  écrit — sans lui, rien n'est modifié
+        [--classeur CODE]             se limite à un classeur
+  ygo-cli reprise-images <installation>  demande à Yugipedia quels fichiers de repli il a désormais
+        [--corriger]                  écrit — sans lui, rien n'est modifié
+  ygo-cli etats-defaut <installation>  pose Mint et l'édition connue sur les possédées qui n'en ont pas
         [--corriger]                  écrit — sans lui, rien n'est modifié
         [--classeur CODE]             se limite à un classeur
   ygo-cli doublons <installation>  retire les lignes insérées à tort par la passe artworks
@@ -812,6 +840,303 @@ fn cmd_raretes(installation: &Path, args: &[String]) -> anyhow::Result<bool> {
     }
     if !corriger && total_corrections > 0 {
         println!();
+        println!("Relancer avec --corriger pour écrire.");
+    }
+    Ok(true)
+}
+
+/// `noms-fr` — ce que chaque mise à jour de la base fait d'elle-même pour les
+/// noms français ([`ygo_app::noms_fr`]) : poser le nom officiel là où il
+/// manque, remplacer celui qui en diffère, ne rien inventer, ne rien effacer.
+/// Sans `--corriger`, elle **n'écrit rien**.
+fn cmd_noms_fr(installation: &Path, args: &[String]) -> anyhow::Result<bool> {
+    let corriger = args.iter().any(|a| a == "--corriger");
+    let seul = args
+        .iter()
+        .position(|a| a == "--classeur")
+        .and_then(|i| args.get(i + 1))
+        .map(|c| c.to_uppercase());
+    let paths = Paths::depuis_racine(installation);
+    let cardinfo = ygo_db::connexion::ouvrir_lecture_seule(paths.cardinfo_db())
+        .context("cardinfo.db illisible")?;
+    let index = ygo_app::noms_fr::Index::charger(&cardinfo)?;
+    println!("Installation : {}", installation.display());
+    println!(
+        "Mode         : {}",
+        if corriger {
+            "ÉCRITURE"
+        } else {
+            "analyse seule — rien ne sera modifié"
+        }
+    );
+    println!();
+    println!(
+        "{:10} {:>6} {:>8} {:>8} {:>11} {:>12}",
+        "classeur", "lignes", "ajoutés", "corrigés", "sans source", "introuvables"
+    );
+    let (mut ajoutes, mut corriges, mut sans_source, mut introuvables) = (0, 0, 0, 0);
+    for code in paths.classeurs_existants() {
+        if seul.as_deref().is_some_and(|c| c != code) {
+            continue;
+        }
+        let mut conn = rusqlite::Connection::open(paths.classeur_db(&code))?;
+        let r = ygo_app::noms_fr::analyser(&conn, &index)?;
+        println!(
+            "{:10} {:>6} {:>8} {:>8} {:>11} {:>12}",
+            code, r.lues, r.ajoutes, r.corriges, r.sans_source, r.introuvables
+        );
+        if corriger && !r.a_poser.is_empty() {
+            ygo_app::noms_fr::appliquer(&mut conn, &r)?;
+        }
+        ajoutes += r.ajoutes;
+        corriges += r.corriges;
+        sans_source += r.sans_source;
+        introuvables += r.introuvables;
+    }
+    println!();
+    println!(
+        "{ajoutes} nom(s) FR posé(s), {corriges} corrigé(s) ; {sans_source} ligne(s) restent sans \
+         nom FR faute de source, {introuvables} carte(s) non retrouvée(s)."
+    );
+    if corriger {
+        println!("Écrit.");
+    } else if ajoutes + corriges > 0 {
+        println!("Relancer avec --corriger pour écrire.");
+    }
+    Ok(true)
+}
+
+/// `reprise-images` — ce que chaque mise à jour de la base fait d'elle-même
+/// ([`ygo_app::replis::reprendre`]) : reposer les images de tirage depuis la
+/// base, puis effacer les images servies par la source de repli et oublier
+/// leur 404, pour que la prochaine ouverture du classeur retente Yugipedia.
+///
+/// Elle demande à Yugipedia, une requête pour 50 fichiers, lesquels il a
+/// désormais. Sans `--corriger`, elle **n'écrit rien**.
+async fn cmd_reprise_images(installation: &Path, args: &[String]) -> anyhow::Result<bool> {
+    let corriger = args.iter().any(|a| a == "--corriger");
+    let paths = Paths::depuis_racine(installation);
+    ygo_sources::cache::activer(&paths.cache_http());
+    println!("Installation : {}", installation.display());
+    println!(
+        "Mode         : {}",
+        if corriger {
+            "ÉCRITURE"
+        } else {
+            "analyse seule — rien ne sera modifié"
+        }
+    );
+    let replis = ygo_app::replis::connus(&paths);
+    let noms = ygo_app::replis::noms_a_verifier(&replis);
+    println!();
+    println!("Replis connus : {}", replis.len());
+    for r in replis.iter().take(10) {
+        println!("  {}", r.destination);
+    }
+    if replis.len() > 10 {
+        println!("  … et {} autre(s)", replis.len() - 10);
+    }
+    if noms.is_empty() {
+        return Ok(true);
+    }
+    // Une requête pour 50 fichiers, sous quota et une à la fois.
+    let client = ygo_sources::ClientHttp::new()?;
+    let presents = ygo_sources::yugipedia::fichiers_existants(&client, &noms).await?;
+    println!(
+        "Yugipedia     : {} fichier(s) sur {} existent désormais ({} requête(s))",
+        presents.len(),
+        noms.len(),
+        noms.len()
+            .div_ceil(ygo_sources::yugipedia::TITRES_PAR_REQUETE)
+    );
+    for n in &presents {
+        println!("  + {n}");
+    }
+    if corriger {
+        let mut bilan = ygo_app::replis::Reprise::default();
+        ygo_app::replis::rouvrir(&paths, &replis, &presents, &mut bilan)?;
+        println!();
+        println!(
+            "{} rouvert(s), {} fichier(s) effacé(s) ; {} restent en repli jusqu'à la prochaine mise à jour.",
+            bilan.presents, bilan.effaces, bilan.absents
+        );
+        if bilan.presents > 0 {
+            println!("Les vraies images arriveront à la prochaine ouverture de leur classeur.");
+        }
+    } else if !presents.is_empty() {
+        println!();
+        println!("Relancer avec --corriger pour rouvrir ceux-là.");
+    }
+    Ok(true)
+}
+
+/// `etats-defaut` — pose l'état par défaut (Mint) et l'édition connue sur les
+/// cartes **déjà possédées** qui n'en ont pas.
+///
+/// Les cartes qui entrent dans la collection depuis le 2026-10-01 les
+/// reçoivent d'elles-mêmes ; celles d'avant, par cette commande. Rien de ce
+/// qui est renseigné n'est touché, et une édition n'est posée que si la base
+/// de cartes n'en connaît qu'une pour ce tirage. Sans `--corriger`, elle
+/// **n'écrit rien**.
+fn cmd_etats_defaut(installation: &Path, args: &[String]) -> anyhow::Result<bool> {
+    let corriger = args.iter().any(|a| a == "--corriger");
+    let seul = args
+        .iter()
+        .position(|a| a == "--classeur")
+        .and_then(|i| args.get(i + 1))
+        .map(|c| c.to_uppercase());
+
+    let paths = Paths::depuis_racine(installation);
+    println!("Installation : {}", installation.display());
+    println!(
+        "Mode         : {}",
+        if corriger {
+            "ÉCRITURE"
+        } else {
+            "analyse seule — rien ne sera modifié"
+        }
+    );
+    println!(
+        "Défaut       : état « {} », édition quand la base n'en connaît qu'une",
+        ygo_app::exemplaires::QUALITE_PAR_DEFAUT
+    );
+    println!();
+    println!(
+        "{:10} {:>9} {:>8} {:>8} {:>10}",
+        "classeur", "possédées", "état", "édition", "éd. ?"
+    );
+
+    let mut total = ygo_app::exemplaires::Completion::default();
+    for classeur in accueil::lister(&paths, (3, 3)) {
+        if seul.as_deref().is_some_and(|c| c != classeur.code) {
+            continue;
+        }
+        let db = paths.classeur_db(&classeur.code);
+        if !db.is_file() {
+            continue;
+        }
+        let mut conn = rusqlite::Connection::open(&db)?;
+        let defauts = ygo_app::exemplaires::Defauts::charger(&paths, &conn);
+        let c = ygo_app::exemplaires::completer_classeur(&mut conn, &defauts, corriger)?;
+        if c.possedees == 0 {
+            continue;
+        }
+        println!(
+            "{:10} {:>9} {:>8} {:>8} {:>10}",
+            classeur.code, c.possedees, c.qualites, c.editions, c.editions_inconnues
+        );
+        total.possedees += c.possedees;
+        total.qualites += c.qualites;
+        total.editions += c.editions;
+        total.editions_inconnues += c.editions_inconnues;
+    }
+    println!();
+    println!(
+        "{} possédée(s) : {} reçoivent l'état « {} », {} leur édition ; \
+         {} restent sans édition (la base en connaît plusieurs, ou aucune)",
+        total.possedees,
+        total.qualites,
+        ygo_app::exemplaires::QUALITE_PAR_DEFAUT,
+        total.editions,
+        total.editions_inconnues
+    );
+    if corriger {
+        println!("Écrit.");
+    } else if total.qualites + total.editions > 0 {
+        println!("Relancer avec --corriger pour écrire.");
+    }
+    Ok(true)
+}
+
+/// `images-tirage` — pose l'image Yugipedia de chaque tirage dans les classeurs
+/// déjà créés.
+///
+/// Les classeurs créés depuis le 2026-09-30 la reçoivent à la création ; ceux
+/// d'avant, par cette commande. Sans `--corriger`, elle **n'écrit rien**. Seule
+/// `card_image_url` change — ni possession, ni quantité, ni état, ni édition.
+/// Les images elles-mêmes arrivent à la prochaine ouverture du classeur.
+fn cmd_images_tirage(installation: &Path, args: &[String]) -> anyhow::Result<bool> {
+    let corriger = args.iter().any(|a| a == "--corriger");
+    let seul = args
+        .iter()
+        .position(|a| a == "--classeur")
+        .and_then(|i| args.get(i + 1))
+        .map(|c| c.to_uppercase());
+
+    let paths = Paths::depuis_racine(installation);
+    let reference = Priorites::charger(paths.rarity_config());
+    let cardinfo = ygo_db::connexion::ouvrir_lecture_seule(paths.cardinfo_db())
+        .context("cardinfo.db illisible")?;
+    println!("Installation : {}", installation.display());
+    println!(
+        "Mode         : {}",
+        if corriger {
+            "ÉCRITURE"
+        } else {
+            "analyse seule — rien ne sera modifié"
+        }
+    );
+    println!();
+    println!(
+        "{:10} {:>6} {:>7} {:>6} {:>8} {:>8} {:>8} {:>7} {:>7}",
+        "classeur",
+        "lignes",
+        "à poser",
+        "déjà",
+        "artworks",
+        "sans tir",
+        "sans img",
+        "ambigu",
+        "rendues"
+    );
+
+    let mut total = images_tirage::Rapport::default();
+    for classeur in accueil::lister(&paths, (3, 3)) {
+        if seul.as_deref().is_some_and(|c| c != classeur.code) {
+            continue;
+        }
+        let db = paths.classeur_db(&classeur.code);
+        if !db.is_file() {
+            continue;
+        }
+        let mut conn = rusqlite::Connection::open(&db)?;
+        let r = images_tirage::analyser(&conn, &cardinfo, &reference)?;
+        println!(
+            "{:10} {:>6} {:>7} {:>6} {:>8} {:>8} {:>8} {:>7} {:>7}",
+            classeur.code,
+            r.lues,
+            r.a_poser.len() - r.rendues,
+            r.deja,
+            r.servies_artworks,
+            r.sans_tirage,
+            r.sans_image,
+            r.ambigues,
+            r.rendues
+        );
+        if corriger && !r.a_poser.is_empty() {
+            images_tirage::appliquer(&mut conn, &r)?;
+        }
+        total.lues += r.lues;
+        total.a_poser.extend(r.a_poser);
+        total.deja += r.deja;
+        total.servies_artworks += r.servies_artworks;
+        total.sans_tirage += r.sans_tirage;
+        total.sans_image += r.sans_image;
+        total.ambigues += r.ambigues;
+        total.rendues += r.rendues;
+    }
+    println!();
+    println!(
+        "{} ligne(s) : {} avec l'image de leur tirage, {} déjà servies par la passe artworks, \
+         {} gardent leur image actuelle",
+        total.lues,
+        total.couvertes(),
+        total.servies_artworks,
+        total.lues - total.couvertes() - total.servies_artworks
+    );
+    if corriger {
+        println!("Écrit. Les images arriveront à la prochaine ouverture de chaque classeur.");
+    } else if !total.a_poser.is_empty() {
         println!("Relancer avec --corriger pour écrire.");
     }
     Ok(true)
@@ -1828,12 +2153,6 @@ async fn cmd_importer(
             let mut quoi = Vec::new();
             if f.perte.langue {
                 quoi.push("langue");
-            }
-            if f.perte.edition {
-                quoi.push("édition");
-            }
-            if f.perte.qualite {
-                quoi.push("état");
             }
             println!(
                 "  {} {} — lignes {:?} sur une seule ligne de base ({})",

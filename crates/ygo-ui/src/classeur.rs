@@ -93,6 +93,10 @@ pub struct EcranClasseur {
     options: bool,
     /// Le `set_code` de la carte dont on veut voir les artworks.
     artworks: Option<String>,
+    /// La fenêtre « Qualité… », quand elle est ouverte.
+    qualite: Option<crate::exemplaires::Fenetre>,
+    /// Ce que reçoit une carte qui entre dans la collection.
+    defauts: ygo_app::exemplaires::Defauts,
     /// La bascule de masse en cours de confirmation, et l'état lu **une
     /// fois** à l'ouverture de la boîte.
     a_basculer: Option<(ygo_app::possession::Bascule, ygo_app::possession::Etat)>,
@@ -165,6 +169,10 @@ impl EcranClasseur {
 
         let depart = Instant::now();
         let conn = ygo_db::connexion::ouvrir(&chemin)?;
+        // Ce que reçoit une carte qui entre dans la collection : Mint, et
+        // l'édition connue du tirage. Lu une fois — `cardinfo.db` ne change
+        // pas pendant qu'on regarde un classeur.
+        let defauts = ygo_app::exemplaires::Defauts::charger(&paths, &conn);
         // L'ordre du classeur s'il en a un, celui des Options sinon — même
         // règle que la grille, juste au-dessus.
         let ordre = classeur::ordre_du_classeur(&chemin, config.ordre_tri());
@@ -204,6 +212,8 @@ impl EcranClasseur {
             conn,
             en_attente: Vec::new(),
             artworks: None,
+            qualite: None,
+            defauts,
             a_basculer: None,
             reglages: None,
             focus_recherche: false,
@@ -326,6 +336,7 @@ impl eframe::App for EcranClasseur {
         self.barre_du_bas(racine);
         self.pages(racine);
         self.montrer_la_fiche(racine.ctx());
+        self.montrer_la_qualite(racine.ctx());
         self.confirmation_bascule(racine.ctx());
         self.panneau_reglages(racine.ctx());
         self.appliquer_actions();
@@ -333,6 +344,68 @@ impl eframe::App for EcranClasseur {
 }
 
 impl EcranClasseur {
+    /// Ouvre la fenêtre « Qualité… » d'une ligne.
+    ///
+    /// Lue par la connexion de l'écran — le seul écrivain de ce classeur
+    /// (règle R3).
+    fn ouvrir_la_qualite(&mut self, rowid: i64) {
+        match ygo_app::exemplaires::lire(&self.conn, rowid) {
+            Ok(Some(exemplaires)) => {
+                let titre = self
+                    .toutes
+                    .iter()
+                    .find(|c| c.rowid == rowid)
+                    .map_or_else(String::new, |c| {
+                        format!("{} — {} — {}", c.nom, c.set_code, c.rarete)
+                    });
+                self.qualite = Some(crate::exemplaires::Fenetre {
+                    rowid,
+                    titre,
+                    exemplaires,
+                    erreur: None,
+                });
+            }
+            Ok(None) => tracing::warn!(rowid, "qualité : ligne introuvable"),
+            Err(e) => tracing::warn!(rowid, erreur = %e, "qualité : lecture impossible"),
+        }
+    }
+
+    /// Dessine la fenêtre « Qualité… », et écrit ce qu'elle demande.
+    fn montrer_la_qualite(&mut self, ctx: &egui::Context) {
+        let Some(fenetre) = self.qualite.as_mut() else {
+            return;
+        };
+        let (ouverte, demande) = fenetre.montrer(ctx);
+        let rowid = fenetre.rowid;
+        if let Some(demande) = demande {
+            match ygo_app::exemplaires::appliquer(&mut self.conn, rowid, &demande, &self.defauts) {
+                Ok(Some(exemplaires)) => {
+                    let quantite = exemplaires.quantite;
+                    fenetre.exemplaires = exemplaires;
+                    fenetre.erreur = None;
+                    for liste in [&mut self.toutes, &mut self.visibles] {
+                        if let Some(carte) = liste.iter_mut().find(|c| c.rowid == rowid) {
+                            carte.quantite = quantite;
+                            carte.possedee = quantite > 0;
+                        }
+                    }
+                }
+                Ok(None) => fenetre.erreur = Some("Cette carte n'existe plus.".to_owned()),
+                Err(e) => {
+                    tracing::warn!(rowid, erreur = %e, "qualité non écrite");
+                    fenetre.erreur = Some(e.to_string());
+                }
+            }
+        }
+        if !ouverte {
+            self.qualite = None;
+            // Une quantité changée peut faire sortir la carte du filtre.
+            if self.filtres.possession != Possession::Toutes || self.filtres.n_raretes > 0 {
+                self.refiltrer();
+            }
+        }
+    }
+
     /// Ouvre la fiche sur une ligne du classeur.
     ///
     /// Une lecture ratée n'ouvre rien : mieux vaut ne rien voir se passer
@@ -990,14 +1063,19 @@ impl EcranClasseur {
             let (rowid, resultat) = match action {
                 Action::Ajuster { rowid, delta } => (
                     rowid,
-                    ygo_app::possession::ajuster(&mut self.conn, rowid, delta),
+                    ygo_app::possession::ajuster(&mut self.conn, rowid, delta, &self.defauts),
                 ),
                 Action::RemettreAZero { rowid } => (
                     rowid,
-                    ygo_app::possession::regler_quantite(&self.conn, rowid, 0).map(|_| Some(0)),
+                    ygo_app::possession::regler_quantite(&self.conn, rowid, 0, &self.defauts)
+                        .map(|_| Some(0)),
                 ),
                 Action::OuvrirFiche(rowid) => {
                     self.ouvrir_la_fiche(rowid);
+                    continue;
+                }
+                Action::Qualite(rowid) => {
+                    self.ouvrir_la_qualite(rowid);
                     continue;
                 }
                 // L'écran est le seul écrivain de ce classeur tant qu'il est
@@ -1006,7 +1084,7 @@ impl EcranClasseur {
                 Action::Basculer(bascule) => {
                     let resultat = match bascule {
                         ygo_app::possession::Bascule::ToutPosseder => {
-                            ygo_app::possession::tout_posseder(&self.conn)
+                            ygo_app::possession::tout_posseder(&self.conn, &self.defauts)
                         }
                         ygo_app::possession::Bascule::ToutRemettreAZero => {
                             ygo_app::possession::tout_remettre_a_zero(&self.conn)
@@ -1569,8 +1647,14 @@ impl EcranClasseur {
                 self.artworks = Some(code.clone());
                 ui.close();
             }
-            ui.add_enabled(false, egui::Button::new("Qualité…"))
-                .on_disabled_hover_text("le dialogue de carte n'est pas encore porté");
+            if ui
+                .button("Qualité…")
+                .on_hover_text("L'état et l'édition de chaque exemplaire")
+                .clicked()
+            {
+                self.en_attente.push(Action::Qualite(rowid));
+                ui.close();
+            }
         });
     }
 }
@@ -1668,6 +1752,9 @@ pub enum Action {
     /// dessin de la page reviendrait à muter l'écran qu'on est en train de
     /// parcourir.
     OuvrirFiche(i64),
+    /// Ouvrir la fenêtre « Qualité… » d'une carte — ses exemplaires, un par
+    /// un (R5, devenu S15 le 2026-10-01).
+    Qualite(i64),
 }
 
 /// Dispose les cases d'une page en `lignes` rangées de `colonnes`.

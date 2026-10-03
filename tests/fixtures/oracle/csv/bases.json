@@ -1,0 +1,8413 @@
+{
+ "EGO1": [
+  {
+   "card_image_id": 10000000,
+   "name": "Obelisk the Tormentor",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Ultra Rare",
+   "rowid": 1,
+   "set_code": "EGO1-EN001"
+  },
+  {
+   "card_image_id": 5253985,
+   "name": "Soul Crossing",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Ultra Rare",
+   "rowid": 2,
+   "set_code": "EGO1-EN002"
+  },
+  {
+   "card_image_id": 79868386,
+   "name": "Fist of Fate",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Ultra Rare",
+   "rowid": 3,
+   "set_code": "EGO1-EN003"
+  },
+  {
+   "card_image_id": 7373632,
+   "name": "Divine Evolution",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Ultra Rare",
+   "rowid": 4,
+   "set_code": "EGO1-EN004"
+  },
+  {
+   "card_image_id": 86133013,
+   "name": "Level Resist Wall",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Super Rare",
+   "rowid": 5,
+   "set_code": "EGO1-EN005"
+  },
+  {
+   "card_image_id": 82243738,
+   "name": "Angel O1",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Super Rare",
+   "rowid": 6,
+   "set_code": "EGO1-EN006"
+  },
+  {
+   "card_image_id": 22567609,
+   "name": "Nimble Momonga",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 7,
+   "set_code": "EGO1-EN007"
+  },
+  {
+   "card_image_id": 40133511,
+   "name": "Bazoo the Soul-Eater",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 8,
+   "set_code": "EGO1-EN008"
+  },
+  {
+   "card_image_id": 70095155,
+   "name": "Cyber Dragon",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 9,
+   "set_code": "EGO1-EN009"
+  },
+  {
+   "card_image_id": 68473226,
+   "name": "Hardened Armed Dragon",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 10,
+   "set_code": "EGO1-EN010"
+  },
+  {
+   "card_image_id": 5220687,
+   "name": "Super-Nimble Mega Hamster",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 11,
+   "set_code": "EGO1-EN011"
+  },
+  {
+   "card_image_id": 8814959,
+   "name": "Evilswarm Mandragora",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 12,
+   "set_code": "EGO1-EN012"
+  },
+  {
+   "card_image_id": 80495985,
+   "name": "Photon Sabre Tiger",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 13,
+   "set_code": "EGO1-EN013"
+  },
+  {
+   "card_image_id": 4058065,
+   "name": "Evilswarm Salamandra",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 14,
+   "set_code": "EGO1-EN014"
+  },
+  {
+   "card_image_id": 74875003,
+   "name": "Ra's Disciple",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 15,
+   "set_code": "EGO1-EN015"
+  },
+  {
+   "card_image_id": 24218047,
+   "name": "Unmasked Dragon",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 16,
+   "set_code": "EGO1-EN016"
+  },
+  {
+   "card_image_id": 54537489,
+   "name": "Mare Mare",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Super Rare",
+   "rowid": 17,
+   "set_code": "EGO1-EN017"
+  },
+  {
+   "card_image_id": 68353324,
+   "name": "Nimble Beaver",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 18,
+   "set_code": "EGO1-EN018"
+  },
+  {
+   "card_image_id": 44656450,
+   "name": "Condemned Witch",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 19,
+   "set_code": "EGO1-EN019"
+  },
+  {
+   "card_image_id": 90361289,
+   "name": "Gizmek Uka, the Festive Fox of Fecundity",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 20,
+   "set_code": "EGO1-EN020"
+  },
+  {
+   "card_image_id": 46809548,
+   "name": "Gizmek Makami, the Ferocious Fanged Fortress",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 21,
+   "set_code": "EGO1-EN021"
+  },
+  {
+   "card_image_id": 18144507,
+   "name": "Harpie's Feather Duster",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Super Rare",
+   "rowid": 22,
+   "set_code": "EGO1-EN022"
+  },
+  {
+   "card_image_id": 87910978,
+   "name": "Brain Control",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 23,
+   "set_code": "EGO1-EN023"
+  },
+  {
+   "card_image_id": 83764719,
+   "name": "Monster Reborn",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 24,
+   "set_code": "EGO1-EN024"
+  },
+  {
+   "card_image_id": 11961740,
+   "name": "Different Dimension Capsule",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 25,
+   "set_code": "EGO1-EN025"
+  },
+  {
+   "card_image_id": 67169062,
+   "name": "Pot of Avarice",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 26,
+   "set_code": "EGO1-EN026"
+  },
+  {
+   "card_image_id": 43422537,
+   "name": "Double Summon",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 27,
+   "set_code": "EGO1-EN027"
+  },
+  {
+   "card_image_id": 25789292,
+   "name": "Forbidden Chalice",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 28,
+   "set_code": "EGO1-EN028"
+  },
+  {
+   "card_image_id": 27243130,
+   "name": "Forbidden Lance",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 29,
+   "set_code": "EGO1-EN029"
+  },
+  {
+   "card_image_id": 96864811,
+   "name": "Forbidden Dress",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 30,
+   "set_code": "EGO1-EN030"
+  },
+  {
+   "card_image_id": 17626381,
+   "name": "Supply Squad",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 31,
+   "set_code": "EGO1-EN031"
+  },
+  {
+   "card_image_id": 79844764,
+   "name": "The Monarchs Stormforth",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 32,
+   "set_code": "EGO1-EN032"
+  },
+  {
+   "card_image_id": 97077563,
+   "name": "Call of the Haunted",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 33,
+   "set_code": "EGO1-EN033"
+  },
+  {
+   "card_image_id": 86871614,
+   "name": "Cloning",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 34,
+   "set_code": "EGO1-EN034"
+  },
+  {
+   "card_image_id": 47475363,
+   "name": "Drowning Mirror Force",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 35,
+   "set_code": "EGO1-EN035"
+  }
+ ],
+ "EGS1": [
+  {
+   "card_image_id": 10000022,
+   "name": "Slifer the Sky Dragon",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Ultra Rare",
+   "rowid": 1,
+   "set_code": "EGS1-EN001"
+  },
+  {
+   "card_image_id": 5253985,
+   "name": "Soul Crossing",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Ultra Rare",
+   "rowid": 2,
+   "set_code": "EGS1-EN002"
+  },
+  {
+   "card_image_id": 42469671,
+   "name": "Thunderforce Attack",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Ultra Rare",
+   "rowid": 3,
+   "set_code": "EGS1-EN003"
+  },
+  {
+   "card_image_id": 32247099,
+   "name": "Ultimate Divine-Beast",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Super Rare",
+   "rowid": 4,
+   "set_code": "EGS1-EN004"
+  },
+  {
+   "card_image_id": 5130393,
+   "name": "Millennium Seeker",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Ultra Rare",
+   "rowid": 5,
+   "set_code": "EGS1-EN005"
+  },
+  {
+   "card_image_id": 19280589,
+   "name": "Tellus the Little Angel",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Super Rare",
+   "rowid": 6,
+   "set_code": "EGS1-EN006"
+  },
+  {
+   "card_image_id": 71413901,
+   "name": "Breaker the Magical Warrior",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 7,
+   "set_code": "EGS1-EN007"
+  },
+  {
+   "card_image_id": 78651105,
+   "name": "Beast King Barbaros",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 8,
+   "set_code": "EGS1-EN008"
+  },
+  {
+   "card_image_id": 27198001,
+   "name": "Nine-Tailed Fox",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 9,
+   "set_code": "EGS1-EN009"
+  },
+  {
+   "card_image_id": 12958919,
+   "name": "Phantom Skyblaster",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 10,
+   "set_code": "EGS1-EN010"
+  },
+  {
+   "card_image_id": 4694209,
+   "name": "Card Guard",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 11,
+   "set_code": "EGS1-EN011"
+  },
+  {
+   "card_image_id": 67692580,
+   "name": "Caligo Claw Crow",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 12,
+   "set_code": "EGS1-EN012"
+  },
+  {
+   "card_image_id": 34710660,
+   "name": "Electromagnetic Turtle",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 13,
+   "set_code": "EGS1-EN013"
+  },
+  {
+   "card_image_id": 22923081,
+   "name": "Breaker the Dark Magical Warrior",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 14,
+   "set_code": "EGS1-EN014"
+  },
+  {
+   "card_image_id": 67284107,
+   "name": "Scapeghost",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 15,
+   "set_code": "EGS1-EN015"
+  },
+  {
+   "card_image_id": 86377375,
+   "name": "Ahrima, the Wicked Warden",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 16,
+   "set_code": "EGS1-EN016"
+  },
+  {
+   "card_image_id": 12766474,
+   "name": "Duke Shade, the Sinister Shadow Lord",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 17,
+   "set_code": "EGS1-EN017"
+  },
+  {
+   "card_image_id": 21830679,
+   "name": "Clock Wyvern",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 18,
+   "set_code": "EGS1-EN018"
+  },
+  {
+   "card_image_id": 23431858,
+   "name": "Tenyi Spirit - Vishuda",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 19,
+   "set_code": "EGS1-EN019"
+  },
+  {
+   "card_image_id": 79387392,
+   "name": "Reactor Slime",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Super Rare",
+   "rowid": 20,
+   "set_code": "EGS1-EN020"
+  },
+  {
+   "card_image_id": 72302403,
+   "name": "Swords of Revealing Light",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 21,
+   "set_code": "EGS1-EN021"
+  },
+  {
+   "card_image_id": 18144507,
+   "name": "Harpie's Feather Duster",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Super Rare",
+   "rowid": 22,
+   "set_code": "EGS1-EN022"
+  },
+  {
+   "card_image_id": 83764719,
+   "name": "Monster Reborn",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 23,
+   "set_code": "EGS1-EN023"
+  },
+  {
+   "card_image_id": 14087893,
+   "name": "Book of Moon",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 24,
+   "set_code": "EGS1-EN024"
+  },
+  {
+   "card_image_id": 98045062,
+   "name": "Enemy Controller",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 25,
+   "set_code": "EGS1-EN025"
+  },
+  {
+   "card_image_id": 67169062,
+   "name": "Pot of Avarice",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 26,
+   "set_code": "EGS1-EN026"
+  },
+  {
+   "card_image_id": 19870120,
+   "name": "March of the Monarchs",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 27,
+   "set_code": "EGS1-EN027"
+  },
+  {
+   "card_image_id": 17626381,
+   "name": "Supply Squad",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 28,
+   "set_code": "EGS1-EN028"
+  },
+  {
+   "card_image_id": 52112003,
+   "name": "Card Advance",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 29,
+   "set_code": "EGS1-EN029"
+  },
+  {
+   "card_image_id": 39913299,
+   "name": "The True Name",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 30,
+   "set_code": "EGS1-EN030"
+  },
+  {
+   "card_image_id": 93104632,
+   "name": "One-Time Passcode",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 31,
+   "set_code": "EGS1-EN031"
+  },
+  {
+   "card_image_id": 59160188,
+   "name": "Lair of Darkness",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 32,
+   "set_code": "EGS1-EN032"
+  },
+  {
+   "card_image_id": 856784,
+   "name": "Draw of Fate",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 33,
+   "set_code": "EGS1-EN033"
+  },
+  {
+   "card_image_id": 44095762,
+   "name": "Mirror Force",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 34,
+   "set_code": "EGS1-EN034"
+  },
+  {
+   "card_image_id": 37576645,
+   "name": "Reckless Greed",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 35,
+   "set_code": "EGS1-EN035"
+  },
+  {
+   "card_image_id": 26905245,
+   "name": "Metal Reflect Slime",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 36,
+   "set_code": "EGS1-EN036"
+  },
+  {
+   "card_image_id": 42671151,
+   "name": "The Golden Apples",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 37,
+   "set_code": "EGS1-EN037"
+  },
+  {
+   "card_image_id": 59919307,
+   "name": "Back to the Front",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 38,
+   "set_code": "EGS1-EN038"
+  }
+ ],
+ "LDK2": [
+  {
+   "card_image_id": 74677422,
+   "name": "Red-Eyes Black Dragon",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 1,
+   "set_code": "LDK2-ENJ01"
+  },
+  {
+   "card_image_id": 30079770,
+   "name": "Red-Eyes Black Flare Dragon",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 2,
+   "set_code": "LDK2-ENJ02"
+  },
+  {
+   "card_image_id": 39357122,
+   "name": "Red-Eyes Archfiend of Lightning",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 3,
+   "set_code": "LDK2-ENJ03"
+  },
+  {
+   "card_image_id": 53485634,
+   "name": "Red-Eyes Retro Dragon",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 4,
+   "set_code": "LDK2-ENJ04"
+  },
+  {
+   "card_image_id": 66574418,
+   "name": "The Black Stone of Legend",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Ultra Rare",
+   "rowid": 5,
+   "set_code": "LDK2-ENJ05"
+  },
+  {
+   "card_image_id": 93969023,
+   "name": "Black Metal Dragon",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 6,
+   "set_code": "LDK2-ENJ06"
+  },
+  {
+   "card_image_id": 48305365,
+   "name": "Axe Raider",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 7,
+   "set_code": "LDK2-ENJ07"
+  },
+  {
+   "card_image_id": 64428736,
+   "name": "Alligator's Sword",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 8,
+   "set_code": "LDK2-ENJ08"
+  },
+  {
+   "card_image_id": 88819587,
+   "name": "Baby Dragon",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 9,
+   "set_code": "LDK2-ENJ09"
+  },
+  {
+   "card_image_id": 77585513,
+   "name": "Jinzo",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 10,
+   "set_code": "LDK2-ENJ10"
+  },
+  {
+   "card_image_id": 78658564,
+   "name": "Goblin Attack Force",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 11,
+   "set_code": "LDK2-ENJ11"
+  },
+  {
+   "card_image_id": 423705,
+   "name": "Gearfried the Iron Knight",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 12,
+   "set_code": "LDK2-ENJ12"
+  },
+  {
+   "card_image_id": 30860696,
+   "name": "Rocket Warrior",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 13,
+   "set_code": "LDK2-ENJ13"
+  },
+  {
+   "card_image_id": 50903514,
+   "name": "Blue Flame Swordsman",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 14,
+   "set_code": "LDK2-ENJ14"
+  },
+  {
+   "card_image_id": 71625222,
+   "name": "Time Wizard",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 15,
+   "set_code": "LDK2-ENJ15"
+  },
+  {
+   "card_image_id": 69488544,
+   "name": "Phoenix Gearfried",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 16,
+   "set_code": "LDK2-ENJ16"
+  },
+  {
+   "card_image_id": 19041767,
+   "name": "Gemini Summoner",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 17,
+   "set_code": "LDK2-ENJ17"
+  },
+  {
+   "card_image_id": 16984449,
+   "name": "Blazewing Butterfly",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 18,
+   "set_code": "LDK2-ENJ18"
+  },
+  {
+   "card_image_id": 83269557,
+   "name": "Dark Valkyria",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 19,
+   "set_code": "LDK2-ENJ19"
+  },
+  {
+   "card_image_id": 10375182,
+   "name": "Command Knight",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 20,
+   "set_code": "LDK2-ENJ20"
+  },
+  {
+   "card_image_id": 99348756,
+   "name": "Valkyrian Knight",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 21,
+   "set_code": "LDK2-ENJ21"
+  },
+  {
+   "card_image_id": 66752837,
+   "name": "Keeper of the Shrine",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 22,
+   "set_code": "LDK2-ENJ22"
+  },
+  {
+   "card_image_id": 52684508,
+   "name": "Inferno Fire Blast",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 23,
+   "set_code": "LDK2-ENJ23"
+  },
+  {
+   "card_image_id": 6172122,
+   "name": "Red-Eyes Fusion",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 24,
+   "set_code": "LDK2-ENJ24"
+  },
+  {
+   "card_image_id": 32566831,
+   "name": "Cards of the Red Stone",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 25,
+   "set_code": "LDK2-ENJ25"
+  },
+  {
+   "card_image_id": 24094653,
+   "name": "Polymerization",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 26,
+   "set_code": "LDK2-ENJ26"
+  },
+  {
+   "card_image_id": 32268901,
+   "name": "Salamandra",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 27,
+   "set_code": "LDK2-ENJ27"
+  },
+  {
+   "card_image_id": 73915051,
+   "name": "Scapegoat",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 28,
+   "set_code": "LDK2-ENJ28"
+  },
+  {
+   "card_image_id": 81439173,
+   "name": "Foolish Burial",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 29,
+   "set_code": "LDK2-ENJ29"
+  },
+  {
+   "card_image_id": 36708764,
+   "name": "Roulette Spider",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 30,
+   "set_code": "LDK2-ENJ30"
+  },
+  {
+   "card_image_id": 95750695,
+   "name": "Supervise",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 31,
+   "set_code": "LDK2-ENJ31"
+  },
+  {
+   "card_image_id": 5318639,
+   "name": "Mystical Space Typhoon",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 32,
+   "set_code": "LDK2-ENJ32"
+  },
+  {
+   "card_image_id": 78794994,
+   "name": "Symbols of Duty",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 33,
+   "set_code": "LDK2-ENJ33"
+  },
+  {
+   "card_image_id": 39387565,
+   "name": "Return of the Red-Eyes",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Ultra Rare",
+   "rowid": 34,
+   "set_code": "LDK2-ENJ34"
+  },
+  {
+   "card_image_id": 44397496,
+   "name": "Red-Eyes Spirit",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 35,
+   "set_code": "LDK2-ENJ35"
+  },
+  {
+   "card_image_id": 37390589,
+   "name": "Kunai with Chain",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 36,
+   "set_code": "LDK2-ENJ36"
+  },
+  {
+   "card_image_id": 97077563,
+   "name": "Call of the Haunted",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 37,
+   "set_code": "LDK2-ENJ37"
+  },
+  {
+   "card_image_id": 53582587,
+   "name": "Torrential Tribute",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 38,
+   "set_code": "LDK2-ENJ38"
+  },
+  {
+   "card_image_id": 80163754,
+   "name": "Burst Breath",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 39,
+   "set_code": "LDK2-ENJ39"
+  },
+  {
+   "card_image_id": 66742250,
+   "name": "Curse of Anubis",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 40,
+   "set_code": "LDK2-ENJ40"
+  },
+  {
+   "card_image_id": 44405066,
+   "name": "Red-Eyes Flare Metal Dragon",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Ultra Rare",
+   "rowid": 41,
+   "set_code": "LDK2-ENJ41"
+  },
+  {
+   "card_image_id": 45349196,
+   "name": "Archfiend Black Skull Dragon",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 42,
+   "set_code": "LDK2-ENJ42"
+  },
+  {
+   "card_image_id": 3366982,
+   "name": "Alligator's Sword Dragon",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 43,
+   "set_code": "LDK2-ENJ43"
+  },
+  {
+   "card_image_id": 89631139,
+   "name": "Blue-Eyes White Dragon",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 44,
+   "set_code": "LDK2-ENK01"
+  },
+  {
+   "card_image_id": 45467446,
+   "name": "Dragon Spirit of White",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 45,
+   "set_code": "LDK2-ENK02"
+  },
+  {
+   "card_image_id": 34627841,
+   "name": "Kaibaman",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 46,
+   "set_code": "LDK2-ENK03"
+  },
+  {
+   "card_image_id": 79814787,
+   "name": "The White Stone of Legend",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 47,
+   "set_code": "LDK2-ENK04"
+  },
+  {
+   "card_image_id": 71039903,
+   "name": "The White Stone of Ancients",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 48,
+   "set_code": "LDK2-ENK05"
+  },
+  {
+   "card_image_id": 88241506,
+   "name": "Maiden with Eyes of Blue",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Ultra Rare",
+   "rowid": 49,
+   "set_code": "LDK2-ENK06"
+  },
+  {
+   "card_image_id": 72855441,
+   "name": "Protector with Eyes of Blue",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 50,
+   "set_code": "LDK2-ENK07"
+  },
+  {
+   "card_image_id": 45644898,
+   "name": "Master with Eyes of Blue",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 51,
+   "set_code": "LDK2-ENK08"
+  },
+  {
+   "card_image_id": 5053103,
+   "name": "Battle Ox",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 52,
+   "set_code": "LDK2-ENK09"
+  },
+  {
+   "card_image_id": 97590747,
+   "name": "La Jinn the Mystical Genie of the Lamp",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 53,
+   "set_code": "LDK2-ENK10"
+  },
+  {
+   "card_image_id": 14898066,
+   "name": "Vorse Raider",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 54,
+   "set_code": "LDK2-ENK11"
+  },
+  {
+   "card_image_id": 43096270,
+   "name": "Alexandrite Dragon",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 55,
+   "set_code": "LDK2-ENK12"
+  },
+  {
+   "card_image_id": 39507162,
+   "name": "Blade Knight",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 56,
+   "set_code": "LDK2-ENK13"
+  },
+  {
+   "card_image_id": 54912977,
+   "name": "Ancient Lamp",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 57,
+   "set_code": "LDK2-ENK14"
+  },
+  {
+   "card_image_id": 10097168,
+   "name": "Tiger Dragon",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 58,
+   "set_code": "LDK2-ENK15"
+  },
+  {
+   "card_image_id": 35629124,
+   "name": "Kidmodo Dragon",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 59,
+   "set_code": "LDK2-ENK16"
+  },
+  {
+   "card_image_id": 79109599,
+   "name": "King of the Swamp",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 60,
+   "set_code": "LDK2-ENK17"
+  },
+  {
+   "card_image_id": 14235211,
+   "name": "Rider of the Storm Winds",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 61,
+   "set_code": "LDK2-ENK18"
+  },
+  {
+   "card_image_id": 17655904,
+   "name": "Burst Stream of Destruction",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 62,
+   "set_code": "LDK2-ENK19"
+  },
+  {
+   "card_image_id": 50371210,
+   "name": "Beacon of White",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 63,
+   "set_code": "LDK2-ENK20"
+  },
+  {
+   "card_image_id": 24382602,
+   "name": "Mausoleum of White",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 64,
+   "set_code": "LDK2-ENK21"
+  },
+  {
+   "card_image_id": 24094653,
+   "name": "Polymerization",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 65,
+   "set_code": "LDK2-ENK22"
+  },
+  {
+   "card_image_id": 98045062,
+   "name": "Enemy Controller",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 66,
+   "set_code": "LDK2-ENK23"
+  },
+  {
+   "card_image_id": 55713623,
+   "name": "Shrink",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 67,
+   "set_code": "LDK2-ENK24"
+  },
+  {
+   "card_image_id": 42534368,
+   "name": "Silent Doom",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 68,
+   "set_code": "LDK2-ENK25"
+  },
+  {
+   "card_image_id": 48800175,
+   "name": "The Melody of Awakening Dragon",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Ultra Rare",
+   "rowid": 69,
+   "set_code": "LDK2-ENK26"
+  },
+  {
+   "card_image_id": 10667321,
+   "name": "Ancient Rules",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 70,
+   "set_code": "LDK2-ENK27"
+  },
+  {
+   "card_image_id": 38120068,
+   "name": "Trade-In",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 71,
+   "set_code": "LDK2-ENK28"
+  },
+  {
+   "card_image_id": 51405049,
+   "name": "Where Arf Thou?",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 72,
+   "set_code": "LDK2-ENK29"
+  },
+  {
+   "card_image_id": 98672567,
+   "name": "Pot of Dichotomy",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 73,
+   "set_code": "LDK2-ENK30"
+  },
+  {
+   "card_image_id": 74335036,
+   "name": "Fusion Substitute",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 74,
+   "set_code": "LDK2-ENK31"
+  },
+  {
+   "card_image_id": 911883,
+   "name": "Unexpected Dai",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 75,
+   "set_code": "LDK2-ENK32"
+  },
+  {
+   "card_image_id": 14315573,
+   "name": "Negate Attack",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 76,
+   "set_code": "LDK2-ENK33"
+  },
+  {
+   "card_image_id": 52503575,
+   "name": "Final Attack Orders",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 77,
+   "set_code": "LDK2-ENK34"
+  },
+  {
+   "card_image_id": 29267084,
+   "name": "Shadow Spell",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 78,
+   "set_code": "LDK2-ENK35"
+  },
+  {
+   "card_image_id": 86871614,
+   "name": "Cloning",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 79,
+   "set_code": "LDK2-ENK36"
+  },
+  {
+   "card_image_id": 66127916,
+   "name": "Fusion Reserve",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 80,
+   "set_code": "LDK2-ENK37"
+  },
+  {
+   "card_image_id": 98954106,
+   "name": "Jar of Avarice",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 81,
+   "set_code": "LDK2-ENK38"
+  },
+  {
+   "card_image_id": 40908371,
+   "name": "Azure-Eyes Silver Dragon",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 82,
+   "set_code": "LDK2-ENK39"
+  },
+  {
+   "card_image_id": 23995346,
+   "name": "Blue-Eyes Ultimate Dragon",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Ultra Rare",
+   "rowid": 83,
+   "set_code": "LDK2-ENK40"
+  },
+  {
+   "card_image_id": 10817524,
+   "name": "First of the Dragons",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 84,
+   "set_code": "LDK2-ENK41"
+  },
+  {
+   "card_image_id": 10000020,
+   "name": "Slifer the Sky Dragon",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Ultra Rare",
+   "rowid": 85,
+   "set_code": "LDK2-ENS01"
+  },
+  {
+   "card_image_id": 10000000,
+   "name": "Obelisk the Tormentor",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Ultra Rare",
+   "rowid": 86,
+   "set_code": "LDK2-ENS02"
+  },
+  {
+   "card_image_id": 10000010,
+   "name": "The Winged Dragon of Ra",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Ultra Rare",
+   "rowid": 87,
+   "set_code": "LDK2-ENS03"
+  },
+  {
+   "card_image_id": 49702428,
+   "name": "Dark Burning Attack",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Secret Rare",
+   "rowid": 88,
+   "set_code": "LDK2-ENS04"
+  },
+  {
+   "card_image_id": 75190122,
+   "name": "Dark Burning Magic",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Secret Rare",
+   "rowid": 89,
+   "set_code": "LDK2-ENS05"
+  },
+  {
+   "card_image_id": 48680970,
+   "name": "Eternal Soul",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Secret Rare",
+   "rowid": 90,
+   "set_code": "LDK2-ENS06"
+  },
+  {
+   "card_image_id": 58604027,
+   "name": "The Legendary Exodia Incarnate",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Ultra Rare",
+   "rowid": 91,
+   "set_code": "LDK2-ENY01"
+  },
+  {
+   "card_image_id": 40450317,
+   "name": "Ties of the Brethren",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Ultra Rare",
+   "rowid": 92,
+   "set_code": "LDK2-ENY02"
+  },
+  {
+   "card_image_id": 64043465,
+   "name": "Obliterate!!!",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Ultra Rare",
+   "rowid": 93,
+   "set_code": "LDK2-ENY03"
+  },
+  {
+   "card_image_id": 33396948,
+   "name": "Exodia the Forbidden One",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 94,
+   "set_code": "LDK2-ENY04"
+  },
+  {
+   "card_image_id": 70903634,
+   "name": "Right Arm of the Forbidden One",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 95,
+   "set_code": "LDK2-ENY05"
+  },
+  {
+   "card_image_id": 7902349,
+   "name": "Left Arm of the Forbidden One",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 96,
+   "set_code": "LDK2-ENY06"
+  },
+  {
+   "card_image_id": 8124921,
+   "name": "Right Leg of the Forbidden One",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 97,
+   "set_code": "LDK2-ENY07"
+  },
+  {
+   "card_image_id": 44519536,
+   "name": "Left Leg of the Forbidden One",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 98,
+   "set_code": "LDK2-ENY08"
+  },
+  {
+   "card_image_id": 12600382,
+   "name": "Exodia Necross",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 99,
+   "set_code": "LDK2-ENY09"
+  },
+  {
+   "card_image_id": 36996508,
+   "name": "Dark Magician",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 100,
+   "set_code": "LDK2-ENY10"
+  },
+  {
+   "card_image_id": 38033121,
+   "name": "Dark Magician Girl",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 101,
+   "set_code": "LDK2-ENY11"
+  },
+  {
+   "card_image_id": 78193831,
+   "name": "Buster Blader",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 102,
+   "set_code": "LDK2-ENY12"
+  },
+  {
+   "card_image_id": 72443568,
+   "name": "Silent Magician LV8",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 103,
+   "set_code": "LDK2-ENY13"
+  },
+  {
+   "card_image_id": 73665146,
+   "name": "Silent Magician LV4",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 104,
+   "set_code": "LDK2-ENY14"
+  },
+  {
+   "card_image_id": 14778250,
+   "name": "The Tricky",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 105,
+   "set_code": "LDK2-ENY15"
+  },
+  {
+   "card_image_id": 65240384,
+   "name": "Big Shield Gardna",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 106,
+   "set_code": "LDK2-ENY16"
+  },
+  {
+   "card_image_id": 80304126,
+   "name": "Magician's Valkyria",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 107,
+   "set_code": "LDK2-ENY17"
+  },
+  {
+   "card_image_id": 21051146,
+   "name": "Blast Magician",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 108,
+   "set_code": "LDK2-ENY18"
+  },
+  {
+   "card_image_id": 48115277,
+   "name": "Blockman",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 109,
+   "set_code": "LDK2-ENY19"
+  },
+  {
+   "card_image_id": 31305911,
+   "name": "Marshmallon",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 110,
+   "set_code": "LDK2-ENY20"
+  },
+  {
+   "card_image_id": 26202165,
+   "name": "Sangan",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 111,
+   "set_code": "LDK2-ENY21"
+  },
+  {
+   "card_image_id": 75500286,
+   "name": "Gold Sarcophagus",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 112,
+   "set_code": "LDK2-ENY22"
+  },
+  {
+   "card_image_id": 72302403,
+   "name": "Swords of Revealing Light",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 113,
+   "set_code": "LDK2-ENY23"
+  },
+  {
+   "card_image_id": 28553439,
+   "name": "Magical Dimension",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 114,
+   "set_code": "LDK2-ENY24"
+  },
+  {
+   "card_image_id": 36045450,
+   "name": "Magicians Unite",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 115,
+   "set_code": "LDK2-ENY25"
+  },
+  {
+   "card_image_id": 75622824,
+   "name": "Tricky Spell 4",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 116,
+   "set_code": "LDK2-ENY26"
+  },
+  {
+   "card_image_id": 63391643,
+   "name": "Thousand Knives",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 117,
+   "set_code": "LDK2-ENY27"
+  },
+  {
+   "card_image_id": 2314238,
+   "name": "Dark Magic Attack",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 118,
+   "set_code": "LDK2-ENY28"
+  },
+  {
+   "card_image_id": 33244944,
+   "name": "Contract with Exodia",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 119,
+   "set_code": "LDK2-ENY29"
+  },
+  {
+   "card_image_id": 44656491,
+   "name": "Messenger of Peace",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 120,
+   "set_code": "LDK2-ENY30"
+  },
+  {
+   "card_image_id": 90928333,
+   "name": "Dark Factory of Mass Production",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 121,
+   "set_code": "LDK2-ENY31"
+  },
+  {
+   "card_image_id": 74848038,
+   "name": "Monster Reincarnation",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 122,
+   "set_code": "LDK2-ENY32"
+  },
+  {
+   "card_image_id": 68462976,
+   "name": "Secret Village of the Spellcasters",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 123,
+   "set_code": "LDK2-ENY33"
+  },
+  {
+   "card_image_id": 98645731,
+   "name": "Pot of Duality",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 124,
+   "set_code": "LDK2-ENY34"
+  },
+  {
+   "card_image_id": 44095762,
+   "name": "Mirror Force",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 125,
+   "set_code": "LDK2-ENY35"
+  },
+  {
+   "card_image_id": 81210420,
+   "name": "Magical Hats",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 126,
+   "set_code": "LDK2-ENY36"
+  },
+  {
+   "card_image_id": 62279055,
+   "name": "Magic Cylinder",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 127,
+   "set_code": "LDK2-ENY37"
+  },
+  {
+   "card_image_id": 50755,
+   "name": "Magician's Circle",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 128,
+   "set_code": "LDK2-ENY38"
+  },
+  {
+   "card_image_id": 36280194,
+   "name": "Backup Soldier",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 129,
+   "set_code": "LDK2-ENY39"
+  },
+  {
+   "card_image_id": 85742772,
+   "name": "Gravity Bind",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 130,
+   "set_code": "LDK2-ENY40"
+  }
+ ],
+ "RA02": [
+  {
+   "card_image_id": 14878871,
+   "name": "Rescue Cat",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Collector's Rare",
+   "rowid": 1,
+   "set_code": "RA02-EN001"
+  },
+  {
+   "card_image_id": 14878871,
+   "name": "Rescue Cat",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 2,
+   "set_code": "RA02-EN001"
+  },
+  {
+   "card_image_id": 14878871,
+   "name": "Rescue Cat",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 3,
+   "set_code": "RA02-EN001"
+  },
+  {
+   "card_image_id": 14878871,
+   "name": "Rescue Cat",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Secret Rare",
+   "rowid": 4,
+   "set_code": "RA02-EN001"
+  },
+  {
+   "card_image_id": 14878871,
+   "name": "Rescue Cat",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Super Rare",
+   "rowid": 5,
+   "set_code": "RA02-EN001"
+  },
+  {
+   "card_image_id": 14878871,
+   "name": "Rescue Cat",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Ultimate Rare",
+   "rowid": 6,
+   "set_code": "RA02-EN001"
+  },
+  {
+   "card_image_id": 14878871,
+   "name": "Rescue Cat",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Ultra Rare",
+   "rowid": 7,
+   "set_code": "RA02-EN001"
+  },
+  {
+   "card_image_id": 24508238,
+   "name": "D.D. Crow",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 8,
+   "set_code": "RA02-EN002"
+  },
+  {
+   "card_image_id": 24508238,
+   "name": "D.D. Crow",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 9,
+   "set_code": "RA02-EN002"
+  },
+  {
+   "card_image_id": 24508238,
+   "name": "D.D. Crow",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 10,
+   "set_code": "RA02-EN002"
+  },
+  {
+   "card_image_id": 24508238,
+   "name": "D.D. Crow",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 11,
+   "set_code": "RA02-EN002"
+  },
+  {
+   "card_image_id": 24508238,
+   "name": "D.D. Crow",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 12,
+   "set_code": "RA02-EN002"
+  },
+  {
+   "card_image_id": 24508238,
+   "name": "D.D. Crow",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 13,
+   "set_code": "RA02-EN002"
+  },
+  {
+   "card_image_id": 24508238,
+   "name": "D.D. Crow",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 14,
+   "set_code": "RA02-EN002"
+  },
+  {
+   "card_image_id": 21502796,
+   "name": "Ryko, Lightsworn Hunter",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 15,
+   "set_code": "RA02-EN003"
+  },
+  {
+   "card_image_id": 21502796,
+   "name": "Ryko, Lightsworn Hunter",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 16,
+   "set_code": "RA02-EN003"
+  },
+  {
+   "card_image_id": 21502796,
+   "name": "Ryko, Lightsworn Hunter",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 17,
+   "set_code": "RA02-EN003"
+  },
+  {
+   "card_image_id": 21502796,
+   "name": "Ryko, Lightsworn Hunter",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 18,
+   "set_code": "RA02-EN003"
+  },
+  {
+   "card_image_id": 21502796,
+   "name": "Ryko, Lightsworn Hunter",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 19,
+   "set_code": "RA02-EN003"
+  },
+  {
+   "card_image_id": 21502796,
+   "name": "Ryko, Lightsworn Hunter",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 20,
+   "set_code": "RA02-EN003"
+  },
+  {
+   "card_image_id": 21502796,
+   "name": "Ryko, Lightsworn Hunter",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 21,
+   "set_code": "RA02-EN003"
+  },
+  {
+   "card_image_id": 5220687,
+   "name": "Super-Nimble Mega Hamster",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 22,
+   "set_code": "RA02-EN004"
+  },
+  {
+   "card_image_id": 5220687,
+   "name": "Super-Nimble Mega Hamster",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 23,
+   "set_code": "RA02-EN004"
+  },
+  {
+   "card_image_id": 5220687,
+   "name": "Super-Nimble Mega Hamster",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 24,
+   "set_code": "RA02-EN004"
+  },
+  {
+   "card_image_id": 5220687,
+   "name": "Super-Nimble Mega Hamster",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 25,
+   "set_code": "RA02-EN004"
+  },
+  {
+   "card_image_id": 5220687,
+   "name": "Super-Nimble Mega Hamster",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 26,
+   "set_code": "RA02-EN004"
+  },
+  {
+   "card_image_id": 5220687,
+   "name": "Super-Nimble Mega Hamster",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 27,
+   "set_code": "RA02-EN004"
+  },
+  {
+   "card_image_id": 5220687,
+   "name": "Super-Nimble Mega Hamster",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 28,
+   "set_code": "RA02-EN004"
+  },
+  {
+   "card_image_id": 67750322,
+   "name": "Skull Meister",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Collector's Rare",
+   "rowid": 29,
+   "set_code": "RA02-EN005"
+  },
+  {
+   "card_image_id": 67750322,
+   "name": "Skull Meister",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 30,
+   "set_code": "RA02-EN005"
+  },
+  {
+   "card_image_id": 67750322,
+   "name": "Skull Meister",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 31,
+   "set_code": "RA02-EN005"
+  },
+  {
+   "card_image_id": 67750322,
+   "name": "Skull Meister",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Secret Rare",
+   "rowid": 32,
+   "set_code": "RA02-EN005"
+  },
+  {
+   "card_image_id": 67750322,
+   "name": "Skull Meister",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Super Rare",
+   "rowid": 33,
+   "set_code": "RA02-EN005"
+  },
+  {
+   "card_image_id": 67750322,
+   "name": "Skull Meister",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Ultimate Rare",
+   "rowid": 34,
+   "set_code": "RA02-EN005"
+  },
+  {
+   "card_image_id": 67750322,
+   "name": "Skull Meister",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Ultra Rare",
+   "rowid": 35,
+   "set_code": "RA02-EN005"
+  },
+  {
+   "card_image_id": 94145021,
+   "name": "Droll & Lock Bird",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Collector's Rare",
+   "rowid": 36,
+   "set_code": "RA02-EN006"
+  },
+  {
+   "card_image_id": 94145021,
+   "name": "Droll & Lock Bird",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 37,
+   "set_code": "RA02-EN006"
+  },
+  {
+   "card_image_id": 94145021,
+   "name": "Droll & Lock Bird",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 38,
+   "set_code": "RA02-EN006"
+  },
+  {
+   "card_image_id": 94145021,
+   "name": "Droll & Lock Bird",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Secret Rare",
+   "rowid": 39,
+   "set_code": "RA02-EN006"
+  },
+  {
+   "card_image_id": 94145021,
+   "name": "Droll & Lock Bird",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Super Rare",
+   "rowid": 40,
+   "set_code": "RA02-EN006"
+  },
+  {
+   "card_image_id": 94145021,
+   "name": "Droll & Lock Bird",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Ultimate Rare",
+   "rowid": 41,
+   "set_code": "RA02-EN006"
+  },
+  {
+   "card_image_id": 94145021,
+   "name": "Droll & Lock Bird",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Ultra Rare",
+   "rowid": 42,
+   "set_code": "RA02-EN006"
+  },
+  {
+   "card_image_id": 97940434,
+   "name": "Chaos Hunter",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 43,
+   "set_code": "RA02-EN007"
+  },
+  {
+   "card_image_id": 97940434,
+   "name": "Chaos Hunter",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 44,
+   "set_code": "RA02-EN007"
+  },
+  {
+   "card_image_id": 97940434,
+   "name": "Chaos Hunter",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 45,
+   "set_code": "RA02-EN007"
+  },
+  {
+   "card_image_id": 97940434,
+   "name": "Chaos Hunter",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 46,
+   "set_code": "RA02-EN007"
+  },
+  {
+   "card_image_id": 97940434,
+   "name": "Chaos Hunter",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 47,
+   "set_code": "RA02-EN007"
+  },
+  {
+   "card_image_id": 97940434,
+   "name": "Chaos Hunter",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 48,
+   "set_code": "RA02-EN007"
+  },
+  {
+   "card_image_id": 97940434,
+   "name": "Chaos Hunter",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 49,
+   "set_code": "RA02-EN007"
+  },
+  {
+   "card_image_id": 85138716,
+   "name": "Rescue Rabbit",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 50,
+   "set_code": "RA02-EN008"
+  },
+  {
+   "card_image_id": 85138716,
+   "name": "Rescue Rabbit",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 51,
+   "set_code": "RA02-EN008"
+  },
+  {
+   "card_image_id": 85138716,
+   "name": "Rescue Rabbit",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 52,
+   "set_code": "RA02-EN008"
+  },
+  {
+   "card_image_id": 85138716,
+   "name": "Rescue Rabbit",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 53,
+   "set_code": "RA02-EN008"
+  },
+  {
+   "card_image_id": 85138716,
+   "name": "Rescue Rabbit",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 54,
+   "set_code": "RA02-EN008"
+  },
+  {
+   "card_image_id": 85138716,
+   "name": "Rescue Rabbit",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 55,
+   "set_code": "RA02-EN008"
+  },
+  {
+   "card_image_id": 85138716,
+   "name": "Rescue Rabbit",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 56,
+   "set_code": "RA02-EN008"
+  },
+  {
+   "card_image_id": -39158141,
+   "name": "Ghost Ogre & Snow Rabbit",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 57,
+   "set_code": "RA02-EN009"
+  },
+  {
+   "card_image_id": -111294313,
+   "name": "Ghost Ogre & Snow Rabbit",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 58,
+   "set_code": "RA02-EN009"
+  },
+  {
+   "card_image_id": -76993559,
+   "name": "Ghost Ogre & Snow Rabbit",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 59,
+   "set_code": "RA02-EN009"
+  },
+  {
+   "card_image_id": -17680803,
+   "name": "Ghost Ogre & Snow Rabbit",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 60,
+   "set_code": "RA02-EN009"
+  },
+  {
+   "card_image_id": -1578484494,
+   "name": "Ghost Ogre & Snow Rabbit",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 61,
+   "set_code": "RA02-EN009"
+  },
+  {
+   "card_image_id": -1300038238,
+   "name": "Ghost Ogre & Snow Rabbit",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 62,
+   "set_code": "RA02-EN009"
+  },
+  {
+   "card_image_id": -790338184,
+   "name": "Ghost Ogre & Snow Rabbit",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 63,
+   "set_code": "RA02-EN009"
+  },
+  {
+   "card_image_id": 38517737,
+   "name": "Blue-Eyes Alternative White Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 64,
+   "set_code": "RA02-EN010"
+  },
+  {
+   "card_image_id": 38517737,
+   "name": "Blue-Eyes Alternative White Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 65,
+   "set_code": "RA02-EN010"
+  },
+  {
+   "card_image_id": 38517737,
+   "name": "Blue-Eyes Alternative White Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 66,
+   "set_code": "RA02-EN010"
+  },
+  {
+   "card_image_id": 38517737,
+   "name": "Blue-Eyes Alternative White Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 67,
+   "set_code": "RA02-EN010"
+  },
+  {
+   "card_image_id": 38517737,
+   "name": "Blue-Eyes Alternative White Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 68,
+   "set_code": "RA02-EN010"
+  },
+  {
+   "card_image_id": 38517737,
+   "name": "Blue-Eyes Alternative White Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 69,
+   "set_code": "RA02-EN010"
+  },
+  {
+   "card_image_id": 38517737,
+   "name": "Blue-Eyes Alternative White Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 70,
+   "set_code": "RA02-EN010"
+  },
+  {
+   "card_image_id": 15180041,
+   "name": "Silent Swordsman",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 71,
+   "set_code": "RA02-EN011"
+  },
+  {
+   "card_image_id": 15180041,
+   "name": "Silent Swordsman",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 72,
+   "set_code": "RA02-EN011"
+  },
+  {
+   "card_image_id": 15180041,
+   "name": "Silent Swordsman",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 73,
+   "set_code": "RA02-EN011"
+  },
+  {
+   "card_image_id": 15180041,
+   "name": "Silent Swordsman",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 74,
+   "set_code": "RA02-EN011"
+  },
+  {
+   "card_image_id": 15180041,
+   "name": "Silent Swordsman",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 75,
+   "set_code": "RA02-EN011"
+  },
+  {
+   "card_image_id": 15180041,
+   "name": "Silent Swordsman",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 76,
+   "set_code": "RA02-EN011"
+  },
+  {
+   "card_image_id": 15180041,
+   "name": "Silent Swordsman",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 77,
+   "set_code": "RA02-EN011"
+  },
+  {
+   "card_image_id": 41175645,
+   "name": "Silent Magician",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 78,
+   "set_code": "RA02-EN012"
+  },
+  {
+   "card_image_id": 41175645,
+   "name": "Silent Magician",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 79,
+   "set_code": "RA02-EN012"
+  },
+  {
+   "card_image_id": 41175645,
+   "name": "Silent Magician",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 80,
+   "set_code": "RA02-EN012"
+  },
+  {
+   "card_image_id": 41175645,
+   "name": "Silent Magician",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 81,
+   "set_code": "RA02-EN012"
+  },
+  {
+   "card_image_id": 41175645,
+   "name": "Silent Magician",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 82,
+   "set_code": "RA02-EN012"
+  },
+  {
+   "card_image_id": 41175645,
+   "name": "Silent Magician",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 83,
+   "set_code": "RA02-EN012"
+  },
+  {
+   "card_image_id": 41175645,
+   "name": "Silent Magician",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 84,
+   "set_code": "RA02-EN012"
+  },
+  {
+   "card_image_id": -1318071513,
+   "name": "Fantastical Dragon Phantazmay",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 85,
+   "set_code": "RA02-EN013"
+  },
+  {
+   "card_image_id": -946363062,
+   "name": "Fantastical Dragon Phantazmay",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 86,
+   "set_code": "RA02-EN013"
+  },
+  {
+   "card_image_id": -559733196,
+   "name": "Fantastical Dragon Phantazmay",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 87,
+   "set_code": "RA02-EN013"
+  },
+  {
+   "card_image_id": -1498161515,
+   "name": "Fantastical Dragon Phantazmay",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 88,
+   "set_code": "RA02-EN013"
+  },
+  {
+   "card_image_id": -1796922026,
+   "name": "Fantastical Dragon Phantazmay",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 89,
+   "set_code": "RA02-EN013"
+  },
+  {
+   "card_image_id": -356444822,
+   "name": "Fantastical Dragon Phantazmay",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 90,
+   "set_code": "RA02-EN013"
+  },
+  {
+   "card_image_id": -437551908,
+   "name": "Fantastical Dragon Phantazmay",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 91,
+   "set_code": "RA02-EN013"
+  },
+  {
+   "card_image_id": 97631303,
+   "name": "Magicians' Souls",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 92,
+   "set_code": "RA02-EN014"
+  },
+  {
+   "card_image_id": 97631303,
+   "name": "Magicians' Souls",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 93,
+   "set_code": "RA02-EN014"
+  },
+  {
+   "card_image_id": 97631303,
+   "name": "Magicians' Souls",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 94,
+   "set_code": "RA02-EN014"
+  },
+  {
+   "card_image_id": 97631303,
+   "name": "Magicians' Souls",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 95,
+   "set_code": "RA02-EN014"
+  },
+  {
+   "card_image_id": 97631303,
+   "name": "Magicians' Souls",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 96,
+   "set_code": "RA02-EN014"
+  },
+  {
+   "card_image_id": 97631303,
+   "name": "Magicians' Souls",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 97,
+   "set_code": "RA02-EN014"
+  },
+  {
+   "card_image_id": 97631303,
+   "name": "Magicians' Souls",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 98,
+   "set_code": "RA02-EN014"
+  },
+  {
+   "card_image_id": -1426415433,
+   "name": "Ghost Mourner & Moonlit Chill",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 99,
+   "set_code": "RA02-EN015"
+  },
+  {
+   "card_image_id": -1647166946,
+   "name": "Ghost Mourner & Moonlit Chill",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 100,
+   "set_code": "RA02-EN015"
+  },
+  {
+   "card_image_id": -1974951584,
+   "name": "Ghost Mourner & Moonlit Chill",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 101,
+   "set_code": "RA02-EN015"
+  },
+  {
+   "card_image_id": -537693426,
+   "name": "Ghost Mourner & Moonlit Chill",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 102,
+   "set_code": "RA02-EN015"
+  },
+  {
+   "card_image_id": -1627042106,
+   "name": "Ghost Mourner & Moonlit Chill",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 103,
+   "set_code": "RA02-EN015"
+  },
+  {
+   "card_image_id": -1853767439,
+   "name": "Ghost Mourner & Moonlit Chill",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 104,
+   "set_code": "RA02-EN015"
+  },
+  {
+   "card_image_id": -333498548,
+   "name": "Ghost Mourner & Moonlit Chill",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 105,
+   "set_code": "RA02-EN015"
+  },
+  {
+   "card_image_id": 62962630,
+   "name": "Aluber the Jester of Despia",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 106,
+   "set_code": "RA02-EN016"
+  },
+  {
+   "card_image_id": 62962630,
+   "name": "Aluber the Jester of Despia",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 107,
+   "set_code": "RA02-EN016"
+  },
+  {
+   "card_image_id": 62962630,
+   "name": "Aluber the Jester of Despia",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 108,
+   "set_code": "RA02-EN016"
+  },
+  {
+   "card_image_id": 62962630,
+   "name": "Aluber the Jester of Despia",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 109,
+   "set_code": "RA02-EN016"
+  },
+  {
+   "card_image_id": 62962630,
+   "name": "Aluber the Jester of Despia",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 110,
+   "set_code": "RA02-EN016"
+  },
+  {
+   "card_image_id": 62962630,
+   "name": "Aluber the Jester of Despia",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 111,
+   "set_code": "RA02-EN016"
+  },
+  {
+   "card_image_id": 62962630,
+   "name": "Aluber the Jester of Despia",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 112,
+   "set_code": "RA02-EN016"
+  },
+  {
+   "card_image_id": 30576089,
+   "name": "Blue-Eyes Jet Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 113,
+   "set_code": "RA02-EN017"
+  },
+  {
+   "card_image_id": 30576089,
+   "name": "Blue-Eyes Jet Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 114,
+   "set_code": "RA02-EN017"
+  },
+  {
+   "card_image_id": 30576089,
+   "name": "Blue-Eyes Jet Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 115,
+   "set_code": "RA02-EN017"
+  },
+  {
+   "card_image_id": 30576089,
+   "name": "Blue-Eyes Jet Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 116,
+   "set_code": "RA02-EN017"
+  },
+  {
+   "card_image_id": 30576089,
+   "name": "Blue-Eyes Jet Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 117,
+   "set_code": "RA02-EN017"
+  },
+  {
+   "card_image_id": 30576089,
+   "name": "Blue-Eyes Jet Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 118,
+   "set_code": "RA02-EN017"
+  },
+  {
+   "card_image_id": 30576089,
+   "name": "Blue-Eyes Jet Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 119,
+   "set_code": "RA02-EN017"
+  },
+  {
+   "card_image_id": 25550531,
+   "name": "Purrely (card)",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 120,
+   "set_code": "RA02-EN018"
+  },
+  {
+   "card_image_id": 25550531,
+   "name": "Purrely (card)",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 121,
+   "set_code": "RA02-EN018"
+  },
+  {
+   "card_image_id": 25550531,
+   "name": "Purrely (card)",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 122,
+   "set_code": "RA02-EN018"
+  },
+  {
+   "card_image_id": 25550531,
+   "name": "Purrely (card)",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 123,
+   "set_code": "RA02-EN018"
+  },
+  {
+   "card_image_id": 25550531,
+   "name": "Purrely (card)",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 124,
+   "set_code": "RA02-EN018"
+  },
+  {
+   "card_image_id": 25550531,
+   "name": "Purrely (card)",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 125,
+   "set_code": "RA02-EN018"
+  },
+  {
+   "card_image_id": 25550531,
+   "name": "Purrely (card)",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 126,
+   "set_code": "RA02-EN018"
+  },
+  {
+   "card_image_id": 4810828,
+   "name": "Sauravis, the Ancient and Ascended",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 127,
+   "set_code": "RA02-EN019"
+  },
+  {
+   "card_image_id": 4810828,
+   "name": "Sauravis, the Ancient and Ascended",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 128,
+   "set_code": "RA02-EN019"
+  },
+  {
+   "card_image_id": 4810828,
+   "name": "Sauravis, the Ancient and Ascended",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 129,
+   "set_code": "RA02-EN019"
+  },
+  {
+   "card_image_id": 4810828,
+   "name": "Sauravis, the Ancient and Ascended",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 130,
+   "set_code": "RA02-EN019"
+  },
+  {
+   "card_image_id": 4810828,
+   "name": "Sauravis, the Ancient and Ascended",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 131,
+   "set_code": "RA02-EN019"
+  },
+  {
+   "card_image_id": 4810828,
+   "name": "Sauravis, the Ancient and Ascended",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 132,
+   "set_code": "RA02-EN019"
+  },
+  {
+   "card_image_id": 4810828,
+   "name": "Sauravis, the Ancient and Ascended",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 133,
+   "set_code": "RA02-EN019"
+  },
+  {
+   "card_image_id": 12266229,
+   "name": "Illusion of Chaos",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 134,
+   "set_code": "RA02-EN020"
+  },
+  {
+   "card_image_id": 12266229,
+   "name": "Illusion of Chaos",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 135,
+   "set_code": "RA02-EN020"
+  },
+  {
+   "card_image_id": 12266229,
+   "name": "Illusion of Chaos",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 136,
+   "set_code": "RA02-EN020"
+  },
+  {
+   "card_image_id": 12266229,
+   "name": "Illusion of Chaos",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 137,
+   "set_code": "RA02-EN020"
+  },
+  {
+   "card_image_id": 12266229,
+   "name": "Illusion of Chaos",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 138,
+   "set_code": "RA02-EN020"
+  },
+  {
+   "card_image_id": 12266229,
+   "name": "Illusion of Chaos",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 139,
+   "set_code": "RA02-EN020"
+  },
+  {
+   "card_image_id": 12266229,
+   "name": "Illusion of Chaos",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 140,
+   "set_code": "RA02-EN020"
+  },
+  {
+   "card_image_id": 37818794,
+   "name": "Red-Eyes Dark Dragoon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 141,
+   "set_code": "RA02-EN021"
+  },
+  {
+   "card_image_id": 37818794,
+   "name": "Red-Eyes Dark Dragoon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 142,
+   "set_code": "RA02-EN021"
+  },
+  {
+   "card_image_id": 37818794,
+   "name": "Red-Eyes Dark Dragoon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 143,
+   "set_code": "RA02-EN021"
+  },
+  {
+   "card_image_id": 37818794,
+   "name": "Red-Eyes Dark Dragoon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 144,
+   "set_code": "RA02-EN021"
+  },
+  {
+   "card_image_id": 37818794,
+   "name": "Red-Eyes Dark Dragoon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 145,
+   "set_code": "RA02-EN021"
+  },
+  {
+   "card_image_id": 37818794,
+   "name": "Red-Eyes Dark Dragoon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 146,
+   "set_code": "RA02-EN021"
+  },
+  {
+   "card_image_id": 37818794,
+   "name": "Red-Eyes Dark Dragoon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 147,
+   "set_code": "RA02-EN021"
+  },
+  {
+   "card_image_id": 6855503,
+   "name": "Masquerade the Blazing Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 148,
+   "set_code": "RA02-EN022"
+  },
+  {
+   "card_image_id": 6855503,
+   "name": "Masquerade the Blazing Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 149,
+   "set_code": "RA02-EN022"
+  },
+  {
+   "card_image_id": 6855503,
+   "name": "Masquerade the Blazing Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 150,
+   "set_code": "RA02-EN022"
+  },
+  {
+   "card_image_id": 6855503,
+   "name": "Masquerade the Blazing Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 151,
+   "set_code": "RA02-EN022"
+  },
+  {
+   "card_image_id": 6855503,
+   "name": "Masquerade the Blazing Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 152,
+   "set_code": "RA02-EN022"
+  },
+  {
+   "card_image_id": 6855503,
+   "name": "Masquerade the Blazing Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 153,
+   "set_code": "RA02-EN022"
+  },
+  {
+   "card_image_id": 6855503,
+   "name": "Masquerade the Blazing Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 154,
+   "set_code": "RA02-EN022"
+  },
+  {
+   "card_image_id": 11321089,
+   "name": "Guardian Chimera",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 155,
+   "set_code": "RA02-EN023"
+  },
+  {
+   "card_image_id": 11321089,
+   "name": "Guardian Chimera",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 156,
+   "set_code": "RA02-EN023"
+  },
+  {
+   "card_image_id": 11321089,
+   "name": "Guardian Chimera",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 157,
+   "set_code": "RA02-EN023"
+  },
+  {
+   "card_image_id": 11321089,
+   "name": "Guardian Chimera",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 158,
+   "set_code": "RA02-EN023"
+  },
+  {
+   "card_image_id": 11321089,
+   "name": "Guardian Chimera",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 159,
+   "set_code": "RA02-EN023"
+  },
+  {
+   "card_image_id": 11321089,
+   "name": "Guardian Chimera",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 160,
+   "set_code": "RA02-EN023"
+  },
+  {
+   "card_image_id": 11321089,
+   "name": "Guardian Chimera",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 161,
+   "set_code": "RA02-EN023"
+  },
+  {
+   "card_image_id": 11765832,
+   "name": "Garura, Wings of Resonant Life",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 162,
+   "set_code": "RA02-EN024"
+  },
+  {
+   "card_image_id": 11765832,
+   "name": "Garura, Wings of Resonant Life",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 163,
+   "set_code": "RA02-EN024"
+  },
+  {
+   "card_image_id": 11765832,
+   "name": "Garura, Wings of Resonant Life",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 164,
+   "set_code": "RA02-EN024"
+  },
+  {
+   "card_image_id": 11765832,
+   "name": "Garura, Wings of Resonant Life",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 165,
+   "set_code": "RA02-EN024"
+  },
+  {
+   "card_image_id": 11765832,
+   "name": "Garura, Wings of Resonant Life",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 166,
+   "set_code": "RA02-EN024"
+  },
+  {
+   "card_image_id": 11765832,
+   "name": "Garura, Wings of Resonant Life",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 167,
+   "set_code": "RA02-EN024"
+  },
+  {
+   "card_image_id": 11765832,
+   "name": "Garura, Wings of Resonant Life",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 168,
+   "set_code": "RA02-EN024"
+  },
+  {
+   "card_image_id": 51409648,
+   "name": "Rindbrumm the Striking Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 169,
+   "set_code": "RA02-EN025"
+  },
+  {
+   "card_image_id": 51409648,
+   "name": "Rindbrumm the Striking Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 170,
+   "set_code": "RA02-EN025"
+  },
+  {
+   "card_image_id": 51409648,
+   "name": "Rindbrumm the Striking Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 171,
+   "set_code": "RA02-EN025"
+  },
+  {
+   "card_image_id": 51409648,
+   "name": "Rindbrumm the Striking Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 172,
+   "set_code": "RA02-EN025"
+  },
+  {
+   "card_image_id": 51409648,
+   "name": "Rindbrumm the Striking Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 173,
+   "set_code": "RA02-EN025"
+  },
+  {
+   "card_image_id": 51409648,
+   "name": "Rindbrumm the Striking Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 174,
+   "set_code": "RA02-EN025"
+  },
+  {
+   "card_image_id": 51409648,
+   "name": "Rindbrumm the Striking Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 175,
+   "set_code": "RA02-EN025"
+  },
+  {
+   "card_image_id": 52687916,
+   "name": "Trishula, Dragon of the Ice Barrier",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 176,
+   "set_code": "RA02-EN026"
+  },
+  {
+   "card_image_id": 52687916,
+   "name": "Trishula, Dragon of the Ice Barrier",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 177,
+   "set_code": "RA02-EN026"
+  },
+  {
+   "card_image_id": 52687916,
+   "name": "Trishula, Dragon of the Ice Barrier",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 178,
+   "set_code": "RA02-EN026"
+  },
+  {
+   "card_image_id": 52687916,
+   "name": "Trishula, Dragon of the Ice Barrier",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 179,
+   "set_code": "RA02-EN026"
+  },
+  {
+   "card_image_id": 52687916,
+   "name": "Trishula, Dragon of the Ice Barrier",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 180,
+   "set_code": "RA02-EN026"
+  },
+  {
+   "card_image_id": 52687916,
+   "name": "Trishula, Dragon of the Ice Barrier",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 181,
+   "set_code": "RA02-EN026"
+  },
+  {
+   "card_image_id": 52687916,
+   "name": "Trishula, Dragon of the Ice Barrier",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 182,
+   "set_code": "RA02-EN026"
+  },
+  {
+   "card_image_id": 90953320,
+   "name": "T.G. Hyper Librarian",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 183,
+   "set_code": "RA02-EN027"
+  },
+  {
+   "card_image_id": 90953320,
+   "name": "T.G. Hyper Librarian",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 184,
+   "set_code": "RA02-EN027"
+  },
+  {
+   "card_image_id": 90953320,
+   "name": "T.G. Hyper Librarian",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 185,
+   "set_code": "RA02-EN027"
+  },
+  {
+   "card_image_id": 90953320,
+   "name": "T.G. Hyper Librarian",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 186,
+   "set_code": "RA02-EN027"
+  },
+  {
+   "card_image_id": 90953320,
+   "name": "T.G. Hyper Librarian",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 187,
+   "set_code": "RA02-EN027"
+  },
+  {
+   "card_image_id": 90953320,
+   "name": "T.G. Hyper Librarian",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 188,
+   "set_code": "RA02-EN027"
+  },
+  {
+   "card_image_id": 90953320,
+   "name": "T.G. Hyper Librarian",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 189,
+   "set_code": "RA02-EN027"
+  },
+  {
+   "card_image_id": 74586817,
+   "name": "PSY-Framelord Omega",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 190,
+   "set_code": "RA02-EN028"
+  },
+  {
+   "card_image_id": 74586817,
+   "name": "PSY-Framelord Omega",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 191,
+   "set_code": "RA02-EN028"
+  },
+  {
+   "card_image_id": 74586817,
+   "name": "PSY-Framelord Omega",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 192,
+   "set_code": "RA02-EN028"
+  },
+  {
+   "card_image_id": 74586817,
+   "name": "PSY-Framelord Omega",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 193,
+   "set_code": "RA02-EN028"
+  },
+  {
+   "card_image_id": 74586817,
+   "name": "PSY-Framelord Omega",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 194,
+   "set_code": "RA02-EN028"
+  },
+  {
+   "card_image_id": 74586817,
+   "name": "PSY-Framelord Omega",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 195,
+   "set_code": "RA02-EN028"
+  },
+  {
+   "card_image_id": 74586817,
+   "name": "PSY-Framelord Omega",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 196,
+   "set_code": "RA02-EN028"
+  },
+  {
+   "card_image_id": 50954680,
+   "name": "Crystal Wing Synchro Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 197,
+   "set_code": "RA02-EN029"
+  },
+  {
+   "card_image_id": 50954680,
+   "name": "Crystal Wing Synchro Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 198,
+   "set_code": "RA02-EN029"
+  },
+  {
+   "card_image_id": 50954680,
+   "name": "Crystal Wing Synchro Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 199,
+   "set_code": "RA02-EN029"
+  },
+  {
+   "card_image_id": 50954680,
+   "name": "Crystal Wing Synchro Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 200,
+   "set_code": "RA02-EN029"
+  },
+  {
+   "card_image_id": 50954680,
+   "name": "Crystal Wing Synchro Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 201,
+   "set_code": "RA02-EN029"
+  },
+  {
+   "card_image_id": 50954680,
+   "name": "Crystal Wing Synchro Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 202,
+   "set_code": "RA02-EN029"
+  },
+  {
+   "card_image_id": 50954680,
+   "name": "Crystal Wing Synchro Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 203,
+   "set_code": "RA02-EN029"
+  },
+  {
+   "card_image_id": 59822133,
+   "name": "Blue-Eyes Spirit Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 204,
+   "set_code": "RA02-EN030"
+  },
+  {
+   "card_image_id": 59822133,
+   "name": "Blue-Eyes Spirit Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 205,
+   "set_code": "RA02-EN030"
+  },
+  {
+   "card_image_id": 59822133,
+   "name": "Blue-Eyes Spirit Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 206,
+   "set_code": "RA02-EN030"
+  },
+  {
+   "card_image_id": 59822133,
+   "name": "Blue-Eyes Spirit Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 207,
+   "set_code": "RA02-EN030"
+  },
+  {
+   "card_image_id": 59822133,
+   "name": "Blue-Eyes Spirit Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 208,
+   "set_code": "RA02-EN030"
+  },
+  {
+   "card_image_id": 59822133,
+   "name": "Blue-Eyes Spirit Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 209,
+   "set_code": "RA02-EN030"
+  },
+  {
+   "card_image_id": 59822133,
+   "name": "Blue-Eyes Spirit Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 210,
+   "set_code": "RA02-EN030"
+  },
+  {
+   "card_image_id": 42566602,
+   "name": "Coral Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 211,
+   "set_code": "RA02-EN031"
+  },
+  {
+   "card_image_id": 42566602,
+   "name": "Coral Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 212,
+   "set_code": "RA02-EN031"
+  },
+  {
+   "card_image_id": 42566602,
+   "name": "Coral Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 213,
+   "set_code": "RA02-EN031"
+  },
+  {
+   "card_image_id": 42566602,
+   "name": "Coral Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 214,
+   "set_code": "RA02-EN031"
+  },
+  {
+   "card_image_id": 42566602,
+   "name": "Coral Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 215,
+   "set_code": "RA02-EN031"
+  },
+  {
+   "card_image_id": 42566602,
+   "name": "Coral Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 216,
+   "set_code": "RA02-EN031"
+  },
+  {
+   "card_image_id": 42566602,
+   "name": "Coral Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 217,
+   "set_code": "RA02-EN031"
+  },
+  {
+   "card_image_id": 60465049,
+   "name": "Psychic End Punisher",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 218,
+   "set_code": "RA02-EN032"
+  },
+  {
+   "card_image_id": 60465049,
+   "name": "Psychic End Punisher",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 219,
+   "set_code": "RA02-EN032"
+  },
+  {
+   "card_image_id": 60465049,
+   "name": "Psychic End Punisher",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 220,
+   "set_code": "RA02-EN032"
+  },
+  {
+   "card_image_id": 60465049,
+   "name": "Psychic End Punisher",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 221,
+   "set_code": "RA02-EN032"
+  },
+  {
+   "card_image_id": 60465049,
+   "name": "Psychic End Punisher",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 222,
+   "set_code": "RA02-EN032"
+  },
+  {
+   "card_image_id": 60465049,
+   "name": "Psychic End Punisher",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 223,
+   "set_code": "RA02-EN032"
+  },
+  {
+   "card_image_id": 60465049,
+   "name": "Psychic End Punisher",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 224,
+   "set_code": "RA02-EN032"
+  },
+  {
+   "card_image_id": 21044178,
+   "name": "Abyss Dweller",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 225,
+   "set_code": "RA02-EN033"
+  },
+  {
+   "card_image_id": 21044178,
+   "name": "Abyss Dweller",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 226,
+   "set_code": "RA02-EN033"
+  },
+  {
+   "card_image_id": 21044178,
+   "name": "Abyss Dweller",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 227,
+   "set_code": "RA02-EN033"
+  },
+  {
+   "card_image_id": 21044178,
+   "name": "Abyss Dweller",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 228,
+   "set_code": "RA02-EN033"
+  },
+  {
+   "card_image_id": 21044178,
+   "name": "Abyss Dweller",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 229,
+   "set_code": "RA02-EN033"
+  },
+  {
+   "card_image_id": 21044178,
+   "name": "Abyss Dweller",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 230,
+   "set_code": "RA02-EN033"
+  },
+  {
+   "card_image_id": 21044178,
+   "name": "Abyss Dweller",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 231,
+   "set_code": "RA02-EN033"
+  },
+  {
+   "card_image_id": 6511113,
+   "name": "Traptrix Rafflesia",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 232,
+   "set_code": "RA02-EN034"
+  },
+  {
+   "card_image_id": 6511113,
+   "name": "Traptrix Rafflesia",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 233,
+   "set_code": "RA02-EN034"
+  },
+  {
+   "card_image_id": 6511113,
+   "name": "Traptrix Rafflesia",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 234,
+   "set_code": "RA02-EN034"
+  },
+  {
+   "card_image_id": 6511113,
+   "name": "Traptrix Rafflesia",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 235,
+   "set_code": "RA02-EN034"
+  },
+  {
+   "card_image_id": 6511113,
+   "name": "Traptrix Rafflesia",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 236,
+   "set_code": "RA02-EN034"
+  },
+  {
+   "card_image_id": 6511113,
+   "name": "Traptrix Rafflesia",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 237,
+   "set_code": "RA02-EN034"
+  },
+  {
+   "card_image_id": 6511113,
+   "name": "Traptrix Rafflesia",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 238,
+   "set_code": "RA02-EN034"
+  },
+  {
+   "card_image_id": 62709239,
+   "name": "The Phantom Knights of Break Sword",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 239,
+   "set_code": "RA02-EN035"
+  },
+  {
+   "card_image_id": 62709239,
+   "name": "The Phantom Knights of Break Sword",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 240,
+   "set_code": "RA02-EN035"
+  },
+  {
+   "card_image_id": 62709239,
+   "name": "The Phantom Knights of Break Sword",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 241,
+   "set_code": "RA02-EN035"
+  },
+  {
+   "card_image_id": 62709239,
+   "name": "The Phantom Knights of Break Sword",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 242,
+   "set_code": "RA02-EN035"
+  },
+  {
+   "card_image_id": 62709239,
+   "name": "The Phantom Knights of Break Sword",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 243,
+   "set_code": "RA02-EN035"
+  },
+  {
+   "card_image_id": 62709239,
+   "name": "The Phantom Knights of Break Sword",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 244,
+   "set_code": "RA02-EN035"
+  },
+  {
+   "card_image_id": 62709239,
+   "name": "The Phantom Knights of Break Sword",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 245,
+   "set_code": "RA02-EN035"
+  },
+  {
+   "card_image_id": 63767246,
+   "name": "Number 38: Hope Harbinger Dragon Titanic Galaxy",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 246,
+   "set_code": "RA02-EN036"
+  },
+  {
+   "card_image_id": 63767246,
+   "name": "Number 38: Hope Harbinger Dragon Titanic Galaxy",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 247,
+   "set_code": "RA02-EN036"
+  },
+  {
+   "card_image_id": 63767246,
+   "name": "Number 38: Hope Harbinger Dragon Titanic Galaxy",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 248,
+   "set_code": "RA02-EN036"
+  },
+  {
+   "card_image_id": 63767246,
+   "name": "Number 38: Hope Harbinger Dragon Titanic Galaxy",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 249,
+   "set_code": "RA02-EN036"
+  },
+  {
+   "card_image_id": 63767246,
+   "name": "Number 38: Hope Harbinger Dragon Titanic Galaxy",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 250,
+   "set_code": "RA02-EN036"
+  },
+  {
+   "card_image_id": 63767246,
+   "name": "Number 38: Hope Harbinger Dragon Titanic Galaxy",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 251,
+   "set_code": "RA02-EN036"
+  },
+  {
+   "card_image_id": 63767246,
+   "name": "Number 38: Hope Harbinger Dragon Titanic Galaxy",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 252,
+   "set_code": "RA02-EN036"
+  },
+  {
+   "card_image_id": 66011101,
+   "name": "Number 60: Dugares the Timeless",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 253,
+   "set_code": "RA02-EN037"
+  },
+  {
+   "card_image_id": 66011101,
+   "name": "Number 60: Dugares the Timeless",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 254,
+   "set_code": "RA02-EN037"
+  },
+  {
+   "card_image_id": 66011101,
+   "name": "Number 60: Dugares the Timeless",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 255,
+   "set_code": "RA02-EN037"
+  },
+  {
+   "card_image_id": 66011101,
+   "name": "Number 60: Dugares the Timeless",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 256,
+   "set_code": "RA02-EN037"
+  },
+  {
+   "card_image_id": 66011101,
+   "name": "Number 60: Dugares the Timeless",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 257,
+   "set_code": "RA02-EN037"
+  },
+  {
+   "card_image_id": 66011101,
+   "name": "Number 60: Dugares the Timeless",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 258,
+   "set_code": "RA02-EN037"
+  },
+  {
+   "card_image_id": 66011101,
+   "name": "Number 60: Dugares the Timeless",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 259,
+   "set_code": "RA02-EN037"
+  },
+  {
+   "card_image_id": 59242457,
+   "name": "Exosisters Magnifica",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 260,
+   "set_code": "RA02-EN038"
+  },
+  {
+   "card_image_id": 59242457,
+   "name": "Exosisters Magnifica",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 261,
+   "set_code": "RA02-EN038"
+  },
+  {
+   "card_image_id": 59242457,
+   "name": "Exosisters Magnifica",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 262,
+   "set_code": "RA02-EN038"
+  },
+  {
+   "card_image_id": 59242457,
+   "name": "Exosisters Magnifica",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 263,
+   "set_code": "RA02-EN038"
+  },
+  {
+   "card_image_id": 59242457,
+   "name": "Exosisters Magnifica",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 264,
+   "set_code": "RA02-EN038"
+  },
+  {
+   "card_image_id": 59242457,
+   "name": "Exosisters Magnifica",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 265,
+   "set_code": "RA02-EN038"
+  },
+  {
+   "card_image_id": 59242457,
+   "name": "Exosisters Magnifica",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 266,
+   "set_code": "RA02-EN038"
+  },
+  {
+   "card_image_id": 24361622,
+   "name": "Hieratic Seal of the Heavenly Spheres",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 267,
+   "set_code": "RA02-EN039"
+  },
+  {
+   "card_image_id": 24361622,
+   "name": "Hieratic Seal of the Heavenly Spheres",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 268,
+   "set_code": "RA02-EN039"
+  },
+  {
+   "card_image_id": 24361622,
+   "name": "Hieratic Seal of the Heavenly Spheres",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 269,
+   "set_code": "RA02-EN039"
+  },
+  {
+   "card_image_id": 24361622,
+   "name": "Hieratic Seal of the Heavenly Spheres",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 270,
+   "set_code": "RA02-EN039"
+  },
+  {
+   "card_image_id": 24361622,
+   "name": "Hieratic Seal of the Heavenly Spheres",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 271,
+   "set_code": "RA02-EN039"
+  },
+  {
+   "card_image_id": 24361622,
+   "name": "Hieratic Seal of the Heavenly Spheres",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 272,
+   "set_code": "RA02-EN039"
+  },
+  {
+   "card_image_id": 24361622,
+   "name": "Hieratic Seal of the Heavenly Spheres",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 273,
+   "set_code": "RA02-EN039"
+  },
+  {
+   "card_image_id": -1016857485,
+   "name": "Apollousa, Bow of the Goddess",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 274,
+   "set_code": "RA02-EN040"
+  },
+  {
+   "card_image_id": -1749846254,
+   "name": "Apollousa, Bow of the Goddess",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 275,
+   "set_code": "RA02-EN040"
+  },
+  {
+   "card_image_id": -1363356564,
+   "name": "Apollousa, Bow of the Goddess",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 276,
+   "set_code": "RA02-EN040"
+  },
+  {
+   "card_image_id": -1170184361,
+   "name": "Apollousa, Bow of the Goddess",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 277,
+   "set_code": "RA02-EN040"
+  },
+  {
+   "card_image_id": -421965310,
+   "name": "Apollousa, Bow of the Goddess",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 278,
+   "set_code": "RA02-EN040"
+  },
+  {
+   "card_image_id": -34922328,
+   "name": "Apollousa, Bow of the Goddess",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 279,
+   "set_code": "RA02-EN040"
+  },
+  {
+   "card_image_id": -1813030008,
+   "name": "Apollousa, Bow of the Goddess",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 280,
+   "set_code": "RA02-EN040"
+  },
+  {
+   "card_image_id": 67680512,
+   "name": "Unchained Soul of Rage",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 281,
+   "set_code": "RA02-EN041"
+  },
+  {
+   "card_image_id": 67680512,
+   "name": "Unchained Soul of Rage",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 282,
+   "set_code": "RA02-EN041"
+  },
+  {
+   "card_image_id": 67680512,
+   "name": "Unchained Soul of Rage",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 283,
+   "set_code": "RA02-EN041"
+  },
+  {
+   "card_image_id": 67680512,
+   "name": "Unchained Soul of Rage",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 284,
+   "set_code": "RA02-EN041"
+  },
+  {
+   "card_image_id": 67680512,
+   "name": "Unchained Soul of Rage",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 285,
+   "set_code": "RA02-EN041"
+  },
+  {
+   "card_image_id": 67680512,
+   "name": "Unchained Soul of Rage",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 286,
+   "set_code": "RA02-EN041"
+  },
+  {
+   "card_image_id": 67680512,
+   "name": "Unchained Soul of Rage",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 287,
+   "set_code": "RA02-EN041"
+  },
+  {
+   "card_image_id": -97581491,
+   "name": "I:P Masquerena",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 288,
+   "set_code": "RA02-EN042"
+  },
+  {
+   "card_image_id": -1615777987,
+   "name": "I:P Masquerena",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 289,
+   "set_code": "RA02-EN042"
+  },
+  {
+   "card_image_id": -2408381,
+   "name": "I:P Masquerena",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 290,
+   "set_code": "RA02-EN042"
+  },
+  {
+   "card_image_id": -108521978,
+   "name": "I:P Masquerena",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 291,
+   "set_code": "RA02-EN042"
+  },
+  {
+   "card_image_id": -836446148,
+   "name": "I:P Masquerena",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 292,
+   "set_code": "RA02-EN042"
+  },
+  {
+   "card_image_id": -1088196103,
+   "name": "I:P Masquerena",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 293,
+   "set_code": "RA02-EN042"
+  },
+  {
+   "card_image_id": -1658138186,
+   "name": "I:P Masquerena",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 294,
+   "set_code": "RA02-EN042"
+  },
+  {
+   "card_image_id": 98630720,
+   "name": "Borrelend Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 295,
+   "set_code": "RA02-EN043"
+  },
+  {
+   "card_image_id": 98630720,
+   "name": "Borrelend Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 296,
+   "set_code": "RA02-EN043"
+  },
+  {
+   "card_image_id": 98630720,
+   "name": "Borrelend Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 297,
+   "set_code": "RA02-EN043"
+  },
+  {
+   "card_image_id": 98630720,
+   "name": "Borrelend Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 298,
+   "set_code": "RA02-EN043"
+  },
+  {
+   "card_image_id": 98630720,
+   "name": "Borrelend Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 299,
+   "set_code": "RA02-EN043"
+  },
+  {
+   "card_image_id": 98630720,
+   "name": "Borrelend Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 300,
+   "set_code": "RA02-EN043"
+  },
+  {
+   "card_image_id": 98630720,
+   "name": "Borrelend Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 301,
+   "set_code": "RA02-EN043"
+  },
+  {
+   "card_image_id": 86066372,
+   "name": "Accesscode Talker",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 302,
+   "set_code": "RA02-EN044"
+  },
+  {
+   "card_image_id": 86066372,
+   "name": "Accesscode Talker",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 303,
+   "set_code": "RA02-EN044"
+  },
+  {
+   "card_image_id": 86066372,
+   "name": "Accesscode Talker",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 304,
+   "set_code": "RA02-EN044"
+  },
+  {
+   "card_image_id": 86066372,
+   "name": "Accesscode Talker",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 305,
+   "set_code": "RA02-EN044"
+  },
+  {
+   "card_image_id": 86066372,
+   "name": "Accesscode Talker",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 306,
+   "set_code": "RA02-EN044"
+  },
+  {
+   "card_image_id": 86066372,
+   "name": "Accesscode Talker",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 307,
+   "set_code": "RA02-EN044"
+  },
+  {
+   "card_image_id": 86066372,
+   "name": "Accesscode Talker",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 308,
+   "set_code": "RA02-EN044"
+  },
+  {
+   "card_image_id": 98127546,
+   "name": "Underworld Goddess of the Closed World",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 309,
+   "set_code": "RA02-EN045"
+  },
+  {
+   "card_image_id": 98127546,
+   "name": "Underworld Goddess of the Closed World",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 310,
+   "set_code": "RA02-EN045"
+  },
+  {
+   "card_image_id": 98127546,
+   "name": "Underworld Goddess of the Closed World",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 311,
+   "set_code": "RA02-EN045"
+  },
+  {
+   "card_image_id": 98127546,
+   "name": "Underworld Goddess of the Closed World",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 312,
+   "set_code": "RA02-EN045"
+  },
+  {
+   "card_image_id": 98127546,
+   "name": "Underworld Goddess of the Closed World",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 313,
+   "set_code": "RA02-EN045"
+  },
+  {
+   "card_image_id": 98127546,
+   "name": "Underworld Goddess of the Closed World",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 314,
+   "set_code": "RA02-EN045"
+  },
+  {
+   "card_image_id": 98127546,
+   "name": "Underworld Goddess of the Closed World",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 315,
+   "set_code": "RA02-EN045"
+  },
+  {
+   "card_image_id": 37520316,
+   "name": "Mind Control",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 316,
+   "set_code": "RA02-EN046"
+  },
+  {
+   "card_image_id": 37520316,
+   "name": "Mind Control",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 317,
+   "set_code": "RA02-EN046"
+  },
+  {
+   "card_image_id": 37520316,
+   "name": "Mind Control",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 318,
+   "set_code": "RA02-EN046"
+  },
+  {
+   "card_image_id": 37520316,
+   "name": "Mind Control",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 319,
+   "set_code": "RA02-EN046"
+  },
+  {
+   "card_image_id": 37520316,
+   "name": "Mind Control",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 320,
+   "set_code": "RA02-EN046"
+  },
+  {
+   "card_image_id": 37520316,
+   "name": "Mind Control",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 321,
+   "set_code": "RA02-EN046"
+  },
+  {
+   "card_image_id": 37520316,
+   "name": "Mind Control",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 322,
+   "set_code": "RA02-EN046"
+  },
+  {
+   "card_image_id": 24094653,
+   "name": "Polymerization",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 323,
+   "set_code": "RA02-EN047"
+  },
+  {
+   "card_image_id": 24094653,
+   "name": "Polymerization",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 324,
+   "set_code": "RA02-EN047"
+  },
+  {
+   "card_image_id": 24094653,
+   "name": "Polymerization",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 325,
+   "set_code": "RA02-EN047"
+  },
+  {
+   "card_image_id": 24094653,
+   "name": "Polymerization",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 326,
+   "set_code": "RA02-EN047"
+  },
+  {
+   "card_image_id": 24094653,
+   "name": "Polymerization",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 327,
+   "set_code": "RA02-EN047"
+  },
+  {
+   "card_image_id": 24094653,
+   "name": "Polymerization",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 328,
+   "set_code": "RA02-EN047"
+  },
+  {
+   "card_image_id": 24094653,
+   "name": "Polymerization",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 329,
+   "set_code": "RA02-EN047"
+  },
+  {
+   "card_image_id": 5318639,
+   "name": "Mystical Space Typhoon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 330,
+   "set_code": "RA02-EN048"
+  },
+  {
+   "card_image_id": 5318639,
+   "name": "Mystical Space Typhoon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 331,
+   "set_code": "RA02-EN048"
+  },
+  {
+   "card_image_id": 5318639,
+   "name": "Mystical Space Typhoon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 332,
+   "set_code": "RA02-EN048"
+  },
+  {
+   "card_image_id": 5318639,
+   "name": "Mystical Space Typhoon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 333,
+   "set_code": "RA02-EN048"
+  },
+  {
+   "card_image_id": 5318639,
+   "name": "Mystical Space Typhoon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 334,
+   "set_code": "RA02-EN048"
+  },
+  {
+   "card_image_id": 5318639,
+   "name": "Mystical Space Typhoon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 335,
+   "set_code": "RA02-EN048"
+  },
+  {
+   "card_image_id": 5318639,
+   "name": "Mystical Space Typhoon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 336,
+   "set_code": "RA02-EN048"
+  },
+  {
+   "card_image_id": 81439173,
+   "name": "Foolish Burial",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 337,
+   "set_code": "RA02-EN049"
+  },
+  {
+   "card_image_id": 81439173,
+   "name": "Foolish Burial",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 338,
+   "set_code": "RA02-EN049"
+  },
+  {
+   "card_image_id": 81439173,
+   "name": "Foolish Burial",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 339,
+   "set_code": "RA02-EN049"
+  },
+  {
+   "card_image_id": 81439173,
+   "name": "Foolish Burial",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 340,
+   "set_code": "RA02-EN049"
+  },
+  {
+   "card_image_id": 81439173,
+   "name": "Foolish Burial",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 341,
+   "set_code": "RA02-EN049"
+  },
+  {
+   "card_image_id": 81439173,
+   "name": "Foolish Burial",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 342,
+   "set_code": "RA02-EN049"
+  },
+  {
+   "card_image_id": 81439173,
+   "name": "Foolish Burial",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 343,
+   "set_code": "RA02-EN049"
+  },
+  {
+   "card_image_id": 14087893,
+   "name": "Book of Moon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 344,
+   "set_code": "RA02-EN050"
+  },
+  {
+   "card_image_id": 14087893,
+   "name": "Book of Moon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 345,
+   "set_code": "RA02-EN050"
+  },
+  {
+   "card_image_id": 14087893,
+   "name": "Book of Moon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 346,
+   "set_code": "RA02-EN050"
+  },
+  {
+   "card_image_id": 14087893,
+   "name": "Book of Moon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 347,
+   "set_code": "RA02-EN050"
+  },
+  {
+   "card_image_id": 14087893,
+   "name": "Book of Moon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 348,
+   "set_code": "RA02-EN050"
+  },
+  {
+   "card_image_id": 14087893,
+   "name": "Book of Moon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 349,
+   "set_code": "RA02-EN050"
+  },
+  {
+   "card_image_id": 14087893,
+   "name": "Book of Moon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 350,
+   "set_code": "RA02-EN050"
+  },
+  {
+   "card_image_id": 98045062,
+   "name": "Enemy Controller",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 351,
+   "set_code": "RA02-EN051"
+  },
+  {
+   "card_image_id": 98045062,
+   "name": "Enemy Controller",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 352,
+   "set_code": "RA02-EN051"
+  },
+  {
+   "card_image_id": 98045062,
+   "name": "Enemy Controller",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 353,
+   "set_code": "RA02-EN051"
+  },
+  {
+   "card_image_id": 98045062,
+   "name": "Enemy Controller",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 354,
+   "set_code": "RA02-EN051"
+  },
+  {
+   "card_image_id": 98045062,
+   "name": "Enemy Controller",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 355,
+   "set_code": "RA02-EN051"
+  },
+  {
+   "card_image_id": 98045062,
+   "name": "Enemy Controller",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 356,
+   "set_code": "RA02-EN051"
+  },
+  {
+   "card_image_id": 98045062,
+   "name": "Enemy Controller",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 357,
+   "set_code": "RA02-EN051"
+  },
+  {
+   "card_image_id": 75500286,
+   "name": "Gold Sarcophagus",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 358,
+   "set_code": "RA02-EN052"
+  },
+  {
+   "card_image_id": 75500286,
+   "name": "Gold Sarcophagus",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 359,
+   "set_code": "RA02-EN052"
+  },
+  {
+   "card_image_id": 75500286,
+   "name": "Gold Sarcophagus",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 360,
+   "set_code": "RA02-EN052"
+  },
+  {
+   "card_image_id": 75500286,
+   "name": "Gold Sarcophagus",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 361,
+   "set_code": "RA02-EN052"
+  },
+  {
+   "card_image_id": 75500286,
+   "name": "Gold Sarcophagus",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 362,
+   "set_code": "RA02-EN052"
+  },
+  {
+   "card_image_id": 75500286,
+   "name": "Gold Sarcophagus",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 363,
+   "set_code": "RA02-EN052"
+  },
+  {
+   "card_image_id": 75500286,
+   "name": "Gold Sarcophagus",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 364,
+   "set_code": "RA02-EN052"
+  },
+  {
+   "card_image_id": 67723438,
+   "name": "Emergency Teleport",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 365,
+   "set_code": "RA02-EN053"
+  },
+  {
+   "card_image_id": 67723438,
+   "name": "Emergency Teleport",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 366,
+   "set_code": "RA02-EN053"
+  },
+  {
+   "card_image_id": 67723438,
+   "name": "Emergency Teleport",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 367,
+   "set_code": "RA02-EN053"
+  },
+  {
+   "card_image_id": 67723438,
+   "name": "Emergency Teleport",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 368,
+   "set_code": "RA02-EN053"
+  },
+  {
+   "card_image_id": 67723438,
+   "name": "Emergency Teleport",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 369,
+   "set_code": "RA02-EN053"
+  },
+  {
+   "card_image_id": 67723438,
+   "name": "Emergency Teleport",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 370,
+   "set_code": "RA02-EN053"
+  },
+  {
+   "card_image_id": 67723438,
+   "name": "Emergency Teleport",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 371,
+   "set_code": "RA02-EN053"
+  },
+  {
+   "card_image_id": 35480699,
+   "name": "Book of Eclipse",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 372,
+   "set_code": "RA02-EN054"
+  },
+  {
+   "card_image_id": 35480699,
+   "name": "Book of Eclipse",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 373,
+   "set_code": "RA02-EN054"
+  },
+  {
+   "card_image_id": 35480699,
+   "name": "Book of Eclipse",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 374,
+   "set_code": "RA02-EN054"
+  },
+  {
+   "card_image_id": 35480699,
+   "name": "Book of Eclipse",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 375,
+   "set_code": "RA02-EN054"
+  },
+  {
+   "card_image_id": 35480699,
+   "name": "Book of Eclipse",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 376,
+   "set_code": "RA02-EN054"
+  },
+  {
+   "card_image_id": 35480699,
+   "name": "Book of Eclipse",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 377,
+   "set_code": "RA02-EN054"
+  },
+  {
+   "card_image_id": 35480699,
+   "name": "Book of Eclipse",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 378,
+   "set_code": "RA02-EN054"
+  },
+  {
+   "card_image_id": 94886282,
+   "name": "Charge of the Light Brigade",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 379,
+   "set_code": "RA02-EN055"
+  },
+  {
+   "card_image_id": 94886282,
+   "name": "Charge of the Light Brigade",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 380,
+   "set_code": "RA02-EN055"
+  },
+  {
+   "card_image_id": 94886282,
+   "name": "Charge of the Light Brigade",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 381,
+   "set_code": "RA02-EN055"
+  },
+  {
+   "card_image_id": 94886282,
+   "name": "Charge of the Light Brigade",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 382,
+   "set_code": "RA02-EN055"
+  },
+  {
+   "card_image_id": 94886282,
+   "name": "Charge of the Light Brigade",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 383,
+   "set_code": "RA02-EN055"
+  },
+  {
+   "card_image_id": 94886282,
+   "name": "Charge of the Light Brigade",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 384,
+   "set_code": "RA02-EN055"
+  },
+  {
+   "card_image_id": 94886282,
+   "name": "Charge of the Light Brigade",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 385,
+   "set_code": "RA02-EN055"
+  },
+  {
+   "card_image_id": 96729612,
+   "name": "Preparation of Rites",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 386,
+   "set_code": "RA02-EN056"
+  },
+  {
+   "card_image_id": 96729612,
+   "name": "Preparation of Rites",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 387,
+   "set_code": "RA02-EN056"
+  },
+  {
+   "card_image_id": 96729612,
+   "name": "Preparation of Rites",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 388,
+   "set_code": "RA02-EN056"
+  },
+  {
+   "card_image_id": 96729612,
+   "name": "Preparation of Rites",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 389,
+   "set_code": "RA02-EN056"
+  },
+  {
+   "card_image_id": 96729612,
+   "name": "Preparation of Rites",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 390,
+   "set_code": "RA02-EN056"
+  },
+  {
+   "card_image_id": 96729612,
+   "name": "Preparation of Rites",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 391,
+   "set_code": "RA02-EN056"
+  },
+  {
+   "card_image_id": 96729612,
+   "name": "Preparation of Rites",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 392,
+   "set_code": "RA02-EN056"
+  },
+  {
+   "card_image_id": 98645731,
+   "name": "Pot of Duality",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 393,
+   "set_code": "RA02-EN057"
+  },
+  {
+   "card_image_id": 98645731,
+   "name": "Pot of Duality",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 394,
+   "set_code": "RA02-EN057"
+  },
+  {
+   "card_image_id": 98645731,
+   "name": "Pot of Duality",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 395,
+   "set_code": "RA02-EN057"
+  },
+  {
+   "card_image_id": 98645731,
+   "name": "Pot of Duality",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 396,
+   "set_code": "RA02-EN057"
+  },
+  {
+   "card_image_id": 98645731,
+   "name": "Pot of Duality",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 397,
+   "set_code": "RA02-EN057"
+  },
+  {
+   "card_image_id": 98645731,
+   "name": "Pot of Duality",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 398,
+   "set_code": "RA02-EN057"
+  },
+  {
+   "card_image_id": 98645731,
+   "name": "Pot of Duality",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 399,
+   "set_code": "RA02-EN057"
+  },
+  {
+   "card_image_id": 27243130,
+   "name": "Forbidden Lance",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 400,
+   "set_code": "RA02-EN058"
+  },
+  {
+   "card_image_id": 27243130,
+   "name": "Forbidden Lance",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 401,
+   "set_code": "RA02-EN058"
+  },
+  {
+   "card_image_id": 27243130,
+   "name": "Forbidden Lance",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 402,
+   "set_code": "RA02-EN058"
+  },
+  {
+   "card_image_id": 27243130,
+   "name": "Forbidden Lance",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 403,
+   "set_code": "RA02-EN058"
+  },
+  {
+   "card_image_id": 27243130,
+   "name": "Forbidden Lance",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 404,
+   "set_code": "RA02-EN058"
+  },
+  {
+   "card_image_id": 27243130,
+   "name": "Forbidden Lance",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 405,
+   "set_code": "RA02-EN058"
+  },
+  {
+   "card_image_id": 27243130,
+   "name": "Forbidden Lance",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 406,
+   "set_code": "RA02-EN058"
+  },
+  {
+   "card_image_id": 78610936,
+   "name": "Xyz Encore",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 407,
+   "set_code": "RA02-EN059"
+  },
+  {
+   "card_image_id": 78610936,
+   "name": "Xyz Encore",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 408,
+   "set_code": "RA02-EN059"
+  },
+  {
+   "card_image_id": 78610936,
+   "name": "Xyz Encore",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 409,
+   "set_code": "RA02-EN059"
+  },
+  {
+   "card_image_id": 78610936,
+   "name": "Xyz Encore",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 410,
+   "set_code": "RA02-EN059"
+  },
+  {
+   "card_image_id": 78610936,
+   "name": "Xyz Encore",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 411,
+   "set_code": "RA02-EN059"
+  },
+  {
+   "card_image_id": 78610936,
+   "name": "Xyz Encore",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 412,
+   "set_code": "RA02-EN059"
+  },
+  {
+   "card_image_id": 78610936,
+   "name": "Xyz Encore",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 413,
+   "set_code": "RA02-EN059"
+  },
+  {
+   "card_image_id": 43898403,
+   "name": "Twin Twisters",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 414,
+   "set_code": "RA02-EN060"
+  },
+  {
+   "card_image_id": 43898403,
+   "name": "Twin Twisters",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 415,
+   "set_code": "RA02-EN060"
+  },
+  {
+   "card_image_id": 43898403,
+   "name": "Twin Twisters",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 416,
+   "set_code": "RA02-EN060"
+  },
+  {
+   "card_image_id": 43898403,
+   "name": "Twin Twisters",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 417,
+   "set_code": "RA02-EN060"
+  },
+  {
+   "card_image_id": 43898403,
+   "name": "Twin Twisters",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 418,
+   "set_code": "RA02-EN060"
+  },
+  {
+   "card_image_id": 43898403,
+   "name": "Twin Twisters",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 419,
+   "set_code": "RA02-EN060"
+  },
+  {
+   "card_image_id": 43898403,
+   "name": "Twin Twisters",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 420,
+   "set_code": "RA02-EN060"
+  },
+  {
+   "card_image_id": 8267140,
+   "name": "Cosmic Cyclone",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 421,
+   "set_code": "RA02-EN061"
+  },
+  {
+   "card_image_id": 8267140,
+   "name": "Cosmic Cyclone",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 422,
+   "set_code": "RA02-EN061"
+  },
+  {
+   "card_image_id": 8267140,
+   "name": "Cosmic Cyclone",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 423,
+   "set_code": "RA02-EN061"
+  },
+  {
+   "card_image_id": 8267140,
+   "name": "Cosmic Cyclone",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 424,
+   "set_code": "RA02-EN061"
+  },
+  {
+   "card_image_id": 8267140,
+   "name": "Cosmic Cyclone",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 425,
+   "set_code": "RA02-EN061"
+  },
+  {
+   "card_image_id": 8267140,
+   "name": "Cosmic Cyclone",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 426,
+   "set_code": "RA02-EN061"
+  },
+  {
+   "card_image_id": 8267140,
+   "name": "Cosmic Cyclone",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 427,
+   "set_code": "RA02-EN061"
+  },
+  {
+   "card_image_id": 93437091,
+   "name": "Bingo Machine, Go!!!",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 428,
+   "set_code": "RA02-EN062"
+  },
+  {
+   "card_image_id": 93437091,
+   "name": "Bingo Machine, Go!!!",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 429,
+   "set_code": "RA02-EN062"
+  },
+  {
+   "card_image_id": 93437091,
+   "name": "Bingo Machine, Go!!!",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 430,
+   "set_code": "RA02-EN062"
+  },
+  {
+   "card_image_id": 93437091,
+   "name": "Bingo Machine, Go!!!",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 431,
+   "set_code": "RA02-EN062"
+  },
+  {
+   "card_image_id": 93437091,
+   "name": "Bingo Machine, Go!!!",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 432,
+   "set_code": "RA02-EN062"
+  },
+  {
+   "card_image_id": 93437091,
+   "name": "Bingo Machine, Go!!!",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 433,
+   "set_code": "RA02-EN062"
+  },
+  {
+   "card_image_id": 93437091,
+   "name": "Bingo Machine, Go!!!",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 434,
+   "set_code": "RA02-EN062"
+  },
+  {
+   "card_image_id": 65681983,
+   "name": "Crossout Designator",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 435,
+   "set_code": "RA02-EN063"
+  },
+  {
+   "card_image_id": 65681983,
+   "name": "Crossout Designator",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 436,
+   "set_code": "RA02-EN063"
+  },
+  {
+   "card_image_id": 65681983,
+   "name": "Crossout Designator",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 437,
+   "set_code": "RA02-EN063"
+  },
+  {
+   "card_image_id": 65681983,
+   "name": "Crossout Designator",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 438,
+   "set_code": "RA02-EN063"
+  },
+  {
+   "card_image_id": 65681983,
+   "name": "Crossout Designator",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 439,
+   "set_code": "RA02-EN063"
+  },
+  {
+   "card_image_id": 65681983,
+   "name": "Crossout Designator",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 440,
+   "set_code": "RA02-EN063"
+  },
+  {
+   "card_image_id": 65681983,
+   "name": "Crossout Designator",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 441,
+   "set_code": "RA02-EN063"
+  },
+  {
+   "card_image_id": 27412542,
+   "name": "Abomination's Prison",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 442,
+   "set_code": "RA02-EN064"
+  },
+  {
+   "card_image_id": 27412542,
+   "name": "Abomination's Prison",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 443,
+   "set_code": "RA02-EN064"
+  },
+  {
+   "card_image_id": 27412542,
+   "name": "Abomination's Prison",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 444,
+   "set_code": "RA02-EN064"
+  },
+  {
+   "card_image_id": 27412542,
+   "name": "Abomination's Prison",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 445,
+   "set_code": "RA02-EN064"
+  },
+  {
+   "card_image_id": 27412542,
+   "name": "Abomination's Prison",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 446,
+   "set_code": "RA02-EN064"
+  },
+  {
+   "card_image_id": 27412542,
+   "name": "Abomination's Prison",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 447,
+   "set_code": "RA02-EN064"
+  },
+  {
+   "card_image_id": 27412542,
+   "name": "Abomination's Prison",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 448,
+   "set_code": "RA02-EN064"
+  },
+  {
+   "card_image_id": 6498706,
+   "name": "Fusion Deployment",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 449,
+   "set_code": "RA02-EN065"
+  },
+  {
+   "card_image_id": 6498706,
+   "name": "Fusion Deployment",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 450,
+   "set_code": "RA02-EN065"
+  },
+  {
+   "card_image_id": 6498706,
+   "name": "Fusion Deployment",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 451,
+   "set_code": "RA02-EN065"
+  },
+  {
+   "card_image_id": 6498706,
+   "name": "Fusion Deployment",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 452,
+   "set_code": "RA02-EN065"
+  },
+  {
+   "card_image_id": 6498706,
+   "name": "Fusion Deployment",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 453,
+   "set_code": "RA02-EN065"
+  },
+  {
+   "card_image_id": 6498706,
+   "name": "Fusion Deployment",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 454,
+   "set_code": "RA02-EN065"
+  },
+  {
+   "card_image_id": 6498706,
+   "name": "Fusion Deployment",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 455,
+   "set_code": "RA02-EN065"
+  },
+  {
+   "card_image_id": 77913594,
+   "name": "Exosister Pax",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 456,
+   "set_code": "RA02-EN066"
+  },
+  {
+   "card_image_id": 77913594,
+   "name": "Exosister Pax",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 457,
+   "set_code": "RA02-EN066"
+  },
+  {
+   "card_image_id": 77913594,
+   "name": "Exosister Pax",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 458,
+   "set_code": "RA02-EN066"
+  },
+  {
+   "card_image_id": 77913594,
+   "name": "Exosister Pax",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 459,
+   "set_code": "RA02-EN066"
+  },
+  {
+   "card_image_id": 77913594,
+   "name": "Exosister Pax",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 460,
+   "set_code": "RA02-EN066"
+  },
+  {
+   "card_image_id": 77913594,
+   "name": "Exosister Pax",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 461,
+   "set_code": "RA02-EN066"
+  },
+  {
+   "card_image_id": 77913594,
+   "name": "Exosister Pax",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 462,
+   "set_code": "RA02-EN066"
+  },
+  {
+   "card_image_id": 56063182,
+   "name": "Primitive Planet Reichphobia",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 463,
+   "set_code": "RA02-EN067"
+  },
+  {
+   "card_image_id": 56063182,
+   "name": "Primitive Planet Reichphobia",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 464,
+   "set_code": "RA02-EN067"
+  },
+  {
+   "card_image_id": 56063182,
+   "name": "Primitive Planet Reichphobia",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 465,
+   "set_code": "RA02-EN067"
+  },
+  {
+   "card_image_id": 56063182,
+   "name": "Primitive Planet Reichphobia",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 466,
+   "set_code": "RA02-EN067"
+  },
+  {
+   "card_image_id": 56063182,
+   "name": "Primitive Planet Reichphobia",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 467,
+   "set_code": "RA02-EN067"
+  },
+  {
+   "card_image_id": 56063182,
+   "name": "Primitive Planet Reichphobia",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 468,
+   "set_code": "RA02-EN067"
+  },
+  {
+   "card_image_id": 56063182,
+   "name": "Primitive Planet Reichphobia",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 469,
+   "set_code": "RA02-EN067"
+  },
+  {
+   "card_image_id": 19739265,
+   "name": "Sol and Luna",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 470,
+   "set_code": "RA02-EN068"
+  },
+  {
+   "card_image_id": 19739265,
+   "name": "Sol and Luna",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 471,
+   "set_code": "RA02-EN068"
+  },
+  {
+   "card_image_id": 19739265,
+   "name": "Sol and Luna",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 472,
+   "set_code": "RA02-EN068"
+  },
+  {
+   "card_image_id": 19739265,
+   "name": "Sol and Luna",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 473,
+   "set_code": "RA02-EN068"
+  },
+  {
+   "card_image_id": 19739265,
+   "name": "Sol and Luna",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 474,
+   "set_code": "RA02-EN068"
+  },
+  {
+   "card_image_id": 19739265,
+   "name": "Sol and Luna",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 475,
+   "set_code": "RA02-EN068"
+  },
+  {
+   "card_image_id": 19739265,
+   "name": "Sol and Luna",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 476,
+   "set_code": "RA02-EN068"
+  },
+  {
+   "card_image_id": 77103950,
+   "name": "Primeval Planet Perlereino",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 477,
+   "set_code": "RA02-EN069"
+  },
+  {
+   "card_image_id": 77103950,
+   "name": "Primeval Planet Perlereino",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 478,
+   "set_code": "RA02-EN069"
+  },
+  {
+   "card_image_id": 77103950,
+   "name": "Primeval Planet Perlereino",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 479,
+   "set_code": "RA02-EN069"
+  },
+  {
+   "card_image_id": 77103950,
+   "name": "Primeval Planet Perlereino",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 480,
+   "set_code": "RA02-EN069"
+  },
+  {
+   "card_image_id": 77103950,
+   "name": "Primeval Planet Perlereino",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 481,
+   "set_code": "RA02-EN069"
+  },
+  {
+   "card_image_id": 77103950,
+   "name": "Primeval Planet Perlereino",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 482,
+   "set_code": "RA02-EN069"
+  },
+  {
+   "card_image_id": 77103950,
+   "name": "Primeval Planet Perlereino",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 483,
+   "set_code": "RA02-EN069"
+  },
+  {
+   "card_image_id": 2263869,
+   "name": "Ultimate Slayer",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 484,
+   "set_code": "RA02-EN070"
+  },
+  {
+   "card_image_id": 2263869,
+   "name": "Ultimate Slayer",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 485,
+   "set_code": "RA02-EN070"
+  },
+  {
+   "card_image_id": 2263869,
+   "name": "Ultimate Slayer",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 486,
+   "set_code": "RA02-EN070"
+  },
+  {
+   "card_image_id": 2263869,
+   "name": "Ultimate Slayer",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 487,
+   "set_code": "RA02-EN070"
+  },
+  {
+   "card_image_id": 2263869,
+   "name": "Ultimate Slayer",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 488,
+   "set_code": "RA02-EN070"
+  },
+  {
+   "card_image_id": 2263869,
+   "name": "Ultimate Slayer",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 489,
+   "set_code": "RA02-EN070"
+  },
+  {
+   "card_image_id": 2263869,
+   "name": "Ultimate Slayer",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 490,
+   "set_code": "RA02-EN070"
+  },
+  {
+   "card_image_id": 56700100,
+   "name": "My Friend Purrely",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 491,
+   "set_code": "RA02-EN071"
+  },
+  {
+   "card_image_id": 56700100,
+   "name": "My Friend Purrely",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 492,
+   "set_code": "RA02-EN071"
+  },
+  {
+   "card_image_id": 56700100,
+   "name": "My Friend Purrely",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 493,
+   "set_code": "RA02-EN071"
+  },
+  {
+   "card_image_id": 56700100,
+   "name": "My Friend Purrely",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 494,
+   "set_code": "RA02-EN071"
+  },
+  {
+   "card_image_id": 56700100,
+   "name": "My Friend Purrely",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 495,
+   "set_code": "RA02-EN071"
+  },
+  {
+   "card_image_id": 56700100,
+   "name": "My Friend Purrely",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 496,
+   "set_code": "RA02-EN071"
+  },
+  {
+   "card_image_id": 56700100,
+   "name": "My Friend Purrely",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 497,
+   "set_code": "RA02-EN071"
+  },
+  {
+   "card_image_id": 29599813,
+   "name": "Purrely Pretty Memory",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 498,
+   "set_code": "RA02-EN072"
+  },
+  {
+   "card_image_id": 29599813,
+   "name": "Purrely Pretty Memory",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 499,
+   "set_code": "RA02-EN072"
+  },
+  {
+   "card_image_id": 29599813,
+   "name": "Purrely Pretty Memory",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 500,
+   "set_code": "RA02-EN072"
+  },
+  {
+   "card_image_id": 29599813,
+   "name": "Purrely Pretty Memory",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 501,
+   "set_code": "RA02-EN072"
+  },
+  {
+   "card_image_id": 29599813,
+   "name": "Purrely Pretty Memory",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 502,
+   "set_code": "RA02-EN072"
+  },
+  {
+   "card_image_id": 29599813,
+   "name": "Purrely Pretty Memory",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 503,
+   "set_code": "RA02-EN072"
+  },
+  {
+   "card_image_id": 29599813,
+   "name": "Purrely Pretty Memory",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 504,
+   "set_code": "RA02-EN072"
+  },
+  {
+   "card_image_id": 71832012,
+   "name": "Pressured Planet Wraitsoth",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 505,
+   "set_code": "RA02-EN073"
+  },
+  {
+   "card_image_id": 71832012,
+   "name": "Pressured Planet Wraitsoth",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 506,
+   "set_code": "RA02-EN073"
+  },
+  {
+   "card_image_id": 71832012,
+   "name": "Pressured Planet Wraitsoth",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 507,
+   "set_code": "RA02-EN073"
+  },
+  {
+   "card_image_id": 71832012,
+   "name": "Pressured Planet Wraitsoth",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 508,
+   "set_code": "RA02-EN073"
+  },
+  {
+   "card_image_id": 71832012,
+   "name": "Pressured Planet Wraitsoth",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 509,
+   "set_code": "RA02-EN073"
+  },
+  {
+   "card_image_id": 71832012,
+   "name": "Pressured Planet Wraitsoth",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 510,
+   "set_code": "RA02-EN073"
+  },
+  {
+   "card_image_id": 71832012,
+   "name": "Pressured Planet Wraitsoth",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 511,
+   "set_code": "RA02-EN073"
+  },
+  {
+   "card_image_id": 82460246,
+   "name": "Peaceful Planet Calarium",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 512,
+   "set_code": "RA02-EN074"
+  },
+  {
+   "card_image_id": 82460246,
+   "name": "Peaceful Planet Calarium",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 513,
+   "set_code": "RA02-EN074"
+  },
+  {
+   "card_image_id": 82460246,
+   "name": "Peaceful Planet Calarium",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 514,
+   "set_code": "RA02-EN074"
+  },
+  {
+   "card_image_id": 82460246,
+   "name": "Peaceful Planet Calarium",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 515,
+   "set_code": "RA02-EN074"
+  },
+  {
+   "card_image_id": 82460246,
+   "name": "Peaceful Planet Calarium",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 516,
+   "set_code": "RA02-EN074"
+  },
+  {
+   "card_image_id": 82460246,
+   "name": "Peaceful Planet Calarium",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 517,
+   "set_code": "RA02-EN074"
+  },
+  {
+   "card_image_id": 82460246,
+   "name": "Peaceful Planet Calarium",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 518,
+   "set_code": "RA02-EN074"
+  },
+  {
+   "card_image_id": 41420027,
+   "name": "Solemn Judgment",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 519,
+   "set_code": "RA02-EN075"
+  },
+  {
+   "card_image_id": 41420027,
+   "name": "Solemn Judgment",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 520,
+   "set_code": "RA02-EN075"
+  },
+  {
+   "card_image_id": 41420027,
+   "name": "Solemn Judgment",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 521,
+   "set_code": "RA02-EN075"
+  },
+  {
+   "card_image_id": 41420027,
+   "name": "Solemn Judgment",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 522,
+   "set_code": "RA02-EN075"
+  },
+  {
+   "card_image_id": 41420027,
+   "name": "Solemn Judgment",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 523,
+   "set_code": "RA02-EN075"
+  },
+  {
+   "card_image_id": 41420027,
+   "name": "Solemn Judgment",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 524,
+   "set_code": "RA02-EN075"
+  },
+  {
+   "card_image_id": 41420027,
+   "name": "Solemn Judgment",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 525,
+   "set_code": "RA02-EN075"
+  },
+  {
+   "card_image_id": 58921041,
+   "name": "Anti-Spell Fragrance",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 526,
+   "set_code": "RA02-EN076"
+  },
+  {
+   "card_image_id": 58921041,
+   "name": "Anti-Spell Fragrance",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 527,
+   "set_code": "RA02-EN076"
+  },
+  {
+   "card_image_id": 58921041,
+   "name": "Anti-Spell Fragrance",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 528,
+   "set_code": "RA02-EN076"
+  },
+  {
+   "card_image_id": 58921041,
+   "name": "Anti-Spell Fragrance",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 529,
+   "set_code": "RA02-EN076"
+  },
+  {
+   "card_image_id": 58921041,
+   "name": "Anti-Spell Fragrance",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 530,
+   "set_code": "RA02-EN076"
+  },
+  {
+   "card_image_id": 58921041,
+   "name": "Anti-Spell Fragrance",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 531,
+   "set_code": "RA02-EN076"
+  },
+  {
+   "card_image_id": 58921041,
+   "name": "Anti-Spell Fragrance",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 532,
+   "set_code": "RA02-EN076"
+  },
+  {
+   "card_image_id": 82732705,
+   "name": "Skill Drain",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 533,
+   "set_code": "RA02-EN077"
+  },
+  {
+   "card_image_id": 82732705,
+   "name": "Skill Drain",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 534,
+   "set_code": "RA02-EN077"
+  },
+  {
+   "card_image_id": 82732705,
+   "name": "Skill Drain",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 535,
+   "set_code": "RA02-EN077"
+  },
+  {
+   "card_image_id": 82732705,
+   "name": "Skill Drain",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 536,
+   "set_code": "RA02-EN077"
+  },
+  {
+   "card_image_id": 82732705,
+   "name": "Skill Drain",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 537,
+   "set_code": "RA02-EN077"
+  },
+  {
+   "card_image_id": 82732705,
+   "name": "Skill Drain",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 538,
+   "set_code": "RA02-EN077"
+  },
+  {
+   "card_image_id": 82732705,
+   "name": "Skill Drain",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 539,
+   "set_code": "RA02-EN077"
+  },
+  {
+   "card_image_id": 84749824,
+   "name": "Solemn Warning",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 540,
+   "set_code": "RA02-EN078"
+  },
+  {
+   "card_image_id": 84749824,
+   "name": "Solemn Warning",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 541,
+   "set_code": "RA02-EN078"
+  },
+  {
+   "card_image_id": 84749824,
+   "name": "Solemn Warning",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 542,
+   "set_code": "RA02-EN078"
+  },
+  {
+   "card_image_id": 84749824,
+   "name": "Solemn Warning",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 543,
+   "set_code": "RA02-EN078"
+  },
+  {
+   "card_image_id": 84749824,
+   "name": "Solemn Warning",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 544,
+   "set_code": "RA02-EN078"
+  },
+  {
+   "card_image_id": 84749824,
+   "name": "Solemn Warning",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 545,
+   "set_code": "RA02-EN078"
+  },
+  {
+   "card_image_id": 84749824,
+   "name": "Solemn Warning",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 546,
+   "set_code": "RA02-EN078"
+  },
+  {
+   "card_image_id": 40605147,
+   "name": "Solemn Strike",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 547,
+   "set_code": "RA02-EN079"
+  },
+  {
+   "card_image_id": 40605147,
+   "name": "Solemn Strike",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 548,
+   "set_code": "RA02-EN079"
+  },
+  {
+   "card_image_id": 40605147,
+   "name": "Solemn Strike",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 549,
+   "set_code": "RA02-EN079"
+  },
+  {
+   "card_image_id": 40605147,
+   "name": "Solemn Strike",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 550,
+   "set_code": "RA02-EN079"
+  },
+  {
+   "card_image_id": 40605147,
+   "name": "Solemn Strike",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 551,
+   "set_code": "RA02-EN079"
+  },
+  {
+   "card_image_id": 40605147,
+   "name": "Solemn Strike",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 552,
+   "set_code": "RA02-EN079"
+  },
+  {
+   "card_image_id": 40605147,
+   "name": "Solemn Strike",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 553,
+   "set_code": "RA02-EN079"
+  },
+  {
+   "card_image_id": -1276398914,
+   "name": "Rescue Cat",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 554,
+   "set_code": "RA02-EN001"
+  },
+  {
+   "card_image_id": -687118380,
+   "name": "Rescue Cat",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 555,
+   "set_code": "RA02-EN001"
+  },
+  {
+   "card_image_id": -183216110,
+   "name": "Rescue Cat",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 556,
+   "set_code": "RA02-EN001"
+  },
+  {
+   "card_image_id": -115880872,
+   "name": "Rescue Cat",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 557,
+   "set_code": "RA02-EN001"
+  },
+  {
+   "card_image_id": -1074569406,
+   "name": "Rescue Cat",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 558,
+   "set_code": "RA02-EN001"
+  },
+  {
+   "card_image_id": -792889354,
+   "name": "Rescue Cat",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 559,
+   "set_code": "RA02-EN001"
+  },
+  {
+   "card_image_id": -939225438,
+   "name": "Rescue Cat",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 560,
+   "set_code": "RA02-EN001"
+  },
+  {
+   "card_image_id": -1935478310,
+   "name": "Droll & Lock Bird",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 561,
+   "set_code": "RA02-EN006"
+  },
+  {
+   "card_image_id": -852067912,
+   "name": "Droll & Lock Bird",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Platinum Secret Rare",
+   "rowid": 562,
+   "set_code": "RA02-EN006"
+  },
+  {
+   "card_image_id": -281186690,
+   "name": "Droll & Lock Bird",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 563,
+   "set_code": "RA02-EN006"
+  },
+  {
+   "card_image_id": -879027210,
+   "name": "Droll & Lock Bird",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 564,
+   "set_code": "RA02-EN006"
+  },
+  {
+   "card_image_id": -1867824090,
+   "name": "Droll & Lock Bird",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Super Rare",
+   "rowid": 565,
+   "set_code": "RA02-EN006"
+  },
+  {
+   "card_image_id": -1959504808,
+   "name": "Droll & Lock Bird",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultimate Rare",
+   "rowid": 566,
+   "set_code": "RA02-EN006"
+  },
+  {
+   "card_image_id": -163047994,
+   "name": "Droll & Lock Bird",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Ultra Rare",
+   "rowid": 567,
+   "set_code": "RA02-EN006"
+  }
+ ],
+ "SDLI": [
+  {
+   "card_image_id": 43096270,
+   "name": "Alexandrite Dragon",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 1,
+   "set_code": "SDLI-EN001"
+  },
+  {
+   "card_image_id": 40164421,
+   "name": "Minerva, Lightsworn Maiden",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Super Rare",
+   "rowid": 2,
+   "set_code": "SDLI-EN002"
+  },
+  {
+   "card_image_id": 77558536,
+   "name": "Raiden, Hand of the Lightsworn",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Super Rare",
+   "rowid": 3,
+   "set_code": "SDLI-EN003"
+  },
+  {
+   "card_image_id": 57774843,
+   "name": "Judgment Dragon",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 4,
+   "set_code": "SDLI-EN004"
+  },
+  {
+   "card_image_id": 21785144,
+   "name": "Gragonith, Lightsworn Dragon",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 5,
+   "set_code": "SDLI-EN005"
+  },
+  {
+   "card_image_id": 94381039,
+   "name": "Celestia, Lightsworn Angel",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 6,
+   "set_code": "SDLI-EN006"
+  },
+  {
+   "card_image_id": 96235275,
+   "name": "Jain, Lightsworn Paladin",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 7,
+   "set_code": "SDLI-EN007"
+  },
+  {
+   "card_image_id": 22624373,
+   "name": "Lyla, Lightsworn Sorceress",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 8,
+   "set_code": "SDLI-EN008"
+  },
+  {
+   "card_image_id": 59019082,
+   "name": "Garoth, Lightsworn Warrior",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 9,
+   "set_code": "SDLI-EN009"
+  },
+  {
+   "card_image_id": 58996430,
+   "name": "Wulf, Lightsworn Beast",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 10,
+   "set_code": "SDLI-EN010"
+  },
+  {
+   "card_image_id": 44178886,
+   "name": "Ehren, Lightsworn Monk",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 11,
+   "set_code": "SDLI-EN011"
+  },
+  {
+   "card_image_id": 95503687,
+   "name": "Lumina, Lightsworn Summoner",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 12,
+   "set_code": "SDLI-EN012"
+  },
+  {
+   "card_image_id": 7183277,
+   "name": "Aurkus, Lightsworn Druid",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 13,
+   "set_code": "SDLI-EN013"
+  },
+  {
+   "card_image_id": 2420921,
+   "name": "Shire, Lightsworn Spirit",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 14,
+   "set_code": "SDLI-EN014"
+  },
+  {
+   "card_image_id": 21502796,
+   "name": "Ryko, Lightsworn Hunter",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 15,
+   "set_code": "SDLI-EN015"
+  },
+  {
+   "card_image_id": 37742478,
+   "name": "Honest",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 16,
+   "set_code": "SDLI-EN016"
+  },
+  {
+   "card_image_id": 30126992,
+   "name": "Lightray Diabolos",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 17,
+   "set_code": "SDLI-EN017"
+  },
+  {
+   "card_image_id": 38737148,
+   "name": "Lightray Daedalus",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 18,
+   "set_code": "SDLI-EN018"
+  },
+  {
+   "card_image_id": 74064212,
+   "name": "Vylon Prism",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 19,
+   "set_code": "SDLI-EN019"
+  },
+  {
+   "card_image_id": 47217354,
+   "name": "Fabled Raven",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 20,
+   "set_code": "SDLI-EN020"
+  },
+  {
+   "card_image_id": 82888408,
+   "name": "The Fabled Cerburrel",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 21,
+   "set_code": "SDLI-EN021"
+  },
+  {
+   "card_image_id": 14785765,
+   "name": "Blackwing - Zephyros the Elite",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 22,
+   "set_code": "SDLI-EN022"
+  },
+  {
+   "card_image_id": 4906301,
+   "name": "Necro Gardna",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 23,
+   "set_code": "SDLI-EN023"
+  },
+  {
+   "card_image_id": 52665542,
+   "name": "Lightsworn Sanctuary",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Ultra Rare",
+   "rowid": 24,
+   "set_code": "SDLI-EN024"
+  },
+  {
+   "card_image_id": 36099620,
+   "name": "Realm of Light",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 25,
+   "set_code": "SDLI-EN025"
+  },
+  {
+   "card_image_id": 691925,
+   "name": "Solar Recharge",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 26,
+   "set_code": "SDLI-EN026"
+  },
+  {
+   "card_image_id": 94886282,
+   "name": "Charge of the Light Brigade",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 27,
+   "set_code": "SDLI-EN027"
+  },
+  {
+   "card_image_id": 74848038,
+   "name": "Monster Reincarnation",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 28,
+   "set_code": "SDLI-EN028"
+  },
+  {
+   "card_image_id": 81439174,
+   "name": "Foolish Burial",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 29,
+   "set_code": "SDLI-EN029"
+  },
+  {
+   "card_image_id": 61962135,
+   "name": "Glorious Illusion",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 30,
+   "set_code": "SDLI-EN030"
+  },
+  {
+   "card_image_id": 22201234,
+   "name": "Lightsworn Barrier",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 31,
+   "set_code": "SDLI-EN031"
+  },
+  {
+   "card_image_id": 32233746,
+   "name": "Vanquishing Light",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 32,
+   "set_code": "SDLI-EN032"
+  },
+  {
+   "card_image_id": 16255442,
+   "name": "Beckoning Light",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 33,
+   "set_code": "SDLI-EN033"
+  },
+  {
+   "card_image_id": 73729209,
+   "name": "Skill Successor",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 34,
+   "set_code": "SDLI-EN034"
+  },
+  {
+   "card_image_id": 78474168,
+   "name": "Breakthrough Skill",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 35,
+   "set_code": "SDLI-EN035"
+  },
+  {
+   "card_image_id": 4779823,
+   "name": "Michael, the Arch-Lightsworn",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Ultra Rare",
+   "rowid": 36,
+   "set_code": "SDLI-EN036"
+  }
+ ],
+ "SDWD": [
+  {
+   "card_image_id": 89631139,
+   "name": "Blue-Eyes White Dragon",
+   "possessed": 1,
+   "quantite": 2,
+   "rarity": "Common",
+   "rowid": 1,
+   "set_code": "SDWD-EN001"
+  },
+  {
+   "card_image_id": 89631139,
+   "name": "Blue-Eyes White Dragon",
+   "possessed": 1,
+   "quantite": 2,
+   "rarity": "Common",
+   "rowid": 2,
+   "set_code": "SDWD-EN002"
+  },
+  {
+   "card_image_id": 89631139,
+   "name": "Blue-Eyes White Dragon",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 3,
+   "set_code": "SDWD-EN003"
+  },
+  {
+   "card_image_id": 54332792,
+   "name": "Neo Kaiser Sea Horse",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Super Rare",
+   "rowid": 4,
+   "set_code": "SDWD-EN004"
+  },
+  {
+   "card_image_id": 38517737,
+   "name": "Blue-Eyes Alternative White Dragon",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 5,
+   "set_code": "SDWD-EN005"
+  },
+  {
+   "card_image_id": 30576089,
+   "name": "Blue-Eyes Jet Dragon",
+   "possessed": 1,
+   "quantite": 2,
+   "rarity": "Common",
+   "rowid": 6,
+   "set_code": "SDWD-EN006"
+  },
+  {
+   "card_image_id": 64202399,
+   "name": "Blue-Eyes Abyss Dragon",
+   "possessed": 1,
+   "quantite": 2,
+   "rarity": "Common",
+   "rowid": 7,
+   "set_code": "SDWD-EN007"
+  },
+  {
+   "card_image_id": 45467446,
+   "name": "Dragon Spirit of White",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 8,
+   "set_code": "SDWD-EN008"
+  },
+  {
+   "card_image_id": 55410871,
+   "name": "Blue-Eyes Chaos MAX Dragon",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 9,
+   "set_code": "SDWD-EN009"
+  },
+  {
+   "card_image_id": 20654247,
+   "name": "Blue-Eyes Chaos Dragon",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 10,
+   "set_code": "SDWD-EN010"
+  },
+  {
+   "card_image_id": 79814787,
+   "name": "The White Stone of Legend",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 11,
+   "set_code": "SDWD-EN011"
+  },
+  {
+   "card_image_id": 71039903,
+   "name": "The White Stone of Ancients",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 12,
+   "set_code": "SDWD-EN012"
+  },
+  {
+   "card_image_id": 8240199,
+   "name": "Sage with Eyes of Blue",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 13,
+   "set_code": "SDWD-EN013"
+  },
+  {
+   "card_image_id": 45644898,
+   "name": "Master with Eyes of Blue",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 14,
+   "set_code": "SDWD-EN014"
+  },
+  {
+   "card_image_id": 66961194,
+   "name": "Dictator of D.",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 15,
+   "set_code": "SDWD-EN015"
+  },
+  {
+   "card_image_id": 27204311,
+   "name": "Nibiru, the Primal Being",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 16,
+   "set_code": "SDWD-EN016"
+  },
+  {
+   "card_image_id": 14558127,
+   "name": "Ash Blossom & Joyous Spring",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 17,
+   "set_code": "SDWD-EN017"
+  },
+  {
+   "card_image_id": 97268402,
+   "name": "Effect Veiler",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 18,
+   "set_code": "SDWD-EN018"
+  },
+  {
+   "card_image_id": 17725109,
+   "name": "Roar of the Blue-Eyed Dragons",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Super Rare",
+   "rowid": 19,
+   "set_code": "SDWD-EN019"
+  },
+  {
+   "card_image_id": 21082832,
+   "name": "Chaos Form",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 20,
+   "set_code": "SDWD-EN020"
+  },
+  {
+   "card_image_id": 71143015,
+   "name": "Ultimate Fusion",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 21,
+   "set_code": "SDWD-EN021"
+  },
+  {
+   "card_image_id": 48800175,
+   "name": "The Melody of Awakening Dragon",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 22,
+   "set_code": "SDWD-EN022"
+  },
+  {
+   "card_image_id": 24382602,
+   "name": "Mausoleum of White",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 23,
+   "set_code": "SDWD-EN023"
+  },
+  {
+   "card_image_id": 17655904,
+   "name": "Burst Stream of Destruction",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 24,
+   "set_code": "SDWD-EN024"
+  },
+  {
+   "card_image_id": 38120068,
+   "name": "Trade-In",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 25,
+   "set_code": "SDWD-EN025"
+  },
+  {
+   "card_image_id": 24224830,
+   "name": "Called by the Grave",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 26,
+   "set_code": "SDWD-EN026"
+  },
+  {
+   "card_image_id": 43219114,
+   "name": "Majesty of the White Dragons",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Super Rare",
+   "rowid": 27,
+   "set_code": "SDWD-EN027"
+  },
+  {
+   "card_image_id": 62089826,
+   "name": "True Light",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 28,
+   "set_code": "SDWD-EN028"
+  },
+  {
+   "card_image_id": 56920308,
+   "name": "The Ultimate Creature of Destruction",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 29,
+   "set_code": "SDWD-EN029"
+  },
+  {
+   "card_image_id": 22634473,
+   "name": "Destined Rivals",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 30,
+   "set_code": "SDWD-EN030"
+  },
+  {
+   "card_image_id": 10045474,
+   "name": "Infinite Impermanence",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 31,
+   "set_code": "SDWD-EN031"
+  },
+  {
+   "card_image_id": 16699558,
+   "name": "Indigo-Eyes Silver Dragon",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Ultra Rare",
+   "rowid": 32,
+   "set_code": "SDWD-EN032"
+  },
+  {
+   "card_image_id": 42097666,
+   "name": "Spirit with Eyes of Blue",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Ultra Rare",
+   "rowid": 33,
+   "set_code": "SDWD-EN033"
+  },
+  {
+   "card_image_id": 23995346,
+   "name": "Blue-Eyes Ultimate Dragon",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 34,
+   "set_code": "SDWD-EN034"
+  },
+  {
+   "card_image_id": 56532353,
+   "name": "Neo Blue-Eyes Ultimate Dragon",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 35,
+   "set_code": "SDWD-EN035"
+  },
+  {
+   "card_image_id": 2129638,
+   "name": "Blue-Eyes Twin Burst Dragon",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 36,
+   "set_code": "SDWD-EN036"
+  },
+  {
+   "card_image_id": 11443677,
+   "name": "Blue-Eyes Tyrant Dragon",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 37,
+   "set_code": "SDWD-EN037"
+  },
+  {
+   "card_image_id": 59822133,
+   "name": "Blue-Eyes Spirit Dragon",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 38,
+   "set_code": "SDWD-EN038"
+  },
+  {
+   "card_image_id": 40908371,
+   "name": "Azure-Eyes Silver Dragon",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 39,
+   "set_code": "SDWD-EN039"
+  },
+  {
+   "card_image_id": 24361622,
+   "name": "Hieratic Seal of the Heavenly Spheres",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Common",
+   "rowid": 40,
+   "set_code": "SDWD-EN040"
+  },
+  {
+   "card_image_id": 17947697,
+   "name": "Maiden of White",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 41,
+   "set_code": "SDWD-EN041"
+  },
+  {
+   "card_image_id": 17947697,
+   "name": "Maiden of White",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 42,
+   "set_code": "SDWD-EN041"
+  },
+  {
+   "card_image_id": 17947697,
+   "name": "Maiden of White",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Ultra Rare",
+   "rowid": 43,
+   "set_code": "SDWD-EN041"
+  },
+  {
+   "card_image_id": 80326401,
+   "name": "Wishes for Eyes of Blue",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 44,
+   "set_code": "SDWD-EN042"
+  },
+  {
+   "card_image_id": 80326401,
+   "name": "Wishes for Eyes of Blue",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 45,
+   "set_code": "SDWD-EN042"
+  },
+  {
+   "card_image_id": 80326401,
+   "name": "Wishes for Eyes of Blue",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Ultra Rare",
+   "rowid": 46,
+   "set_code": "SDWD-EN042"
+  },
+  {
+   "card_image_id": 89604813,
+   "name": "Blue-Eyes Ultimate Spirit Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 47,
+   "set_code": "SDWD-EN043"
+  },
+  {
+   "card_image_id": 89604813,
+   "name": "Blue-Eyes Ultimate Spirit Dragon",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Secret Rare",
+   "rowid": 48,
+   "set_code": "SDWD-EN043"
+  },
+  {
+   "card_image_id": 89604813,
+   "name": "Blue-Eyes Ultimate Spirit Dragon",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Ultra Rare",
+   "rowid": 49,
+   "set_code": "SDWD-EN043"
+  }
+ ],
+ "VASM": [
+  {
+   "card_image_id": 23288411,
+   "name": "Mementoal Tecuhtlica - Combined Creation",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 1,
+   "set_code": "VASM-EN001"
+  },
+  {
+   "card_image_id": 23288411,
+   "name": "Mementoal Tecuhtlica - Combined Creation",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 2,
+   "set_code": "VASM-EN001"
+  },
+  {
+   "card_image_id": 23288411,
+   "name": "Mementoal Tecuhtlica - Combined Creation",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Ultra Rare",
+   "rowid": 3,
+   "set_code": "VASM-EN001"
+  },
+  {
+   "card_image_id": 55272555,
+   "name": "Mementotlan-Horned Dragon",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Rare",
+   "rowid": 4,
+   "set_code": "VASM-EN002"
+  },
+  {
+   "card_image_id": 81677154,
+   "name": "Mementotlan Tatsunootoshigo",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Super Rare",
+   "rowid": 5,
+   "set_code": "VASM-EN003"
+  },
+  {
+   "card_image_id": 18165869,
+   "name": "Mementotlan Dark Blade",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Collector's Rare",
+   "rowid": 6,
+   "set_code": "VASM-EN004"
+  },
+  {
+   "card_image_id": 18165869,
+   "name": "Mementotlan Dark Blade",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Super Rare",
+   "rowid": 7,
+   "set_code": "VASM-EN004"
+  },
+  {
+   "card_image_id": 54550967,
+   "name": "Mementotlan Angwitch",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Collector's Rare",
+   "rowid": 8,
+   "set_code": "VASM-EN005"
+  },
+  {
+   "card_image_id": 54550967,
+   "name": "Mementotlan Angwitch",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Ultra Rare",
+   "rowid": 9,
+   "set_code": "VASM-EN005"
+  },
+  {
+   "card_image_id": 81945676,
+   "name": "Mementotlan Mace",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Super Rare",
+   "rowid": 10,
+   "set_code": "VASM-EN006"
+  },
+  {
+   "card_image_id": 17943271,
+   "name": "Mementotlan Goblin",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Rare",
+   "rowid": 11,
+   "set_code": "VASM-EN007"
+  },
+  {
+   "card_image_id": 43338320,
+   "name": "Mementomictlan",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 12,
+   "set_code": "VASM-EN008"
+  },
+  {
+   "card_image_id": 43338320,
+   "name": "Mementomictlan",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Rare",
+   "rowid": 13,
+   "set_code": "VASM-EN008"
+  },
+  {
+   "card_image_id": 80722024,
+   "name": "Mementotlan Bone Party",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Ultra Rare",
+   "rowid": 14,
+   "set_code": "VASM-EN009"
+  },
+  {
+   "card_image_id": 16227633,
+   "name": "Mementotlan Bone Back",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Rare",
+   "rowid": 15,
+   "set_code": "VASM-EN010"
+  },
+  {
+   "card_image_id": 43215738,
+   "name": "Mementotlan Fracture Dance",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Rare",
+   "rowid": 16,
+   "set_code": "VASM-EN011"
+  },
+  {
+   "card_image_id": 79600447,
+   "name": "Mementotlan Cranium Burst",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Rare",
+   "rowid": 17,
+   "set_code": "VASM-EN012"
+  },
+  {
+   "card_image_id": 73628505,
+   "name": "Terraforming",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Rare",
+   "rowid": 18,
+   "set_code": "VASM-EN013"
+  },
+  {
+   "card_image_id": 17626381,
+   "name": "Supply Squad",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Rare",
+   "rowid": 19,
+   "set_code": "VASM-EN014"
+  },
+  {
+   "card_image_id": 24207889,
+   "name": "There Can Be Only One",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Rare",
+   "rowid": 20,
+   "set_code": "VASM-EN015"
+  },
+  {
+   "card_image_id": 15005145,
+   "name": "Centur-Ion Primera",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 21,
+   "set_code": "VASM-EN016"
+  },
+  {
+   "card_image_id": 15005145,
+   "name": "Centur-Ion Primera",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Ultra Rare",
+   "rowid": 22,
+   "set_code": "VASM-EN016"
+  },
+  {
+   "card_image_id": 42493140,
+   "name": "Centur-Ion Trudea",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Collector's Rare",
+   "rowid": 23,
+   "set_code": "VASM-EN017"
+  },
+  {
+   "card_image_id": 42493140,
+   "name": "Centur-Ion Trudea",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Ultra Rare",
+   "rowid": 24,
+   "set_code": "VASM-EN017"
+  },
+  {
+   "card_image_id": 78888899,
+   "name": "Centur-Ion Emeth VI",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Collector's Rare",
+   "rowid": 25,
+   "set_code": "VASM-EN018"
+  },
+  {
+   "card_image_id": 78888899,
+   "name": "Centur-Ion Emeth VI",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Ultra Rare",
+   "rowid": 26,
+   "set_code": "VASM-EN018"
+  },
+  {
+   "card_image_id": 15982593,
+   "name": "Centur-Ion Legatia",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 27,
+   "set_code": "VASM-EN019"
+  },
+  {
+   "card_image_id": 15982593,
+   "name": "Centur-Ion Legatia",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 28,
+   "set_code": "VASM-EN019"
+  },
+  {
+   "card_image_id": 15982593,
+   "name": "Centur-Ion Legatia",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Ultra Rare",
+   "rowid": 29,
+   "set_code": "VASM-EN019"
+  },
+  {
+   "card_image_id": 41371602,
+   "name": "Stand Up Centur-Ion!",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Collector's Rare",
+   "rowid": 30,
+   "set_code": "VASM-EN020"
+  },
+  {
+   "card_image_id": 41371602,
+   "name": "Stand Up Centur-Ion!",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Super Rare",
+   "rowid": 31,
+   "set_code": "VASM-EN020"
+  },
+  {
+   "card_image_id": 77765207,
+   "name": "Emblema Oath",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Ultra Rare",
+   "rowid": 32,
+   "set_code": "VASM-EN021"
+  },
+  {
+   "card_image_id": 4160316,
+   "name": "Centur-Ion Bonds",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Super Rare",
+   "rowid": 33,
+   "set_code": "VASM-EN022"
+  },
+  {
+   "card_image_id": 40155014,
+   "name": "Centur-Ion Phalanx",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Super Rare",
+   "rowid": 34,
+   "set_code": "VASM-EN023"
+  },
+  {
+   "card_image_id": 77543769,
+   "name": "Centur-Ion True Awakening",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Super Rare",
+   "rowid": 35,
+   "set_code": "VASM-EN024"
+  },
+  {
+   "card_image_id": 423585,
+   "name": "Summoner Monk",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Rare",
+   "rowid": 36,
+   "set_code": "VASM-EN025"
+  },
+  {
+   "card_image_id": 5041348,
+   "name": "Draco Berserker of the Tenyi",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Rare",
+   "rowid": 37,
+   "set_code": "VASM-EN026"
+  },
+  {
+   "card_image_id": 42216237,
+   "name": "Angel of Zera",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Rare",
+   "rowid": 38,
+   "set_code": "VASM-EN027"
+  },
+  {
+   "card_image_id": 1073952,
+   "name": "Magic Planter",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Rare",
+   "rowid": 39,
+   "set_code": "VASM-EN028"
+  },
+  {
+   "card_image_id": 35817848,
+   "name": "Synchro Transmission",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Rare",
+   "rowid": 40,
+   "set_code": "VASM-EN029"
+  },
+  {
+   "card_image_id": 7811875,
+   "name": "Gravity Collapse",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Rare",
+   "rowid": 41,
+   "set_code": "VASM-EN030"
+  },
+  {
+   "card_image_id": 3048768,
+   "name": "Angello Vaalmonica",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Collector's Rare",
+   "rowid": 42,
+   "set_code": "VASM-EN031"
+  },
+  {
+   "card_image_id": 3048768,
+   "name": "Angello Vaalmonica",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Super Rare",
+   "rowid": 43,
+   "set_code": "VASM-EN031"
+  },
+  {
+   "card_image_id": 30432463,
+   "name": "Dimonno Vaalmonica",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Collector's Rare",
+   "rowid": 44,
+   "set_code": "VASM-EN032"
+  },
+  {
+   "card_image_id": 30432463,
+   "name": "Dimonno Vaalmonica",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Super Rare",
+   "rowid": 45,
+   "set_code": "VASM-EN032"
+  },
+  {
+   "card_image_id": 76821171,
+   "name": "Duralume, Vaalmonican Heathen Hallow",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Super Rare",
+   "rowid": 46,
+   "set_code": "VASM-EN033"
+  },
+  {
+   "card_image_id": 2815176,
+   "name": "Zebufera, Vaalmonican Hallow Heathen",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Super Rare",
+   "rowid": 47,
+   "set_code": "VASM-EN034"
+  },
+  {
+   "card_image_id": 39210885,
+   "name": "Vaalmonica, the Agathokakological Voice",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Collector's Rare",
+   "rowid": 48,
+   "set_code": "VASM-EN035"
+  },
+  {
+   "card_image_id": 39210885,
+   "name": "Vaalmonica, the Agathokakological Voice",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Ultra Rare",
+   "rowid": 49,
+   "set_code": "VASM-EN035"
+  },
+  {
+   "card_image_id": 5605529,
+   "name": "Vaalmonica Scelta",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Collector's Rare",
+   "rowid": 50,
+   "set_code": "VASM-EN036"
+  },
+  {
+   "card_image_id": 5605529,
+   "name": "Vaalmonica Scelta",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Ultra Rare",
+   "rowid": 51,
+   "set_code": "VASM-EN036"
+  },
+  {
+   "card_image_id": 42193638,
+   "name": "Vaalmonica Versare",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Super Rare",
+   "rowid": 52,
+   "set_code": "VASM-EN037"
+  },
+  {
+   "card_image_id": 78598237,
+   "name": "Vaalmonica Intonare",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Super Rare",
+   "rowid": 53,
+   "set_code": "VASM-EN038"
+  },
+  {
+   "card_image_id": 4582942,
+   "name": "Vaalmonica Followed Rhythm",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Super Rare",
+   "rowid": 54,
+   "set_code": "VASM-EN039"
+  },
+  {
+   "card_image_id": 31971040,
+   "name": "Vaalmonica Chosen Melody",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Super Rare",
+   "rowid": 55,
+   "set_code": "VASM-EN040"
+  },
+  {
+   "card_image_id": 84339249,
+   "name": "Protecting Spirit Loagaeth",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Rare",
+   "rowid": 56,
+   "set_code": "VASM-EN041"
+  },
+  {
+   "card_image_id": 67696066,
+   "name": "Performage Trick Clown",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Rare",
+   "rowid": 57,
+   "set_code": "VASM-EN042"
+  },
+  {
+   "card_image_id": 60643553,
+   "name": "Ghost Sister & Spooky Dogwood",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Rare",
+   "rowid": 58,
+   "set_code": "VASM-EN043"
+  },
+  {
+   "card_image_id": 90590303,
+   "name": "Number 41: Bagooska the Terribly Tired Tapir",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Rare",
+   "rowid": 59,
+   "set_code": "VASM-EN044"
+  },
+  {
+   "card_image_id": 16598965,
+   "name": "Stained Glass of Light & Dark",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Rare",
+   "rowid": 60,
+   "set_code": "VASM-EN045"
+  },
+  {
+   "card_image_id": 37742478,
+   "name": "Honest",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Collector's Rare",
+   "rowid": 61,
+   "set_code": "VASM-EN046"
+  },
+  {
+   "card_image_id": 37742478,
+   "name": "Honest",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Rare",
+   "rowid": 62,
+   "set_code": "VASM-EN046"
+  },
+  {
+   "card_image_id": 26914168,
+   "name": "Dark Honest",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Collector's Rare",
+   "rowid": 63,
+   "set_code": "VASM-EN047"
+  },
+  {
+   "card_image_id": 26914168,
+   "name": "Dark Honest",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Rare",
+   "rowid": 64,
+   "set_code": "VASM-EN047"
+  },
+  {
+   "card_image_id": 59509952,
+   "name": "Archlord Kristya",
+   "possessed": 0,
+   "quantite": 0,
+   "rarity": "Quarter Century Secret Rare",
+   "rowid": 65,
+   "set_code": "VASM-EN048"
+  },
+  {
+   "card_image_id": 59509952,
+   "name": "Archlord Kristya",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Rare",
+   "rowid": 66,
+   "set_code": "VASM-EN048"
+  },
+  {
+   "card_image_id": 68140974,
+   "name": "Meklord Emperor Wisel",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Rare",
+   "rowid": 67,
+   "set_code": "VASM-EN049"
+  },
+  {
+   "card_image_id": 4545683,
+   "name": "Meklord Emperor Granel",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Rare",
+   "rowid": 68,
+   "set_code": "VASM-EN050"
+  },
+  {
+   "card_image_id": 1966438,
+   "name": "Abominable Unchained Soul",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Rare",
+   "rowid": 69,
+   "set_code": "VASM-EN051"
+  },
+  {
+   "card_image_id": 62411042,
+   "name": "Ibicella Lutea",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Rare",
+   "rowid": 70,
+   "set_code": "VASM-EN052"
+  },
+  {
+   "card_image_id": 33212663,
+   "name": "Archnemeses Eschatos",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Rare",
+   "rowid": 71,
+   "set_code": "VASM-EN053"
+  },
+  {
+   "card_image_id": 23693634,
+   "name": "Colossal Fighter",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Rare",
+   "rowid": 72,
+   "set_code": "VASM-EN054"
+  },
+  {
+   "card_image_id": 81439173,
+   "name": "Foolish Burial",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Rare",
+   "rowid": 73,
+   "set_code": "VASM-EN055"
+  },
+  {
+   "card_image_id": 1353770,
+   "name": "Valhalla, Hall of the Fallen",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Rare",
+   "rowid": 74,
+   "set_code": "VASM-EN056"
+  },
+  {
+   "card_image_id": 51630558,
+   "name": "Advance Draw",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Rare",
+   "rowid": 75,
+   "set_code": "VASM-EN057"
+  },
+  {
+   "card_image_id": 9995766,
+   "name": "Imperial Custom",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Rare",
+   "rowid": 76,
+   "set_code": "VASM-EN058"
+  },
+  {
+   "card_image_id": 97077563,
+   "name": "Call of the Haunted",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Rare",
+   "rowid": 77,
+   "set_code": "VASM-EN059"
+  },
+  {
+   "card_image_id": 85888377,
+   "name": "Apophis the Swamp Deity",
+   "possessed": 1,
+   "quantite": 1,
+   "rarity": "Rare",
+   "rowid": 78,
+   "set_code": "VASM-EN060"
+  }
+ ]
+}

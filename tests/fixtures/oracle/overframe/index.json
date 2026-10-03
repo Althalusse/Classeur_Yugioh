@@ -1,0 +1,45 @@
+{
+  "parsing": [
+    {
+      "fichier": "parse_LOCH-JP_rev5892606.json",
+      "prefix": "LOCH-JP",
+      "revid": "5892606",
+      "version_source": "courante",
+      "route": "A api parse page",
+      "entrees": 98,
+      "normal": 264,
+      "ext": 54
+    },
+    {
+      "fichier": "parse_LOCR-JP_rev5945579.json",
+      "prefix": "LOCR-JP",
+      "revid": "5945579",
+      "version_source": "courante",
+      "route": "A api parse page",
+      "entrees": 98,
+      "normal": 264,
+      "ext": 54
+    }
+  ],
+  "bases": [
+    {
+      "fichier": "bases_LOCR-JP.json",
+      "prefix": "LOCR-JP",
+      "avant": 282,
+      "apres": 318,
+      "ext_apres": 54
+    },
+    {
+      "fichier": "bases_LOCH-JP.json",
+      "prefix": "LOCH-JP",
+      "avant": 279,
+      "apres": 279,
+      "ext_apres": 0
+    }
+  ],
+  "echecs": [
+    "LOCR-JP rev 5893931",
+    "LOCR-JP rev 5945579",
+    "LOCH-JP rev 5892606"
+  ]
+}

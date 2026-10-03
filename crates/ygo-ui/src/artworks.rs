@@ -49,11 +49,13 @@
 //! manquent sont demandés au fil de téléchargement, par lots, **en commençant
 //! par le numéro qu'on regarde**.
 
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::path::{Path, PathBuf};
+use std::sync::mpsc::{Receiver, Sender};
 
 use eframe::egui;
 use ygo_app::anomalies::{self, Anomalie, Correction, Numero};
+use ygo_app::attestation::{attestation, Attestation, SetList};
 use ygo_core::config::{Config, SourceImage};
 use ygo_core::paths::Paths;
 use ygo_images::plan::Cible;
@@ -204,6 +206,8 @@ pub struct NumeroUi {
     /// Pour chaque artwork proposé : son image est-elle **identique** à une
     /// image déjà en place ? `None` tant qu'un des fichiers manque.
     pub identiques: Vec<Option<bool>>,
+    /// Ce que la Set list de Yugipedia dit de ce numéro.
+    pub attestation: Attestation,
 }
 
 impl NumeroUi {
@@ -370,6 +374,16 @@ pub struct EcranArtworks {
     message: Option<(String, bool)>,
     retour: bool,
     ecrit: bool,
+    /// Les Set lists reçues, par classeur — `None` : page introuvable.
+    listes: HashMap<String, Option<SetList>>,
+    /// Les classeurs dont la Set list est demandée et pas encore reçue.
+    en_attente: HashSet<String>,
+    /// Le fil qui va les chercher écrit ici…
+    envoi: Sender<(String, Option<SetList>)>,
+    /// …et l'écran lit là, à chaque image.
+    reception: Receiver<(String, Option<SetList>)>,
+    /// Montrer aussi les propositions que la Set list n'atteste pas.
+    montrer_non_attestees: bool,
 }
 
 impl std::fmt::Debug for EcranArtworks {
@@ -390,6 +404,7 @@ impl EcranArtworks {
     #[must_use]
     pub fn ouvrir(paths: Paths, portee: Portee) -> Self {
         let source = Config::charger(paths.app_config()).source_image();
+        let (envoi, reception) = std::sync::mpsc::channel();
         let mut ecran = Self {
             paths,
             portee,
@@ -405,9 +420,156 @@ impl EcranArtworks {
             message: None,
             retour: false,
             ecrit: false,
+            listes: HashMap::new(),
+            en_attente: HashSet::new(),
+            envoi,
+            reception,
+            montrer_non_attestees: false,
         };
         ecran.relire();
         ecran
+    }
+
+    /// Va chercher, sur un fil à part, la Set list des classeurs qui n'en ont
+    /// pas encore.
+    ///
+    /// Une recherche et une page par set, au rythme du quota Yugipedia (une
+    /// requête toutes les 1,1 s) : une douzaine de secondes pour les onze
+    /// sets de l'installation, quelques centaines de kilo-octets. Tant que la
+    /// réponse n'est pas là, rien n'est masqué ; hors ligne, rien ne l'est
+    /// jamais.
+    fn demander_set_lists(&mut self) {
+        let classeurs: Vec<String> = self
+            .numeros
+            .iter()
+            .map(|n| n.numero.classeur.clone())
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .filter(|c| !self.listes.contains_key(c) && !self.en_attente.contains(c))
+            .collect();
+        if classeurs.is_empty() {
+            return;
+        }
+        self.en_attente.extend(classeurs.iter().cloned());
+        let paths = self.paths.clone();
+        let envoi = self.envoi.clone();
+        let lancement = std::thread::Builder::new()
+            .name("set-lists".to_owned())
+            .spawn(move || {
+                let client = ygo_sources::ClientHttp::new().ok();
+                let runtime = tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                    .ok();
+                for classeur in classeurs {
+                    let liste = match (&client, &runtime) {
+                        (Some(client), Some(runtime)) => {
+                            match runtime.block_on(ygo_app::attestation::lire_set_list(
+                                &paths, client, &classeur,
+                            )) {
+                                Ok(liste) => liste,
+                                Err(e) => {
+                                    tracing::warn!(classeur = %classeur, erreur = %e, "Set list illisible");
+                                    None
+                                }
+                            }
+                        }
+                        _ => None,
+                    };
+                    if envoi.send((classeur, liste)).is_err() {
+                        return; // l'écran est fermé
+                    }
+                }
+            });
+        if let Err(e) = lancement {
+            tracing::warn!(erreur = %e, "fil des Set lists non lancé");
+            self.en_attente.clear();
+        }
+    }
+
+    /// Reprend les Set lists arrivées, et reclasse les numéros.
+    fn recevoir_set_lists(&mut self) {
+        let mut recu = false;
+        while let Ok((classeur, liste)) = self.reception.try_recv() {
+            self.en_attente.remove(&classeur);
+            if let Some(l) = &liste {
+                tracing::info!(
+                    classeur = %classeur,
+                    page = %l.titre,
+                    numeros = l.numeros.len(),
+                    alternatifs = l.alternatifs.len(),
+                    "Set list lue"
+                );
+            }
+            self.listes.insert(classeur, liste);
+            recu = true;
+        }
+        if recu {
+            for n in &mut self.numeros {
+                n.attestation = attestation(
+                    self.listes.get(&n.numero.classeur).and_then(Option::as_ref),
+                    &n.numero.set_code,
+                );
+            }
+            self.recadrer();
+        }
+    }
+
+    /// Le numéro d'indice `i` est-il montré ?
+    ///
+    /// Une proposition non attestée est masquée — sauf sur demande, et sauf
+    /// quand l'écran a été ouvert sur une carte précise : on y est venu pour
+    /// elle.
+    fn visible(&self, i: usize) -> bool {
+        self.numeros.get(i).is_some_and(|n| {
+            matches!(self.portee, Portee::Carte { .. })
+                || self.montrer_non_attestees
+                || n.attestation != Attestation::NonAttestee
+        })
+    }
+
+    /// Les indices montrés, dans l'ordre.
+    fn visibles(&self) -> Vec<usize> {
+        (0..self.numeros.len())
+            .filter(|i| self.visible(*i))
+            .collect()
+    }
+
+    /// Le numéro montré suivant `i`, ou précédent.
+    fn voisin(&self, i: usize, en_avant: bool) -> Option<usize> {
+        let visibles = self.visibles();
+        if en_avant {
+            visibles.into_iter().find(|j| *j > i)
+        } else {
+            visibles.into_iter().rev().find(|j| *j < i)
+        }
+    }
+
+    /// « Tout cocher » : ni les images identiques à l'en place, ni ce que la
+    /// Set list n'atteste pas — même affiché. Elles restent cochables à la
+    /// main, pas en bloc.
+    fn tout_cocher(&mut self) {
+        for n in &mut self.numeros {
+            if n.attestation == Attestation::NonAttestee {
+                continue;
+            }
+            let bloc = n.a_cocher_en_bloc();
+            n.coches.extend(bloc);
+        }
+    }
+
+    /// Ramène le numéro courant sur un numéro montré, s'il vient d'être masqué.
+    fn recadrer(&mut self) {
+        if self.visible(self.courant) {
+            return;
+        }
+        if let Some(i) = self
+            .voisin(self.courant, true)
+            .or_else(|| self.voisin(self.courant, false))
+        {
+            self.aller_a(i);
+            self.suivre_courant = true;
+        }
     }
 
     /// Reprend la demande de retour.
@@ -498,9 +660,14 @@ impl EcranArtworks {
                         .and_then(|a| anomalies::fichier_image(a, self.source))
                 })
                 .collect();
+            let attestation = attestation(
+                self.listes.get(&numero.classeur).and_then(Option::as_ref),
+                &numero.set_code,
+            );
             let mut ui = NumeroUi {
                 coches: BTreeSet::new(),
                 identiques: Vec::new(),
+                attestation,
                 en_place,
                 proposes,
                 numero,
@@ -522,6 +689,8 @@ impl EcranArtworks {
         }
         self.courant = self.courant.min(self.numeros.len().saturating_sub(1));
         self.cache.oublier_manquants();
+        self.recadrer();
+        self.demander_set_lists();
     }
 
     /// Montre ce numéro, s'il fait partie des propositions.
@@ -645,13 +814,17 @@ impl EcranArtworks {
                 i.consume_key(egui::Modifiers::NONE, egui::Key::Enter),
             )
         });
-        if haut && self.courant > 0 {
-            self.aller_a(self.courant - 1);
-            self.suivre_courant = true;
+        if haut {
+            if let Some(i) = self.voisin(self.courant, false) {
+                self.aller_a(i);
+                self.suivre_courant = true;
+            }
         }
         if bas {
-            self.aller_a(self.courant + 1);
-            self.suivre_courant = true;
+            if let Some(i) = self.voisin(self.courant, true) {
+                self.aller_a(i);
+                self.suivre_courant = true;
+            }
         }
         if espace {
             if let Some(n) = self.numeros.get_mut(self.courant) {
@@ -673,12 +846,32 @@ impl EcranArtworks {
 
 impl eframe::App for EcranArtworks {
     fn ui(&mut self, racine: &mut egui::Ui, _frame: &mut eframe::Frame) {
+        self.recevoir_set_lists();
+        if !self.en_attente.is_empty() {
+            // Le fil ne connaît pas le contexte : on repasse voir.
+            racine
+                .ctx()
+                .request_repaint_after(std::time::Duration::from_millis(300));
+        }
         self.raccourcis(racine.ctx());
         self.demander_les_apercus();
         self.barre_du_haut(racine);
         self.barre_du_bas(racine);
         if self.numeros.is_empty() {
             egui::CentralPanel::default().show(racine, |ui| self.rien_a_montrer(ui));
+            return;
+        }
+        if self.visibles().is_empty() {
+            egui::CentralPanel::default().show(racine, |ui| {
+                ui.vertical_centered(|ui| {
+                    ui.add_space(96.0);
+                    ui.heading("Aucune proposition attestée.");
+                    ui.label(
+                        "Yugipedia n'annonce d'illustration alternative pour aucun de ces \
+                         numéros. Cochez « Afficher les non attestées » pour les voir quand même.",
+                    );
+                });
+            });
             return;
         }
         // Une seule carte : la liste n'aurait qu'une ligne.
@@ -739,14 +932,53 @@ impl EcranArtworks {
                 }
                 ui.add_space(12.0);
                 let cochees = self.cochees();
+                let visibles = self.visibles();
+                let restantes: usize = visibles
+                    .iter()
+                    .filter_map(|i| self.numeros.get(*i))
+                    .map(|n| n.numero.restantes())
+                    .sum();
                 ui.label(
                     egui::RichText::new(format!(
-                        "{} numéro(s) · {} à ajouter · {cochees} cochée(s)",
-                        self.numeros.len(),
-                        self.restantes(),
+                        "{} numéro(s) · {restantes} à ajouter · {cochees} cochée(s)",
+                        visibles.len(),
                     ))
                     .weak(),
                 );
+                if !matches!(self.portee, Portee::Carte { .. }) {
+                    let non_attestees = self
+                        .numeros
+                        .iter()
+                        .filter(|n| n.attestation == Attestation::NonAttestee)
+                        .count();
+                    if non_attestees > 0 {
+                        ui.add_space(8.0);
+                        if ui
+                            .checkbox(
+                                &mut self.montrer_non_attestees,
+                                format!("Afficher les non attestées ({non_attestees})"),
+                            )
+                            .on_hover_text(
+                                "Yugipedia liste ces numéros sans illustration alternative : \
+                                 le set a imprimé l'illustration d'origine.",
+                            )
+                            .changed()
+                        {
+                            self.recadrer();
+                        }
+                    }
+                    if !self.en_attente.is_empty() {
+                        ui.add_space(8.0);
+                        ui.spinner();
+                        ui.label(
+                            egui::RichText::new(format!(
+                                "Yugipedia : {} set(s) à vérifier",
+                                self.en_attente.len()
+                            ))
+                            .weak(),
+                        );
+                    }
+                }
 
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     if ui
@@ -765,10 +997,7 @@ impl EcranArtworks {
                         .add_enabled(self.restantes() > 0, egui::Button::new("Tout cocher"))
                         .clicked()
                     {
-                        for n in &mut self.numeros {
-                            let bloc = n.a_cocher_en_bloc();
-                            n.coches.extend(bloc);
-                        }
+                        self.tout_cocher();
                     }
                     ui.add_space(8.0);
                     // Le scan sert aussi sur une carte : ses propositions
@@ -821,6 +1050,9 @@ impl EcranArtworks {
                 ui.add_space(6.0);
                 let mut classeur = String::new();
                 for i in 0..self.numeros.len() {
+                    if !self.visible(i) {
+                        continue;
+                    }
                     let Some(n) = self.numeros.get(i).cloned() else {
                         continue;
                     };
@@ -870,6 +1102,7 @@ impl EcranArtworks {
                                         ),
                                     };
                                     ui.label(egui::RichText::new(resume).monospace().small().weak());
+                                    etiquette_attestation(ui, n.attestation, false);
                                     let identiques =
                                         (0..n.proposes.len()).filter(|i| n.identique(*i)).count();
                                     if identiques > 0 {
@@ -935,7 +1168,14 @@ impl EcranArtworks {
         let Some(n) = self.numeros.get(self.courant).cloned() else {
             return;
         };
-        let total = self.numeros.len();
+        let visibles = self.visibles();
+        let total = visibles.len();
+        let rang = visibles
+            .iter()
+            .position(|i| *i == self.courant)
+            .unwrap_or(0);
+        let suivant = self.voisin(self.courant, true);
+        let precedent = self.voisin(self.courant, false);
 
         // ── L'en-tête ───────────────────────────────────────────────────
         ui.add_space(6.0);
@@ -946,23 +1186,28 @@ impl EcranArtworks {
             if total > 1 {
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     if ui
-                        .add_enabled(self.courant + 1 < total, egui::Button::new("▶"))
+                        .add_enabled(suivant.is_some(), egui::Button::new("▶"))
                         .clicked()
                     {
-                        self.aller_a(self.courant + 1);
-                        self.suivre_courant = true;
+                        if let Some(i) = suivant {
+                            self.aller_a(i);
+                            self.suivre_courant = true;
+                        }
                     }
-                    ui.label(egui::RichText::new(format!("{} / {total}", self.courant + 1)).weak());
+                    ui.label(egui::RichText::new(format!("{} / {total}", rang + 1)).weak());
                     if ui
-                        .add_enabled(self.courant > 0, egui::Button::new("◀"))
+                        .add_enabled(precedent.is_some(), egui::Button::new("◀"))
                         .clicked()
                     {
-                        self.aller_a(self.courant - 1);
-                        self.suivre_courant = true;
+                        if let Some(i) = precedent {
+                            self.aller_a(i);
+                            self.suivre_courant = true;
+                        }
                     }
                 });
             }
         });
+        etiquette_attestation(ui, n.attestation, true);
         if n.numero.artworks.len() >= SEUIL_AVERTISSEMENT {
             ui.colored_label(
                 ui.visuals().warn_fg_color,
@@ -1368,6 +1613,37 @@ pub fn abreviation(rarete: &str) -> String {
 }
 
 /// « Identique » — une proposition qui n'en est pas une.
+/// Ce que la Set list de Yugipedia dit du numéro, en une ligne. Rien quand
+/// on ne sait pas.
+fn etiquette_attestation(ui: &mut egui::Ui, verdict: Attestation, detaillee: bool) {
+    let (texte, couleur) = match verdict {
+        Attestation::Attestee => (
+            if detaillee {
+                "✓ Yugipedia annonce une illustration alternative pour ce numéro — \
+                 laquelle, c'est à vous de la reconnaître."
+            } else {
+                "✓ attestée par Yugipedia"
+            },
+            egui::Color32::from_rgb(90, 170, 90),
+        ),
+        Attestation::NonAttestee => (
+            if detaillee {
+                "Non attestée : Yugipedia liste ce numéro sans illustration alternative — \
+                 le set a imprimé l'illustration d'origine."
+            } else {
+                "non attestée par Yugipedia"
+            },
+            ui.visuals().warn_fg_color,
+        ),
+        Attestation::Inconnue => return,
+    };
+    if detaillee {
+        ui.colored_label(couleur, texte);
+    } else {
+        ui.small(egui::RichText::new(texte).color(couleur));
+    }
+}
+
 fn etiquette_alerte(ui: &mut egui::Ui, texte: &str) {
     let couleur = ui.visuals().warn_fg_color;
     egui::Frame::new()
@@ -1425,12 +1701,72 @@ mod tests {
             proposes: vec![None; numero.artworks.len()],
             coches: BTreeSet::new(),
             identiques: vec![None; numero.artworks.len()],
+            attestation: Attestation::Inconnue,
             numero,
         }
     }
 
     /// Le cas de `LOCR-JP` : la proposition est la même image que celle en
     /// place. « Tout cocher » la saute ; la cocher reste possible, à la main.
+    /// Un écran vide, sur une installation vide, garni à la main.
+    fn ecran(portee: Portee, verdicts: &[Attestation]) -> (tempfile::TempDir, EcranArtworks) {
+        let tmp = tempfile::tempdir().unwrap();
+        let mut e = EcranArtworks::ouvrir(Paths::depuis_racine(tmp.path()), portee);
+        for (i, v) in verdicts.iter().enumerate() {
+            let mut n = numero(vec![anomalie("Ultra Rare", &format!("art-{i}"), 2, false)]);
+            n.attestation = *v;
+            e.numeros.push(n);
+        }
+        (tmp, e)
+    }
+
+    #[test]
+    fn une_proposition_non_attestee_est_masquee_et_sautee() {
+        use Attestation::{Attestee, Inconnue, NonAttestee};
+        let (_t, mut e) = ecran(Portee::Tout, &[Attestee, NonAttestee, Inconnue]);
+        assert_eq!(e.visibles(), vec![0, 2], "l'inconnue reste montrée");
+        assert_eq!(e.voisin(0, true), Some(2), "la flèche saute la masquée");
+        assert_eq!(e.voisin(2, false), Some(0));
+
+        // Le numéro courant qui devient masqué cède la place au suivant.
+        e.courant = 1;
+        e.recadrer();
+        assert_eq!(e.courant, 2);
+
+        // Sur demande, elle revient.
+        e.montrer_non_attestees = true;
+        assert_eq!(e.visibles(), vec![0, 1, 2]);
+    }
+
+    #[test]
+    fn tout_cocher_saute_le_non_atteste_meme_affiche() {
+        use Attestation::{Attestee, NonAttestee};
+        let (_t, mut e) = ecran(Portee::Tout, &[Attestee, NonAttestee]);
+        e.montrer_non_attestees = true;
+        e.tout_cocher();
+        assert!(!e.numeros[0].coches.is_empty());
+        assert!(
+            e.numeros[1].coches.is_empty(),
+            "cochable à la main seulement"
+        );
+        // À la main, elle se coche.
+        e.numeros[1].basculer_tout();
+        assert!(!e.numeros[1].coches.is_empty());
+    }
+
+    /// Ouvert sur une carte, l'écran la montre quoi qu'en dise Yugipedia.
+    #[test]
+    fn sur_une_carte_rien_n_est_masque() {
+        let (_t, e) = ecran(
+            Portee::Carte {
+                classeur: "RA02".into(),
+                set_code: "RA02-EN047".into(),
+            },
+            &[Attestation::NonAttestee],
+        );
+        assert_eq!(e.visibles(), vec![0]);
+    }
+
     #[test]
     fn une_image_identique_n_est_pas_cochee_en_bloc() {
         let tmp = tempfile::tempdir().unwrap();

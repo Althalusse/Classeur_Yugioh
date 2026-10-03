@@ -84,6 +84,13 @@ impl Paths {
         self.bdd().join("cardinfo.db")
     }
 
+    /// `bdd/cache_http/` — les réponses d'API gardées et les adresses
+    /// introuvables, pour ne pas redemander aux sources ce qu'elles ont déjà
+    /// dit (cf. `ygo_sources::cache`). Le supprimer est sans danger.
+    pub fn cache_http(&self) -> PathBuf {
+        self.bdd().join("cache_http")
+    }
+
     /// `bdd/classeur_creer/`
     pub fn classeurs(&self) -> PathBuf {
         self.bdd().join("classeur_creer")

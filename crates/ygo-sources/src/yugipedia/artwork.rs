@@ -62,7 +62,7 @@
 //! forme réellement rencontrée. L'oracle en couvre **1 613**, tirés de la table
 //! `card_images_externes` de l'installation réelle.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use ygo_core::rarity::reference;
 
@@ -651,6 +651,77 @@ pub fn score(infos: &InfosFichier, langue_cible: &str, abbr_cible: &str) -> i64 
 /// rater une variante coûte plus cher qu'en supposer une.
 pub fn parser_variant_pool(wikitext: &str, prefixe_set: &str) -> BTreeMap<String, String> {
     let mut sortie = BTreeMap::new();
+    for ligne in lignes_de_set_list(wikitext, prefixe_set) {
+        if !ligne.famille.is_empty() {
+            sortie.insert(ligne.code, ligne.famille);
+        }
+    }
+    sortie
+}
+
+/// Les numéros qu'une Set list annonce imprimés en **illustration
+/// alternative**.
+///
+/// Deux signaux, l'un ou l'autre suffit :
+///
+/// - la famille `AA` de [`parser_variant_pool`] — `(alternate art)`,
+///   `(new artwork)`, `(stamp artwork)`, `(6th artwork)`, `(Arkana)`… ou une
+///   ligne sous une section « variant art » ;
+/// - la **colonne d'impression** — quatrième champ de la ligne — qui dit
+///   `New artwork`. C'est la forme des Set lists OCG : `LOCH-JP027; I:P
+///   Masquerena; Ultra Rare, …; New artwork`, sans annotation `description`.
+///   C'est aussi de là que viennent les fausses raretés « New » et « New
+///   artwork » d'YGOPRODeck.
+///
+/// Un numéro qui a **plusieurs** lignes — `LOCH-JP001`, une normale et une en
+/// `(extended art)` — est retenu si l'une d'elles est alternative : à la
+/// différence de [`parser_variant_pool`], la dernière ligne n'efface pas les
+/// précédentes. `(extended art)` seul ne compte pas : c'est la même
+/// illustration, cadre élargi.
+///
+/// ```
+/// use ygo_sources::yugipedia::artwork::numeros_illustration_alternative;
+/// let w = "LOCH-JP026; W:P Fancy Ball; Ultra Rare; New\n\
+///          LOCH-JP027; I:P Masquerena; Ultra Rare; New artwork\n\
+///          LOCH-JP001; DM; Ultra Rare; New // description::(extended art)\n";
+/// let alt = numeros_illustration_alternative(w, "LOCH");
+/// assert_eq!(alt.into_iter().collect::<Vec<_>>(), ["LOCH-JP027"]);
+/// ```
+#[must_use]
+pub fn numeros_illustration_alternative(wikitext: &str, prefixe_set: &str) -> BTreeSet<String> {
+    lignes_de_set_list(wikitext, prefixe_set)
+        .into_iter()
+        .filter(|l| l.famille == "AA" || l.impression.to_lowercase().contains("artwork"))
+        .map(|l| l.code)
+        .collect()
+}
+
+/// Tous les numéros qu'une Set list mentionne pour ce set.
+///
+/// Sert à distinguer « la page ne dit rien de ce numéro » — il n'y figure
+/// pas, et l'on ne peut rien conclure — de « la page le liste sans illustration
+/// alternative ».
+#[must_use]
+pub fn numeros_de_set_list(wikitext: &str, prefixe_set: &str) -> BTreeSet<String> {
+    lignes_de_set_list(wikitext, prefixe_set)
+        .into_iter()
+        .map(|l| l.code)
+        .collect()
+}
+
+/// Une ligne de Set list, réduite à ce que les lectures ci-dessus en tirent.
+struct LigneSetList {
+    code: String,
+    /// `AA`, `EA` ou vide.
+    famille: String,
+    /// La colonne d'impression (`New`, `New artwork`, `Reprint`…), vide si
+    /// la ligne n'en a pas.
+    impression: String,
+}
+
+/// Lit les lignes d'une Set list qui commencent par un code du set.
+fn lignes_de_set_list(wikitext: &str, prefixe_set: &str) -> Vec<LigneSetList> {
+    let mut sortie = Vec::new();
     if wikitext.is_empty() || prefixe_set.is_empty() {
         return sortie;
     }
@@ -691,10 +762,19 @@ pub fn parser_variant_pool(wikitext: &str, prefixe_set: &str) -> BTreeMap<String
             None if section_variante => "AA".to_owned(),
             None => String::new(),
         };
+        let sans_note = ligne.split_once("//").map_or(ligne, |(avant, _)| avant);
+        let impression = sans_note
+            .split(';')
+            .nth(3)
+            .map(str::trim)
+            .unwrap_or_default()
+            .to_owned();
 
-        if !famille.is_empty() {
-            sortie.insert(code, famille);
-        }
+        sortie.push(LigneSetList {
+            code,
+            famille,
+            impression,
+        });
     }
     sortie
 }
@@ -1286,6 +1366,45 @@ mod tests {
         // Une annotation sans « art » ne dit rien.
         let w = "RA05-EN201; Carte; UR // description::(alternate password)\n";
         assert!(parser_variant_pool(w, "RA05").is_empty());
+    }
+
+    /// Les formes relevées sur Yugipedia le 2026-09-30, pour les sets de
+    /// l'utilisateur.
+    #[test]
+    fn les_illustrations_alternatives_se_lisent_sous_toutes_leurs_formes() {
+        let w = "{{Set list|region=EN|\n\
+                 RA02-EN006; Droll & Lock Bird; UR // description::(alternate art)\n\
+                 RA02-EN047; Polymerization; UR\n\
+                 RA04-EN106; Dark Magician; PlScR // description::(Arkana)\n\
+                 RA04-EN106; Dark Magician; PlScR // description::(6th artwork)\n\
+                 RA04-EN003; RE Darkness Metal; QCScR // description::(alternate artwork)\n\
+                 RA04-EN001; Dark Magician; QCScR // description::(new artwork)\n\
+                 RA05-EN141; Red-Eyes; UR // description::(extended art)\n";
+        let alt: Vec<String> = ["RA02", "RA04", "RA05"]
+            .iter()
+            .flat_map(|p| numeros_illustration_alternative(w, p))
+            .collect();
+        assert_eq!(
+            alt,
+            ["RA02-EN006", "RA04-EN001", "RA04-EN003", "RA04-EN106"],
+            "(extended art) n'est pas une autre illustration, Polymerization n'a rien"
+        );
+    }
+
+    /// Une ligne `(extended art)` après la ligne normale n'efface pas ce que
+    /// la colonne d'impression a dit.
+    #[test]
+    fn plusieurs_lignes_pour_un_numero_se_cumulent() {
+        let w = "LOCH-JP027; I:P Masquerena; UR; New artwork\n\
+                 LOCH-JP027; I:P Masquerena; GMR; New // description::(extended art)\n";
+        assert!(numeros_illustration_alternative(w, "LOCH").contains("LOCH-JP027"));
+        // Le pool historique, lui, garde la dernière famille vue — inchangé.
+        assert_eq!(
+            parser_variant_pool(w, "LOCH")
+                .get("LOCH-JP027")
+                .map(String::as_str),
+            Some("EA")
+        );
     }
 
     #[test]

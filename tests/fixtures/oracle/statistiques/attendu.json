@@ -1,0 +1,246 @@
+[
+ {
+  "nom": "EGO1",
+  "total": 35,
+  "possedees": 35,
+  "pourcentage": 100.0,
+  "raretes": {
+   "Common": {
+    "total": 27,
+    "possedees": 27,
+    "pourcentage": 100.0
+   },
+   "Super Rare": {
+    "total": 4,
+    "possedees": 4,
+    "pourcentage": 100.0
+   },
+   "Ultra Rare": {
+    "total": 4,
+    "possedees": 4,
+    "pourcentage": 100.0
+   }
+  }
+ },
+ {
+  "nom": "EGS1",
+  "total": 38,
+  "possedees": 38,
+  "pourcentage": 100.0,
+  "raretes": {
+   "Common": {
+    "total": 30,
+    "possedees": 30,
+    "pourcentage": 100.0
+   },
+   "Super Rare": {
+    "total": 4,
+    "possedees": 4,
+    "pourcentage": 100.0
+   },
+   "Ultra Rare": {
+    "total": 4,
+    "possedees": 4,
+    "pourcentage": 100.0
+   }
+  }
+ },
+ {
+  "nom": "LDK2",
+  "total": 130,
+  "possedees": 130,
+  "pourcentage": 100.0,
+  "raretes": {
+   "Common": {
+    "total": 115,
+    "possedees": 115,
+    "pourcentage": 100.0
+   },
+   "Secret Rare": {
+    "total": 3,
+    "possedees": 3,
+    "pourcentage": 100.0
+   },
+   "Ultra Rare": {
+    "total": 12,
+    "possedees": 12,
+    "pourcentage": 100.0
+   }
+  }
+ },
+ {
+  "nom": "RA02",
+  "total": 567,
+  "possedees": 21,
+  "pourcentage": 3.7037037037037033,
+  "raretes": {
+   "Collector's Rare": {
+    "total": 81,
+    "possedees": 3,
+    "pourcentage": 3.7037037037037033
+   },
+   "Platinum Secret Rare": {
+    "total": 81,
+    "possedees": 3,
+    "pourcentage": 3.7037037037037033
+   },
+   "Quarter Century Secret Rare": {
+    "total": 81,
+    "possedees": 3,
+    "pourcentage": 3.7037037037037033
+   },
+   "Secret Rare": {
+    "total": 81,
+    "possedees": 3,
+    "pourcentage": 3.7037037037037033
+   },
+   "Super Rare": {
+    "total": 81,
+    "possedees": 3,
+    "pourcentage": 3.7037037037037033
+   },
+   "Ultimate Rare": {
+    "total": 81,
+    "possedees": 3,
+    "pourcentage": 3.7037037037037033
+   },
+   "Ultra Rare": {
+    "total": 81,
+    "possedees": 3,
+    "pourcentage": 3.7037037037037033
+   }
+  }
+ },
+ {
+  "nom": "RA05",
+  "total": 695,
+  "possedees": 176,
+  "pourcentage": 25.323741007194243,
+  "raretes": {
+   "Collector's Rare": {
+    "total": 81,
+    "possedees": 8,
+    "pourcentage": 9.876543209876543
+   },
+   "Platinum Secret Rare": {
+    "total": 81,
+    "possedees": 0,
+    "pourcentage": 0.0
+   },
+   "Secret Rare": {
+    "total": 79,
+    "possedees": 29,
+    "pourcentage": 36.708860759493675
+   },
+   "Starlight Rare": {
+    "total": 148,
+    "possedees": 10,
+    "pourcentage": 6.756756756756757
+   },
+   "Super Rare": {
+    "total": 79,
+    "possedees": 42,
+    "pourcentage": 53.16455696202531
+   },
+   "Ultimate Rare": {
+    "total": 81,
+    "possedees": 0,
+    "pourcentage": 0.0
+   },
+   "Ultra Rare": {
+    "total": 146,
+    "possedees": 87,
+    "pourcentage": 59.589041095890416
+   }
+  }
+ },
+ {
+  "nom": "SDLI",
+  "total": 36,
+  "possedees": 36,
+  "pourcentage": 100.0,
+  "raretes": {
+   "Common": {
+    "total": 32,
+    "possedees": 32,
+    "pourcentage": 100.0
+   },
+   "Super Rare": {
+    "total": 2,
+    "possedees": 2,
+    "pourcentage": 100.0
+   },
+   "Ultra Rare": {
+    "total": 2,
+    "possedees": 2,
+    "pourcentage": 100.0
+   }
+  }
+ },
+ {
+  "nom": "SDWD",
+  "total": 49,
+  "possedees": 43,
+  "pourcentage": 87.75510204081633,
+  "raretes": {
+   "Common": {
+    "total": 35,
+    "possedees": 35,
+    "pourcentage": 100.0
+   },
+   "Quarter Century Secret Rare": {
+    "total": 3,
+    "possedees": 0,
+    "pourcentage": 0.0
+   },
+   "Secret Rare": {
+    "total": 3,
+    "possedees": 0,
+    "pourcentage": 0.0
+   },
+   "Super Rare": {
+    "total": 3,
+    "possedees": 3,
+    "pourcentage": 100.0
+   },
+   "Ultra Rare": {
+    "total": 5,
+    "possedees": 5,
+    "pourcentage": 100.0
+   }
+  }
+ },
+ {
+  "nom": "VASM",
+  "total": 78,
+  "possedees": 71,
+  "pourcentage": 91.02564102564102,
+  "raretes": {
+   "Collector's Rare": {
+    "total": 15,
+    "possedees": 10,
+    "pourcentage": 66.66666666666666
+   },
+   "Quarter Century Secret Rare": {
+    "total": 3,
+    "possedees": 1,
+    "pourcentage": 33.33333333333333
+   },
+   "Rare": {
+    "total": 35,
+    "possedees": 35,
+    "pourcentage": 100.0
+   },
+   "Super Rare": {
+    "total": 15,
+    "possedees": 15,
+    "pourcentage": 100.0
+   },
+   "Ultra Rare": {
+    "total": 10,
+    "possedees": 10,
+    "pourcentage": 100.0
+   }
+  }
+ }
+]

@@ -42,6 +42,7 @@ pub mod attenuation;
 pub mod classeur;
 pub mod corbeille;
 pub mod csv;
+pub mod exemplaires;
 pub mod fiche;
 pub mod images;
 pub mod initialisation;

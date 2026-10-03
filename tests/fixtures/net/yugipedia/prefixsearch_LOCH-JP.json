@@ -1,0 +1,22 @@
+{
+ "batchcomplete": true,
+ "query": {
+  "prefixsearch": [
+   {
+    "ns": 0,
+    "title": "Set Card Lists:Limit Over Collection: The Heroes (OCG-JP)",
+    "pageid": 0
+   },
+   {
+    "ns": 0,
+    "title": "Set Card Lists:Limit Over Collection: The Heroes (OCG-KR)",
+    "pageid": 0
+   },
+   {
+    "ns": 0,
+    "title": "Set Card Lists:Limit Over Collection: The Heroes (OCG-SC)",
+    "pageid": 0
+   }
+  ]
+ }
+}

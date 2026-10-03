@@ -845,14 +845,16 @@ fn phase_de(etape: &ygo_app::init::Etape) -> Option<PhaseBase> {
 ///
 /// Détachée de `creation::creer` pour que la création rende la main dès que
 /// les lignes sont écrites — cf. le commentaire de `Commande::Creer`.
+/// La règle des fausses raretés est **dans** `ygo-app` : cette passe ajoute
+/// des tirages qui peuvent démasquer un fantôme, et les deux gestes ne doivent
+/// plus pouvoir se séparer — cf. `creation::completer_artworks`.
 async fn passe_artworks(
     paths: &Paths,
     client: &ygo_sources::ClientHttp,
     code: &str,
     raretes: &ygo_core::rarity::Priorites,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let conn = ygo_db::connexion::ouvrir(paths.classeur_db(code))?;
-    ygo_app::artworks::passe(&conn, client, "", raretes).await?;
+    ygo_app::creation::completer_artworks(paths, client, code, raretes).await?;
     Ok(())
 }
 
@@ -1048,6 +1050,7 @@ fn travailler(
                             total,
                         });
                     }));
+                    ygo_app::replis::consigner(&paths, &telechargeur.replis());
                     signaler(Evenement::Fin {
                         code,
                         reussies: bilan.reussies,
@@ -1190,6 +1193,7 @@ fn travailler(
         }));
 
         journal.retirer(&code);
+        ygo_app::replis::consigner(&paths, &telechargeur.replis());
         signaler(Evenement::Fin {
             code,
             reussies: bilan.reussies,

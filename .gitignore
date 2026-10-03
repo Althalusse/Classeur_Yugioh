@@ -1,11 +1,12 @@
-# Conservé par sécurité : les artefacts vont normalement dans
-# ../../Projet Rust COMPIL (cf. .cargo/config.toml), mais un `cargo` lancé
-# avec CARGO_TARGET_DIR forcé, ou depuis un autre emplacement, peut encore
-# créer un target/ ici.
-/target
+# ── Compilation ──────────────────────────────────────────────────────────────
+/target/
 **/*.rs.bk
 
-# Bases et données produites par une exécution locale
+# ── Données d'une installation : JAMAIS en ligne ─────────────────────────────
+# Classeurs, base de référence, réglages, journaux et images téléchargées
+# vivent dans Application\, à côté des exécutables. Les images sont des scans
+# Konami : elles ne se redistribuent pas.
+/Application/
 /bdd/
 /img/
 /logs/
@@ -15,3 +16,16 @@
 *.db-wal
 crash_natif.log
 first_run.flag
+
+# ── Dossiers de travail du poste de développement ───────────────────────────
+/Distribution/
+/Publication/
+/Sauvegardes/
+/Simulation_alias/
+/_a_supprimer/
+
+# ── Archives posées à la racine (livraisons, sauvegardes) ───────────────────
+/*.zip
+/*.rar
+/*.7z
+/*.tar.gz

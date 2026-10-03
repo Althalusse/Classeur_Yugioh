@@ -91,6 +91,7 @@ use ygo_core::paths::Paths;
 use ygo_core::rarity::reference;
 
 use crate::error::{AppError, Result};
+use crate::exemplaires::Etat;
 use crate::scanflip::{Edition, Ligne};
 
 /// Une ligne de classeur, réduite à ce que l'appariement regarde.
@@ -163,21 +164,26 @@ pub struct Refusee {
 
 /// Ce qu'une fusion de plusieurs lignes CSV sur une même ligne de base
 /// fait perdre.
+///
+/// # Plus que la langue — 2026-10-01
+///
+/// L'état et l'édition s'y trouvaient aussi : la ligne de classeur n'en
+/// gardait qu'un, celui de la première ligne du fichier. Depuis les
+/// exemplaires ([`crate::exemplaires`]), chaque ligne CSV d'un autre état
+/// devient un groupe d'exemplaires réglés à part ([`Ecriture::a_part`]) : il
+/// n'y a plus rien à perdre de ce côté. Reste la langue, que la base ne
+/// porte pas.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Perte {
     /// Les lignes fusionnées n'ont pas toutes la même langue.
     pub langue: bool,
-    /// … ni la même édition.
-    pub edition: bool,
-    /// … ni le même état.
-    pub qualite: bool,
 }
 
 impl Perte {
     /// Y a-t-il quelque chose à signaler ?
     #[must_use]
     pub fn reelle(self) -> bool {
-        self.langue || self.edition || self.qualite
+        self.langue
     }
 }
 
@@ -205,10 +211,22 @@ pub struct Ecriture {
     pub rowid: i64,
     /// La quantité, somme des lignes CSV posées dessus.
     pub quantite: i64,
-    /// L'état retenu — celui de la **première** ligne du fichier.
+    /// L'état commun — celui de la **première** ligne du fichier.
     pub qualite: String,
-    /// L'édition retenue, même règle.
+    /// L'édition commune, même règle.
     pub edition: Option<Edition>,
+    /// Les exemplaires d'un **autre** état que la première ligne, regroupés
+    /// par état dans l'ordre du fichier : `(état, nombre)`. Ils deviennent des
+    /// exemplaires réglés à part.
+    pub a_part: Vec<(Etat, i64)>,
+}
+
+impl Ecriture {
+    /// L'état commun, sous la forme qu'emploient les exemplaires.
+    #[must_use]
+    pub fn commun(&self) -> Etat {
+        Etat::nouveau(&self.qualite, self.edition.map_or("", Edition::code))
+    }
 }
 
 /// Une ligne dont le code manquait sa lettre de sous-jeu, et que le nom a
@@ -676,8 +694,6 @@ pub fn planifier(lignes: &[Ligne], bases: &HashMap<String, Vec<LigneBase>>) -> R
         if lignes.len() > 1 {
             let perte = Perte {
                 langue: lignes.iter().any(|l| l.langue != premiere.langue),
-                edition: lignes.iter().any(|l| l.edition != premiere.edition),
-                qualite: lignes.iter().any(|l| l.qualite != premiere.qualite),
             };
             rapport.fusions.push(Fusion {
                 classeur: classeur.clone(),
@@ -686,6 +702,19 @@ pub fn planifier(lignes: &[Ligne], bases: &HashMap<String, Vec<LigneBase>>) -> R
                 numeros: lignes.iter().map(|l| l.numero).collect(),
                 perte,
             });
+        }
+        let etat_de = |l: &Ligne| Etat::nouveau(&l.qualite, l.edition.map_or("", Edition::code));
+        let commun = etat_de(premiere);
+        let mut a_part: Vec<(Etat, i64)> = Vec::new();
+        for l in lignes.iter().skip(1) {
+            let etat = etat_de(l);
+            if etat == commun {
+                continue;
+            }
+            match a_part.iter_mut().find(|(e, _)| *e == etat) {
+                Some((_, n)) => *n += l.quantite,
+                None => a_part.push((etat, l.quantite)),
+            }
         }
         rapport.ecritures.push(Ecriture {
             classeur,
@@ -697,6 +726,7 @@ pub fn planifier(lignes: &[Ligne], bases: &HashMap<String, Vec<LigneBase>>) -> R
             // fichier, que l'utilisateur peut lire.
             qualite: premiere.qualite.clone(),
             edition: premiere.edition,
+            a_part,
         });
     }
     rapport
@@ -796,22 +826,16 @@ pub fn appliquer(paths: &Paths, rapport: &Rapport) -> Result<Bilan> {
             .transaction()
             .map_err(|e| AppError::Creation(format!("{classeur} : {e}")))?;
         for e in &ecritures {
-            transaction
-                .execute(
-                    "UPDATE cards
-                        SET possessed = ?1, quantite = ?2, qualite = ?3, edition = ?4
-                      WHERE rowid = ?5",
-                    rusqlite::params![
-                        i64::from(e.quantite > 0),
-                        e.quantite,
-                        e.qualite,
-                        e.edition.map(Edition::code),
-                        e.rowid,
-                    ],
-                )
-                .map_err(|err| {
-                    AppError::Creation(format!("{classeur} rowid {}: {err}", e.rowid))
-                })?;
+            // L'import **remplace** : la quantité, l'état commun, et les
+            // exemplaires à part que le fichier décrit — ceux d'avant partent.
+            crate::exemplaires::remplacer(
+                &transaction,
+                e.rowid,
+                e.quantite,
+                &e.commun(),
+                &e.a_part,
+            )
+            .map_err(|err| AppError::Creation(format!("{classeur} rowid {}: {err}", e.rowid)))?;
         }
         transaction
             .commit()
@@ -977,9 +1001,9 @@ mod tests {
     }
 
     /// Deux lignes CSV sur une même ligne de base : les quantités
-    /// s'additionnent, et la fusion dit ce qu'elle efface.
+    /// s'additionnent, et l'état de la seconde est gardé à part.
     #[test]
-    fn une_fusion_additionne_et_signale_ce_qu_elle_perd() {
+    fn une_fusion_additionne_et_garde_les_etats_differents() {
         let mut bases = HashMap::new();
         bases.insert(
             "VASM".to_owned(),
@@ -999,12 +1023,16 @@ mod tests {
             "la première ligne du fichier gagne"
         );
         assert_eq!(r.ecritures[0].edition, Some(Edition::Premiere));
+        // Depuis les exemplaires, la seconde ligne n'est plus perdue : elle
+        // devient un exemplaire réglé à part.
+        assert_eq!(
+            r.ecritures[0].a_part,
+            vec![(Etat::nouveau("NM", "unlimited"), 1)]
+        );
         assert_eq!(r.fusions.len(), 1);
         assert_eq!(r.fusions[0].numeros, vec![248, 249]);
-        assert!(r.fusions[0].perte.edition, "une édition est perdue");
-        assert!(r.fusions[0].perte.qualite, "un état aussi");
         assert!(!r.fusions[0].perte.langue);
-        assert_eq!(r.fusions_avec_perte().count(), 1);
+        assert_eq!(r.fusions_avec_perte().count(), 0, "plus rien ne se perd");
     }
 
     /// Deux lignes rigoureusement identiques ne perdent rien : c'est
@@ -1044,7 +1072,7 @@ mod tests {
         assert_eq!(r.ecritures[0].quantite, 2);
         assert_eq!(r.fusions.len(), 1);
         assert!(r.fusions[0].perte.langue, "la langue est ce qui se perd");
-        assert!(!r.fusions[0].perte.edition);
+        assert!(r.ecritures[0].a_part.is_empty(), "même état, même édition");
     }
 
     /// Un code amputé de sa lettre de sous-jeu se reconnaît ; un code
@@ -1454,6 +1482,7 @@ mod tests {
                 quantite: 3,
                 qualite: "NM".into(),
                 edition: Some(Edition::Illimitee),
+                a_part: Vec::new(),
             }],
             ..Rapport::default()
         };
@@ -1500,6 +1529,7 @@ mod tests {
                 quantite: 0,
                 qualite: String::new(),
                 edition: None,
+                a_part: Vec::new(),
             }],
             ..Rapport::default()
         };
@@ -1650,12 +1680,32 @@ mod tests {
         // reçoivent plusieurs exemplaires.
         assert_eq!(r.ecritures.len(), 393);
         assert_eq!(r.fusions.len(), 9);
+        // Avant les exemplaires (2026-10-01) : huit fusions effaçaient une
+        // langue, une édition ou un état. L'état et l'édition sont désormais
+        // gardés à part ; ne restent perdues que les quatre langues.
         assert_eq!(
             r.fusions_avec_perte().count(),
-            8,
-            "huit fusions effacent une langue, une édition ou un état ; \
-             la neuvième est un vrai doublon"
+            4,
+            "quatre fusions mêlent deux langues — la seule perte qui reste"
         );
+        let gardees: i64 = r
+            .ecritures
+            .iter()
+            .flat_map(|e| e.a_part.iter().map(|(_, n)| *n))
+            .sum();
+        assert!(
+            gardees > 0,
+            "des exemplaires d'un autre état sont gardés à part"
+        );
+        for e in &r.ecritures {
+            let a_part: i64 = e.a_part.iter().map(|(_, n)| *n).sum();
+            assert!(
+                a_part < e.quantite,
+                "{}/{} : il reste l'état commun",
+                e.classeur,
+                e.rowid
+            );
+        }
 
         // Et le cœur de l'affaire : les quatorze lignes de RA02-FR001
         // tombent sur quatorze lignes de base distinctes.

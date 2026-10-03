@@ -165,6 +165,43 @@ fn charger(ctx: &egui::Context, chemin: &Path) -> bool {
     true
 }
 
+/// La taille de chaque style de texte pour une échelle donnée, depuis les
+/// tailles **par défaut** d'egui — jamais depuis les tailles courantes, sans
+/// quoi deux réglages successifs se multiplieraient.
+///
+/// ```
+/// use eframe::egui;
+/// use ygo_ui::polices::tailles_texte;
+/// let base = egui::Style::default().text_styles;
+/// let grand = tailles_texte(1.5);
+/// let corps = |m: &std::collections::BTreeMap<egui::TextStyle, egui::FontId>| m[&egui::TextStyle::Body].size;
+/// assert!((corps(&grand) - corps(&base) * 1.5).abs() < 1e-4);
+/// assert_eq!(tailles_texte(1.0), base);
+/// ```
+#[must_use]
+pub fn tailles_texte(echelle: f32) -> std::collections::BTreeMap<egui::TextStyle, egui::FontId> {
+    let mut styles = egui::Style::default().text_styles;
+    for police in styles.values_mut() {
+        police.size *= echelle;
+    }
+    styles
+}
+
+/// Applique le réglage « Taille du texte » des Options, **sans redémarrage**.
+///
+/// # R9 — 2026-10-02
+///
+/// Le Python devait redémarrer pour changer la taille des polices Tkinter
+/// (`utilitaire/redemarrage.py`). Le portage, lui, enregistrait le réglage…
+/// et ne l'appliquait nulle part. egui sait changer ses styles d'une image à
+/// l'autre : le réglage s'applique au démarrage et à l'instant où on le change.
+/// Les deux thèmes, clair et sombre, sont mis à jour.
+pub fn appliquer_taille_texte(ctx: &egui::Context, echelle: f64) {
+    #[allow(clippy::cast_possible_truncation)]
+    let styles = tailles_texte(echelle as f32);
+    ctx.all_styles_mut(|style| style.text_styles = styles.clone());
+}
+
 #[cfg(test)]
 mod tests {
     #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]

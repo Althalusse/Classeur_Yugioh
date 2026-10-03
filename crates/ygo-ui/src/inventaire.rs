@@ -58,6 +58,7 @@ use eframe::egui;
 use egui_extras::{Column, TableBuilder};
 
 use crate::csv::{Face, PanneauCsv};
+use ygo_app::exemplaires::{Demande, Etat, Exemplaire};
 use ygo_app::inventaire::{self, Carte, Colonne, Filtre};
 use ygo_app::scanflip;
 use ygo_core::paths::Paths;
@@ -216,6 +217,8 @@ pub struct EcranInventaire {
     quantite_choisie: i64,
     /// Un retrait attend confirmation.
     retrait: bool,
+    /// Les cartes dépliées en leurs exemplaires, par adresse.
+    deplies: BTreeSet<(String, i64)>,
 
     /// L'import/export, partagé avec l'accueil.
     csv: PanneauCsv,
@@ -261,6 +264,7 @@ impl EcranInventaire {
             etat_choisi: "NM".to_owned(),
             quantite_choisie: 1,
             retrait: false,
+            deplies: BTreeSet::new(),
             csv,
             creations: Vec::new(),
             message: None,
@@ -278,7 +282,9 @@ impl EcranInventaire {
         self.duree_lecture = debut.elapsed();
         self.classeurs = inventaire::valeurs(&self.cartes, |c| &c.classeur);
         self.raretes = inventaire::valeurs(&self.cartes, |c| &c.rarete);
-        self.etats = inventaire::valeurs(&self.cartes, |c| &c.qualite);
+        // Les états des exemplaires réglés à part comptent aussi : le filtre
+        // « PL » doit pouvoir trouver la carte dont deux exemplaires le sont.
+        self.etats = inventaire::qualites(&self.cartes);
         self.trier();
         // Une ligne retirée ne doit pas rester sélectionnée : l'action
         // suivante porterait sur une adresse qui n'est plus dans la liste.
@@ -288,6 +294,7 @@ impl EcranInventaire {
             .map(|c| (c.classeur.clone(), c.rowid))
             .collect();
         self.selection.retain(|a| vivantes.contains(a));
+        self.deplies.retain(|a| vivantes.contains(a));
         self.ancre = None;
         self.glisse = None;
     }
@@ -360,6 +367,17 @@ impl EcranInventaire {
         self.en_masse(&quoi, |paths, cibles| {
             inventaire::definir_qualite(paths, cibles, &etat)
         });
+    }
+
+    /// Exécute ce qu'une ligne d'exemplaire a demandé.
+    fn agir_sur_exemplaire(&mut self, adresse: &(String, i64), demande: &Demande) {
+        match inventaire::agir_sur_exemplaires(&self.paths, adresse, demande) {
+            Ok(_) => {
+                self.message = None;
+                self.relire();
+            }
+            Err(e) => self.message = Some((e.to_string(), true)),
+        }
     }
 
     /// Fixe la même quantité sur toute la sélection.
@@ -439,6 +457,41 @@ pub fn lexique_etats() -> String {
 fn bouton_lexique(ui: &mut egui::Ui) {
     ui.add(egui::Label::new(egui::RichText::new("?").weak()).sense(egui::Sense::hover()))
         .on_hover_text(egui::RichText::new(lexique_etats()).monospace());
+}
+
+/// Une rangée du tableau : une carte, ou l'un de ses exemplaires quand elle
+/// est dépliée.
+#[derive(Debug, Clone)]
+enum Rangee {
+    /// La carte, par son indice dans les cartes visibles.
+    Carte(usize),
+    /// Un exemplaire de la carte d'indice `carte`, numéroté à partir de 1.
+    Exemplaire {
+        carte: usize,
+        numero: usize,
+        exemplaire: Exemplaire,
+        etat: Etat,
+    },
+}
+
+/// Les rangées du tableau : chaque carte, et sous une carte dépliée de
+/// plusieurs exemplaires, chacun d'eux.
+fn rangees(visibles: &[Carte], deplies: &BTreeSet<(String, i64)>) -> Vec<Rangee> {
+    let mut affichage = Vec::with_capacity(visibles.len());
+    for (i, c) in visibles.iter().enumerate() {
+        affichage.push(Rangee::Carte(i));
+        if c.quantite > 1 && deplies.contains(&(c.classeur.clone(), c.rowid)) {
+            for (k, (exemplaire, etat)) in c.exemplaires().liste().into_iter().enumerate() {
+                affichage.push(Rangee::Exemplaire {
+                    carte: i,
+                    numero: k + 1,
+                    exemplaire,
+                    etat,
+                });
+            }
+        }
+    }
+    affichage
 }
 
 /// Ce que le menu contextuel demande, exécuté **après** le dessin du tableau
@@ -826,6 +879,20 @@ impl EcranInventaire {
             let mut debut_glisse: Option<usize> = None;
             let mut sous_pointeur: Option<usize> = None;
             let mut geste: Option<Geste> = None;
+            let mut deplier: Option<(String, i64)> = None;
+            let mut demande_exemplaire: Option<((String, i64), Demande)> = None;
+
+            // Les rangées affichées : chaque carte, et sous une carte
+            // dépliée, chacun de ses exemplaires.
+            let affichage = rangees(&visibles, &self.deplies);
+            let hauteurs: Vec<f32> = affichage
+                .iter()
+                .map(|r| match r {
+                    Rangee::Carte(_) => 22.0,
+                    Rangee::Exemplaire { .. } => 26.0,
+                })
+                .collect();
+            let hauteurs = hauteurs.into_iter();
             let (ctrl, maj, pointeur, enfonce) = ui.input(|i| {
                 (
                     i.modifiers.command,
@@ -897,13 +964,92 @@ impl EcranInventaire {
                     });
                 })
                 .body(|corps| {
-                    corps.rows(22.0, visibles.len(), |mut ligne| {
-                        let i = ligne.index();
+                    corps.heterogeneous_rows(hauteurs, |mut ligne| {
+                        let Some(rangee) = affichage.get(ligne.index()) else {
+                            return;
+                        };
+                        let (i, sous) = match rangee {
+                            Rangee::Carte(i) => (*i, None),
+                            Rangee::Exemplaire {
+                                carte,
+                                numero,
+                                exemplaire,
+                                etat,
+                            } => (*carte, Some((*numero, *exemplaire, etat))),
+                        };
                         let Some(c) = visibles.get(i) else {
                             return;
                         };
                         let adresse = (c.classeur.clone(), c.rowid);
+
+                        // Une rangée d'exemplaire : ses réglages, et rien
+                        // d'autre — elle ne se sélectionne pas.
+                        if let Some((numero, exemplaire, etat)) = sous {
+                            let a_part = matches!(exemplaire, Exemplaire::APart(_));
+                            let cle = (c.classeur.as_str(), c.rowid, numero);
+                            ligne.col(|ui| {
+                                ui.add_space(22.0);
+                                let texte = format!("Exemplaire {numero}");
+                                let r = if a_part {
+                                    ui.label(egui::RichText::new(texte).strong())
+                                } else {
+                                    ui.weak(texte)
+                                };
+                                r.on_hover_text(if a_part {
+                                    "Réglé à part"
+                                } else {
+                                    "Standard : il suit l'état de la carte"
+                                });
+                            });
+                            ligne.col(|ui| {
+                                let mut qualite = etat.qualite.clone();
+                                if crate::exemplaires::choix_etat(ui, (cle, "etat"), &mut qualite) {
+                                    demande_exemplaire = Some((
+                                        adresse.clone(),
+                                        Demande::Modifier(
+                                            exemplaire,
+                                            Etat::nouveau(&qualite, &etat.edition),
+                                        ),
+                                    ));
+                                }
+                            });
+                            ligne.col(|ui| {
+                                let mut edition = etat.edition.clone();
+                                if crate::exemplaires::choix_edition(
+                                    ui,
+                                    (cle, "edition"),
+                                    &mut edition,
+                                ) {
+                                    demande_exemplaire = Some((
+                                        adresse.clone(),
+                                        Demande::Modifier(
+                                            exemplaire,
+                                            Etat::nouveau(&etat.qualite, &edition),
+                                        ),
+                                    ));
+                                }
+                            });
+                            ligne.col(|_| {});
+                            ligne.col(|_| {});
+                            ligne.col(|ui| {
+                                if ui
+                                    .small_button("Retirer")
+                                    .on_hover_text(
+                                        "Retirer cet exemplaire : la quantité baisse d'un",
+                                    )
+                                    .clicked()
+                                {
+                                    demande_exemplaire =
+                                        Some((adresse.clone(), Demande::Retirer(exemplaire)));
+                                }
+                            });
+                            ligne.col(|_| {});
+                            ligne.col(|_| {});
+                            return;
+                        }
+
                         ligne.set_selected(self.selection.contains(&adresse));
+                        let deplie = self.deplies.contains(&adresse);
 
                         ligne.col(|ui| {
                             if glisse_active && !defilement_fait.replace(true) {
@@ -923,6 +1069,34 @@ impl EcranInventaire {
                                     }
                                 }
                             }
+                            // Le triangle qui déplie : seulement là où il y a
+                            // plusieurs exemplaires à montrer. L'espace est
+                            // gardé ailleurs, pour que les noms s'alignent.
+                            let (_, triangle) = ui.allocate_exact_size(
+                                egui::vec2(14.0, 14.0),
+                                if c.quantite > 1 {
+                                    egui::Sense::click()
+                                } else {
+                                    egui::Sense::hover()
+                                },
+                            );
+                            if c.quantite > 1 {
+                                egui::collapsing_header::paint_default_icon(
+                                    ui,
+                                    if deplie { 1.0 } else { 0.0 },
+                                    &triangle,
+                                );
+                                if triangle
+                                    .on_hover_text(if deplie {
+                                        "Replier"
+                                    } else {
+                                        "Voir chaque exemplaire"
+                                    })
+                                    .clicked()
+                                {
+                                    deplier = Some(adresse.clone());
+                                }
+                            }
                             ui.label(c.nom_affiche(self.francais));
                         });
                         ligne.col(|ui| {
@@ -940,7 +1114,28 @@ impl EcranInventaire {
                             }
                         });
                         ligne.col(|ui| {
-                            if c.qualite.is_empty() {
+                            let exemplaires = c.exemplaires();
+                            if !exemplaires.homogene() {
+                                // Des exemplaires d'états différents : le
+                                // décompte, et le détail au survol.
+                                let detail: Vec<String> = exemplaires
+                                    .groupes()
+                                    .iter()
+                                    .map(|(e, n)| {
+                                        format!(
+                                            "{n} × {} — {}",
+                                            if e.qualite.is_empty() {
+                                                "—".to_owned()
+                                            } else {
+                                                libelle_qualite(&e.qualite)
+                                            },
+                                            crate::exemplaires::libelle_edition(&e.edition)
+                                        )
+                                    })
+                                    .collect();
+                                ui.label(crate::exemplaires::resume(&exemplaires))
+                                    .on_hover_text(detail.join("\n"));
+                            } else if c.qualite.is_empty() {
                                 ui.weak("—");
                             } else {
                                 // La colonne reste étroite : le code, et le
@@ -983,6 +1178,16 @@ impl EcranInventaire {
                         });
                     });
                 });
+
+            if let Some(adresse) = deplier {
+                if !self.deplies.remove(&adresse) {
+                    self.deplies.insert(adresse);
+                }
+            }
+            if let Some((adresse, demande)) = demande_exemplaire {
+                self.agir_sur_exemplaire(&adresse, &demande);
+                return;
+            }
 
             if let Some(colonne) = a_trier {
                 let (c, d) = basculer(self.colonne, self.descendant, colonne);
@@ -1139,6 +1344,8 @@ mod tests {
             rarete: "Common".into(),
             quantite: 1,
             qualite: String::new(),
+            edition: String::new(),
+            a_part: Vec::new(),
             overframe: false,
             card_image_id: Some(rowid),
             variantes: 1,
@@ -1528,6 +1735,42 @@ mod tests {
     }
 
     /// Le retour se consomme une seule fois.
+    #[test]
+    fn une_carte_depliee_montre_chacun_de_ses_exemplaires() {
+        let mut cinq = carte("RA02", 1);
+        cinq.quantite = 5;
+        cinq.qualite = "NM".into();
+        cinq.a_part = vec![(9, Etat::nouveau("PL", ""))];
+        let mut une = carte("RA02", 2);
+        une.quantite = 1;
+        let visibles = vec![cinq, une];
+        let mut deplies = BTreeSet::new();
+        assert_eq!(
+            rangees(&visibles, &deplies).len(),
+            2,
+            "replié : deux cartes"
+        );
+
+        deplies.insert(("RA02".to_owned(), 1));
+        // Une carte d'un seul exemplaire ne se déplie pas, même demandée.
+        deplies.insert(("RA02".to_owned(), 2));
+        let r = rangees(&visibles, &deplies);
+        assert_eq!(r.len(), 2 + 5, "les cinq exemplaires de la première");
+        let a_part: Vec<usize> = r
+            .iter()
+            .filter_map(|x| match x {
+                Rangee::Exemplaire {
+                    numero,
+                    exemplaire: Exemplaire::APart(_),
+                    ..
+                } => Some(*numero),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(a_part, vec![5], "le réglé à part vient après les standard");
+        assert!(matches!(r[6], Rangee::Carte(1)), "la seconde carte suit");
+    }
+
     #[test]
     fn le_retour_se_consomme() {
         let mut e = ecran(Vec::new());

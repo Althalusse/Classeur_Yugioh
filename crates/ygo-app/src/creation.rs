@@ -1101,10 +1101,27 @@ pub async fn creer(
         overrides(&chemin_db);
     }
 
-    // ── La passe artworks, qui ne peut pas faire échouer la création ────
+    // ── L'image Yugipedia de chaque tirage ──────────────────────────────
+    //
+    // Posée tout de suite, pour que le classeur soit juste même sans passe
+    // artworks ; reposée après elle, qui crée des tirages en recopiant l'URL
+    // d'une ligne sœur (cf. `completer_artworks`).
+    poser_images_tirage(paths, &code, &reference);
+
+    // ── La passe artworks, et le rattrapage qui la suit ─────────────────
+    //
+    // `avec_artworks` est **faux** quand l'appel vient de l'interface : elle
+    // rend la main dès les lignes écrites, puis lance la passe elle-même, par
+    // [`completer_artworks`]. Le rattrapage des fausses raretés vit donc là,
+    // avec la passe qui le rend nécessaire — et non ici, où il ne verrait
+    // jamais les tirages qu'elle ajoute.
+    let mut ecrites = ecrites;
     let artworks = if avec_artworks {
-        match passe_artworks(&chemin_db, client, &reference).await {
-            Ok(bilan) => Artworks::Faite(bilan),
+        match completer_artworks(paths, client, &code, &reference).await {
+            Ok(apres) => {
+                ecrites = ecrites.saturating_sub(apres.fantomes_retires);
+                Artworks::Faite(apres.bilan)
+            }
             Err(e) => Artworks::Ignoree(e.to_string()),
         }
     } else {
@@ -1117,6 +1134,37 @@ pub async fn creer(
         artworks,
         raretes: bilan_raretes,
     })
+}
+
+/// Ajoute aux écarts déjà consignés ce que le second passage a trouvé.
+///
+/// Les libellés inconnus sont **recomptés dans la base**, pas additionnés : le
+/// premier passage les a comptés quand les fausses raretés y étaient encore.
+/// Les laisser tels quels faisait dire au bandeau « 2 libellés non reconnus »
+/// sur un classeur qui n'en contient plus aucun — mesuré sur `CH01` et `CH02`
+/// le 2026-09-30. Les lignes gardées parce que possédées, elles, y sont
+/// encore : le recompte les trouve sans qu'on les ajoute à la main.
+fn consigner_second_passage(
+    chemin_db: &Path,
+    bilan: &crate::raretes::BilanSecondPassage,
+    reference: &ygo_core::rarity::Priorites,
+) {
+    let mut ecarts = crate::classeur::ecarts_du_classeur(chemin_db).unwrap_or_default();
+    if ecarts.quand.is_empty() {
+        ecarts.quand = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
+    }
+    ecarts.fantomes.extend(bilan.ecartees.iter().cloned());
+    // Connexion simple, pour la même raison qu'au-dessus : pas de `-wal`
+    // laissé derrière sur un classeur qu'on vient de refermer.
+    let consigne = Connection::open(chemin_db)
+        .map_err(AppError::from)
+        .and_then(|conn| {
+            ecarts.inconnues = crate::raretes::analyser(&conn, reference)?.inconnues;
+            crate::classeur::enregistrer_ecarts_sur(&conn, &ecarts)
+        });
+    if let Err(e) = consigne {
+        tracing::warn!(erreur = %e, "écarts du second passage non consignés");
+    }
 }
 
 /// Choisit quelles lignes écrire, une fois les sources interrogées.
@@ -1214,24 +1262,129 @@ async fn depuis_api(
     Ok(lignes_depuis_api(&nom, &cartes_en, &cartes_fr))
 }
 
-/// Lance la passe artworks sur le classeur qui vient d'être écrit.
-async fn passe_artworks(
-    chemin_db: &Path,
+/// Ce que la passe artworks laisse derrière elle, rattrapage compris.
+#[derive(Debug, Clone)]
+pub struct ApresArtworks {
+    /// Le bilan de la passe elle-même.
+    pub bilan: crate::artworks::Bilan,
+    /// Lignes retirées par le rattrapage des fausses raretés.
+    pub fantomes_retires: usize,
+}
+
+/// La passe artworks d'un classeur, **suivie** du rattrapage des fantômes.
+///
+/// # Pourquoi les deux ensemble — 2026-09-30
+///
+/// La passe artworks crée les tirages manquants d'un numéro en **héritant**
+/// des colonnes d'une ligne existante, `card_image_id` compris. Un fantôme
+/// resté seul sur son illustration à l'écriture — que
+/// [`crate::raretes::ecarter_fantomes`] laisse passer, faute de jumelle
+/// reconnue — devient donc, à la fin de cette passe, une ligne entourée de
+/// vraies raretés sur la même image. C'est là, et seulement là, que la règle
+/// peut trancher.
+///
+/// Le premier correctif plaçait ce rattrapage dans [`creer`], après son propre
+/// appel à la passe. L'interface ne passe jamais par ce chemin : elle appelle
+/// `creer` avec `avec_artworks = false` pour rendre la main tôt, puis lance la
+/// passe de son côté. Le rattrapage ne voyait donc jamais un seul tirage
+/// ajouté — mesuré sur `CH01` et `CH02` recréés le 30 septembre : 64 lignes au
+/// lieu des 62 de Yugipedia, exactement comme avant le correctif. Les deux
+/// gestes sont ici réunis pour que le chemin ne puisse plus se scinder.
+///
+/// # Errors
+///
+/// Rend une erreur si la passe artworks échoue. Le rattrapage, lui, ne fait
+/// jamais échouer l'appel : un classeur écrit vaut mieux qu'un classeur perdu.
+pub async fn completer_artworks(
+    paths: &Paths,
     client: &ygo_sources::ClientHttp,
-    raretes: &ygo_core::rarity::Priorites,
-) -> Result<crate::artworks::Bilan> {
-    let conn = ygo_db::connexion::ouvrir(chemin_db)?;
-    match crate::artworks::passe(&conn, client, "", raretes).await? {
-        crate::artworks::Issue::Fait { bilan, .. } => Ok(bilan),
-        crate::artworks::Issue::ClasseurVide => Err(AppError::Creation(
-            "classeur vide au moment de la passe artworks".to_owned(),
-        )),
-        crate::artworks::Issue::PageIntrouvable => Err(AppError::Creation(
-            "aucune page « Set Card Lists » pour ce set".to_owned(),
-        )),
-        crate::artworks::Issue::StructureSterile { titre } => Err(AppError::Creation(format!(
-            "{titre} — aucun tirage exploitable"
-        ))),
+    code: &str,
+    reference: &ygo_core::rarity::Priorites,
+) -> Result<ApresArtworks> {
+    let chemin_db = paths.classeur_db(code);
+    let chemin_db = chemin_db.as_path();
+    let bilan = {
+        let conn = ygo_db::connexion::ouvrir(chemin_db)?;
+        match crate::artworks::passe(&conn, client, "", reference).await? {
+            crate::artworks::Issue::Fait { bilan, .. } => bilan,
+            crate::artworks::Issue::ClasseurVide => {
+                return Err(AppError::Creation(
+                    "classeur vide au moment de la passe artworks".to_owned(),
+                ))
+            }
+            crate::artworks::Issue::PageIntrouvable => {
+                return Err(AppError::Creation(
+                    "aucune page « Set Card Lists » pour ce set".to_owned(),
+                ))
+            }
+            crate::artworks::Issue::StructureSterile { titre } => {
+                return Err(AppError::Creation(format!(
+                    "{titre} — aucun tirage exploitable"
+                )))
+            }
+        }
+    };
+    let fantomes_retires = rattraper_fantomes(chemin_db, code, reference);
+    // La passe a créé des tirages en recopiant une ligne sœur, URL comprise :
+    // chacun doit recevoir l'image de **son** tirage.
+    poser_images_tirage(paths, code, reference);
+    Ok(ApresArtworks {
+        bilan,
+        fantomes_retires,
+    })
+}
+
+/// Pose l'image Yugipedia de chaque tirage, et le journalise.
+///
+/// Ne rend jamais d'erreur : un classeur dont les images restent celles
+/// d'YGOPRODeck est un classeur utilisable — c'était le cas de tous jusqu'ici.
+/// Cf. [`crate::images_tirage`].
+fn poser_images_tirage(paths: &Paths, code: &str, reference: &ygo_core::rarity::Priorites) {
+    match crate::images_tirage::poser(&paths.classeur_db(code), &paths.cardinfo_db(), reference) {
+        Ok(r) => tracing::info!(
+            classeur = %code,
+            lignes = r.lues,
+            posees = r.a_poser.len() - r.rendues,
+            deja = r.deja,
+            rendues = r.rendues,
+            sans_tirage = r.sans_tirage,
+            sans_image = r.sans_image,
+            ambigues = r.ambigues,
+            "images de tirage Yugipedia"
+        ),
+        Err(e) => tracing::warn!(classeur = %code, erreur = %e, "images de tirage non posées"),
+    }
+}
+
+/// Rejoue la règle des fausses raretés sur le classeur écrit, et la consigne.
+///
+/// Rend le nombre de lignes retirées. Ne rend jamais d'erreur : un second
+/// passage empêché laisse le classeur tel quel, ce qui reste utilisable.
+fn rattraper_fantomes(
+    chemin_db: &Path,
+    code: &str,
+    reference: &ygo_core::rarity::Priorites,
+) -> usize {
+    match crate::raretes::ecarter_fantomes_en_base(chemin_db, reference) {
+        Ok(bilan) if bilan.vide() => 0,
+        Ok(bilan) => {
+            for fantome in bilan.ecartees.iter().chain(&bilan.gardees) {
+                tracing::warn!(
+                    classeur = %code,
+                    carte = %fantome.set_code,
+                    libelle = %fantome.rarete,
+                    jumelles = %fantome.jumelles.join(", "),
+                    "fausse rareté vue au second passage"
+                );
+            }
+            let retirees = bilan.ecartees.len();
+            consigner_second_passage(chemin_db, &bilan, reference);
+            retirees
+        }
+        Err(e) => {
+            tracing::warn!(classeur = %code, erreur = %e, "second passage impossible");
+            0
+        }
     }
 }
 
@@ -2211,6 +2364,140 @@ mod tests {
             .unwrap();
         assert_eq!(total, 4);
         assert_eq!(corrigees, 4, "la correction est passée avant l'écriture");
+    }
+
+    /// Le rattrapage vit **après** la passe artworks, pas dans `creer`.
+    ///
+    /// Le premier correctif rattrapait les fantômes à la fin de `creer`. Or
+    /// l'interface appelle `creer` avec `avec_artworks = false` puis lance la
+    /// passe de son côté : le rattrapage passait avant le seul geste capable
+    /// de démasquer un fantôme. Ce test fige les deux moitiés — `creer` seul
+    /// ne touche à rien, le rattrapage d'après la passe tranche.
+    #[test]
+    fn le_rattrapage_attend_les_tirages_que_la_passe_artworks_ajoute() {
+        let (_d, paths) = installation(2, 2);
+        let corriger = |_code: &str, lignes: &mut Vec<LigneClasseur>| {
+            for l in lignes.iter_mut() {
+                if l.set_code.ends_with("002") {
+                    l.rarity = "New".to_owned();
+                }
+            }
+        };
+        let greffons = Greffons {
+            corriger_raretes: Some(&corriger),
+            ..Greffons::default()
+        };
+        creer_local(&paths, "RA05", &greffons).unwrap();
+        let chemin = paths.classeur_db("RA05");
+        let raretes = ygo_core::rarity::Priorites::charger(paths.rarity_config());
+
+        // Seule sur son illustration, la fausse rareté reste : c'est ce qu'on
+        // demande à la règle, et `creer` ne la rejoue pas.
+        assert_eq!(
+            compter_raretes(&chemin, "New"),
+            2,
+            "sans tirage jumeau, rien à trancher"
+        );
+        assert_eq!(rattraper_fantomes(&chemin, "RA05", &raretes), 0);
+
+        // Ce que fait la passe artworks : un tirage créé par héritage, donc
+        // sur la même illustration.
+        {
+            let conn = ygo_db::connexion::ouvrir(&chemin).unwrap();
+            let image: Option<i64> = conn
+                .query_row(
+                    "SELECT card_image_id FROM cards WHERE rarity = 'New' LIMIT 1",
+                    [],
+                    |l| l.get(0),
+                )
+                .unwrap();
+            conn.execute(
+                "INSERT INTO cards (set_code, rarity, card_image_id, name, quantite, possessed) \
+                 VALUES ('RA05-FR002', 'Ultra Rare', ?1, 'Dragon Blanc', 0, 0)",
+                [image],
+            )
+            .unwrap();
+        }
+
+        assert_eq!(
+            rattraper_fantomes(&chemin, "RA05", &raretes),
+            2,
+            "entourée de vraies raretés, la fausse part"
+        );
+        assert_eq!(compter_raretes(&chemin, "New"), 0);
+        assert_eq!(
+            rattraper_fantomes(&chemin, "RA05", &raretes),
+            0,
+            "rejoué, le rattrapage ne trouve plus rien"
+        );
+
+        // Et il laisse une trace lisible dans le classeur.
+        let ecarts = crate::classeur::ecarts_du_classeur(&chemin).unwrap();
+        assert_eq!(ecarts.fantomes.len(), 2);
+        assert!(
+            ecarts.inconnues.is_empty(),
+            "plus aucune « New » en base, plus aucun libellé inconnu annoncé : {:?}",
+            ecarts.inconnues
+        );
+        assert!(
+            ecarts.fantomes.iter().all(|f| !f.name.is_empty()),
+            "le nom de la carte est repris de la base : {:?}",
+            ecarts.fantomes
+        );
+    }
+
+    fn compter_raretes(chemin: &Path, rarete: &str) -> i64 {
+        let conn = ygo_db::connexion::ouvrir_lecture_seule(chemin).unwrap();
+        conn.query_row(
+            "SELECT COUNT(*) FROM cards WHERE rarity = ?1",
+            [rarete],
+            |l| l.get(0),
+        )
+        .unwrap()
+    }
+
+    /// La création pose l'image Yugipedia de chaque tirage, et une ligne dont
+    /// le tirage n'a pas d'image garde la sienne.
+    #[test]
+    fn la_creation_pose_l_image_de_chaque_tirage() {
+        let (_d, paths) = installation(2, 2);
+        {
+            let conn = ygo_db::connexion::ouvrir(paths.cardinfo_db()).unwrap();
+            conn.execute(
+                "UPDATE set_prints SET edition = '1st', print_image_url = \
+                   'https://ms.yugipedia.com//' || set_code || '-' || rarity || '.png' \
+                  WHERE set_code = 'RA05-EN001'",
+                [],
+            )
+            .unwrap();
+        }
+        creer_local(&paths, "RA05", &Greffons::default()).unwrap();
+
+        let conn = ygo_db::connexion::ouvrir_lecture_seule(paths.classeur_db("RA05")).unwrap();
+        let mut req = conn
+            .prepare("SELECT set_code, rarity, card_image_url FROM cards ORDER BY set_code, rarity")
+            .unwrap();
+        let lignes: Vec<(String, String, String)> = req
+            .query_map([], |l| Ok((l.get(0)?, l.get(1)?, l.get(2)?)))
+            .unwrap()
+            .collect::<rusqlite::Result<Vec<_>>>()
+            .unwrap();
+        for (code, rarete, url) in &lignes {
+            if code == "RA05-EN001" {
+                assert_eq!(
+                    url,
+                    &format!("https://ms.yugipedia.com//{code}-{rarete}.png"),
+                    "chaque rareté a l'image de son tirage"
+                );
+            } else {
+                assert!(
+                    !url.contains("yugipedia"),
+                    "sans image de tirage, la ligne garde la sienne : {url}"
+                );
+            }
+        }
+        assert!(lignes.iter().any(|l| l.0 == "RA05-EN001"));
+        assert!(lignes.iter().any(|l| l.0 != "RA05-EN001"));
     }
 
     #[test]

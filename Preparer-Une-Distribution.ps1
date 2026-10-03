@@ -42,7 +42,7 @@ Yu-Gi-Oh! Collection Manager
 Pour demarrer : double-cliquez ygo-ui.exe, ou lancez Lancer.ps1.
 
 Au premier demarrage, l'application propose de construire sa base de
-reference : environ 35 Mo a telecharger, moins d'une minute. Elle s'installe
+reference : environ 60 Mo a telecharger, moins d'une minute. Elle s'installe
 dans un sous-dossier bdd\ cree a cote de l'executable.
 
 Ce dossier est deplacable tel quel : l'application cherche toujours ses

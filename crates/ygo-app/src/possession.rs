@@ -36,6 +36,7 @@ use rusqlite::Connection;
 use ygo_core::paths::Paths;
 
 use crate::error::{AppError, Result};
+use crate::exemplaires::Defauts;
 
 /// Seuil à partir duquel on considère qu'un *playset* est atteint.
 ///
@@ -52,13 +53,19 @@ pub const SEUIL_PLAYSET: i64 = 3;
 /// « ×-1 ».
 ///
 /// Rend le nombre de lignes modifiées — `0` si le `rowid` n'existe pas.
-pub fn regler_quantite(conn: &Connection, rowid: i64, quantite: i64) -> Result<usize> {
-    let quantite = quantite.max(0);
-    let possede = i64::from(quantite > 0);
-    Ok(conn.execute(
-        "UPDATE cards SET possessed = ?1, quantite = ?2 WHERE rowid = ?3",
-        (possede, quantite, rowid),
-    )?)
+///
+/// Les exemplaires réglés à part ([`crate::exemplaires`]) sont tenus : quand
+/// la quantité baisse, les standard partent d'abord.
+///
+/// Une carte qui entre dans la collection reçoit ses `defauts` — Mint, et
+/// l'édition connue du tirage ([`crate::exemplaires::Defauts`]).
+pub fn regler_quantite(
+    conn: &Connection,
+    rowid: i64,
+    quantite: i64,
+    defauts: &Defauts,
+) -> Result<usize> {
+    crate::exemplaires::regler_quantite(conn, rowid, quantite, defauts)
 }
 
 /// Ajoute `delta` à la quantité d'une carte, sans descendre sous zéro.
@@ -68,7 +75,12 @@ pub fn regler_quantite(conn: &Connection, rowid: i64, quantite: i64) -> Result<u
 /// peuvent pas lire la même valeur de départ.
 ///
 /// Rend la nouvelle quantité, ou `None` si la carte n'existe pas.
-pub fn ajuster(conn: &mut Connection, rowid: i64, delta: i64) -> Result<Option<i64>> {
+pub fn ajuster(
+    conn: &mut Connection,
+    rowid: i64,
+    delta: i64,
+    defauts: &Defauts,
+) -> Result<Option<i64>> {
     let tx = conn.transaction()?;
     let actuelle: Option<i64> = tx
         .query_row(
@@ -81,11 +93,9 @@ pub fn ajuster(conn: &mut Connection, rowid: i64, delta: i64) -> Result<Option<i
         return Ok(None);
     };
     let nouvelle = actuelle.saturating_add(delta).max(0);
-    let possede = i64::from(nouvelle > 0);
-    tx.execute(
-        "UPDATE cards SET possessed = ?1, quantite = ?2 WHERE rowid = ?3",
-        (possede, nouvelle, rowid),
-    )?;
+    // « − » retire un exemplaire standard d'abord : celui qu'on a réglé à
+    // part est celui qu'on veut garder (décision du 2026-10-01).
+    crate::exemplaires::regler_quantite(&tx, rowid, nouvelle, defauts)?;
     tx.commit()?;
     Ok(Some(nouvelle))
 }
@@ -104,19 +114,36 @@ pub fn ajuster(conn: &mut Connection, rowid: i64, delta: i64) -> Result<Option<i
 /// # Errors
 ///
 /// Rend une erreur si la base est inaccessible ou en lecture seule.
-pub fn tout_posseder(conn: &Connection) -> Result<usize> {
-    Ok(conn.execute(
+///
+/// Les lignes qui entrent ainsi dans la collection reçoivent leurs
+/// `defauts` (Mint, édition connue) : c'est un exemplaire qu'on déclare
+/// posséder, comme au « + ». L'état et l'édition déjà renseignés ne sont pas
+/// touchés.
+pub fn tout_posseder(conn: &Connection, defauts: &Defauts) -> Result<usize> {
+    let entrantes: Vec<i64> = {
+        let mut r = conn.prepare("SELECT rowid FROM cards WHERE COALESCE(quantite, 0) <= 0")?;
+        let v = r
+            .query_map([], |l| l.get(0))?
+            .collect::<std::result::Result<_, _>>()?;
+        v
+    };
+    let n = conn.execute(
         "UPDATE cards SET possessed = 1, quantite = 1
           WHERE COALESCE(quantite, 0) <= 0",
         (),
-    )?)
+    )?;
+    for rowid in entrantes {
+        crate::exemplaires::completer(conn, rowid, defauts)?;
+    }
+    Ok(n)
 }
 
 /// Remet **tout** un classeur à zéro : plus rien n'est possédé.
 ///
 /// # Ce qui part, et ce qui reste
 ///
-/// La quantité, le drapeau, l'état et l'édition. Ces deux derniers
+/// La quantité, le drapeau, l'état et l'édition — et les exemplaires réglés
+/// à part ([`crate::exemplaires`]). L'état et l'édition
 /// **décrivent des exemplaires** : les laisser derrière une quantité nulle
 /// donnerait un classeur vide dont les cartes se souviennent d'avoir été
 /// `NM 1st Edition` — et l'export, qui ne lit que les possédées, ne les
@@ -132,6 +159,8 @@ pub fn tout_posseder(conn: &Connection) -> Result<usize> {
 ///
 /// Rend une erreur si la base est inaccessible ou en lecture seule.
 pub fn tout_remettre_a_zero(conn: &Connection) -> Result<usize> {
+    // Les exemplaires réglés à part décrivent eux aussi des exemplaires.
+    crate::exemplaires::tout_effacer(conn)?;
     Ok(conn.execute(
         "UPDATE cards
             SET possessed = 0, quantite = 0, qualite = NULL, edition = NULL
@@ -229,9 +258,10 @@ impl Bascule {
 pub fn appliquer_au_classeur(paths: &Paths, code: &str, bascule: Bascule) -> Result<usize> {
     let mut conn = ygo_db::connexion::ouvrir(paths.classeur_db(code))
         .map_err(|e| AppError::Creation(format!("{code} : {e}")))?;
+    let defauts = Defauts::charger(paths, &conn);
     let transaction = conn.transaction()?;
     let touchees = match bascule {
-        Bascule::ToutPosseder => tout_posseder(&transaction)?,
+        Bascule::ToutPosseder => tout_posseder(&transaction, &defauts)?,
         Bascule::ToutRemettreAZero => tout_remettre_a_zero(&transaction)?,
     };
     transaction.commit()?;
@@ -315,7 +345,11 @@ mod tests {
     #[test]
     fn tout_posseder_coche_sans_ecraser_les_quantites() {
         let conn = classeur_de(&[0, 3, 0, 1]);
-        assert_eq!(tout_posseder(&conn).unwrap(), 2, "seules les deux à zéro");
+        assert_eq!(
+            tout_posseder(&conn, &Defauts::default()).unwrap(),
+            2,
+            "seules les deux à zéro"
+        );
 
         let e = super::etat(&conn).unwrap();
         assert_eq!(e.lignes, 4);
@@ -324,7 +358,7 @@ mod tests {
         assert!(!e.incomplet());
 
         // Idempotent : rejouer ne touche plus rien.
-        assert_eq!(tout_posseder(&conn).unwrap(), 0);
+        assert_eq!(tout_posseder(&conn, &Defauts::default()).unwrap(), 0);
     }
 
     /// La remise à zéro emporte aussi l'état et l'édition — ils décrivent
@@ -425,10 +459,10 @@ mod tests {
     #[test]
     fn le_drapeau_est_derive_de_la_quantite() {
         let conn = classeur();
-        regler_quantite(&conn, 1, 3).unwrap();
+        regler_quantite(&conn, 1, 3, &Defauts::default()).unwrap();
         assert_eq!(etat(&conn, 1), (1, 3));
 
-        regler_quantite(&conn, 1, 0).unwrap();
+        regler_quantite(&conn, 1, 0, &Defauts::default()).unwrap();
         assert_eq!(
             etat(&conn, 1),
             (0, 0),
@@ -440,38 +474,59 @@ mod tests {
     fn une_quantite_negative_est_ramenee_a_zero() {
         // Le Python ne s'en protège pas ; un bouton « − » mal borné, si.
         let conn = classeur();
-        regler_quantite(&conn, 1, -5).unwrap();
+        regler_quantite(&conn, 1, -5, &Defauts::default()).unwrap();
         assert_eq!(etat(&conn, 1), (0, 0));
     }
 
     #[test]
     fn regler_un_rowid_inexistant_ne_touche_rien() {
         let conn = classeur();
-        assert_eq!(regler_quantite(&conn, 999, 4).unwrap(), 0);
+        assert_eq!(
+            regler_quantite(&conn, 999, 4, &Defauts::default()).unwrap(),
+            0
+        );
         assert_eq!(etat(&conn, 1), (0, 0));
     }
 
     #[test]
     fn ajuster_incremente_et_decremente() {
         let mut conn = classeur();
-        assert_eq!(ajuster(&mut conn, 1, 1).unwrap(), Some(1));
-        assert_eq!(ajuster(&mut conn, 1, 1).unwrap(), Some(2));
-        assert_eq!(ajuster(&mut conn, 1, -1).unwrap(), Some(1));
+        assert_eq!(
+            ajuster(&mut conn, 1, 1, &Defauts::default()).unwrap(),
+            Some(1)
+        );
+        assert_eq!(
+            ajuster(&mut conn, 1, 1, &Defauts::default()).unwrap(),
+            Some(2)
+        );
+        assert_eq!(
+            ajuster(&mut conn, 1, -1, &Defauts::default()).unwrap(),
+            Some(1)
+        );
         assert_eq!(etat(&conn, 1), (1, 1));
     }
 
     #[test]
     fn ajuster_ne_descend_jamais_sous_zero() {
         let mut conn = classeur();
-        assert_eq!(ajuster(&mut conn, 1, -1).unwrap(), Some(0));
-        assert_eq!(ajuster(&mut conn, 1, -10).unwrap(), Some(0));
+        assert_eq!(
+            ajuster(&mut conn, 1, -1, &Defauts::default()).unwrap(),
+            Some(0)
+        );
+        assert_eq!(
+            ajuster(&mut conn, 1, -10, &Defauts::default()).unwrap(),
+            Some(0)
+        );
         assert_eq!(etat(&conn, 1), (0, 0), "et le drapeau suit");
     }
 
     #[test]
     fn ajuster_une_carte_absente_rend_rien() {
         let mut conn = classeur();
-        assert_eq!(ajuster(&mut conn, 999, 1).unwrap(), None);
+        assert_eq!(
+            ajuster(&mut conn, 999, 1, &Defauts::default()).unwrap(),
+            None
+        );
     }
 
     #[test]
@@ -481,7 +536,7 @@ mod tests {
         // partiraient de la même valeur et n'en compteraient qu'un.
         let mut conn = classeur();
         for _ in 0..5 {
-            ajuster(&mut conn, 1, 1).unwrap();
+            ajuster(&mut conn, 1, 1, &Defauts::default()).unwrap();
         }
         assert_eq!(etat(&conn, 1), (1, 5));
     }
@@ -489,8 +544,11 @@ mod tests {
     #[test]
     fn un_grand_delta_ne_deborde_pas() {
         let mut conn = classeur();
-        regler_quantite(&conn, 1, i64::MAX).unwrap();
-        assert_eq!(ajuster(&mut conn, 1, 1).unwrap(), Some(i64::MAX));
+        regler_quantite(&conn, 1, i64::MAX, &Defauts::default()).unwrap();
+        assert_eq!(
+            ajuster(&mut conn, 1, 1, &Defauts::default()).unwrap(),
+            Some(i64::MAX)
+        );
     }
 
     #[test]

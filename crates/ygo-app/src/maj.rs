@@ -231,6 +231,34 @@ pub async fn mettre_a_jour(
     // dire où.
     let comptages = init::initialiser(paths, options, progression).await?;
     let version = enregistrer_version(paths, client).await;
+    // Une nouvelle base peut porter de nouvelles adresses d'image : c'est le
+    // moment de retenter ce que la source primaire avait refusé (demande du
+    // 2026-10-02). Rien ne part ici — les images suivent à l'ouverture.
+    match crate::replis::reprendre(paths, client).await {
+        Ok(r) => tracing::info!(
+            classeurs = r.classeurs,
+            adresses_reposees = r.adresses_reposees,
+            replis = r.replis,
+            verifications = r.verifications,
+            presents = r.presents,
+            absents = r.absents,
+            effaces = r.effaces,
+            "images : reprise d'après mise à jour"
+        ),
+        Err(e) => tracing::warn!(erreur = %e, "images : reprise d'après mise à jour incomplète"),
+    }
+    // Les noms FR officiels que la nouvelle base apporte — jamais inventés,
+    // jamais effacés (R8, 2026-10-02).
+    match crate::noms_fr::rafraichir(paths) {
+        Ok(b) => tracing::info!(
+            classeurs = b.classeurs,
+            ajoutes = b.ajoutes,
+            corriges = b.corriges,
+            sans_source = b.sans_source,
+            "noms FR : rafraîchis d'après la base"
+        ),
+        Err(e) => tracing::warn!(erreur = %e, "noms FR non rafraîchis"),
+    }
     tracing::info!(
         version = version.as_deref().unwrap_or("inconnue"),
         cartes = comptages.cartes,

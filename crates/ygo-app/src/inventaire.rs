@@ -29,6 +29,7 @@ use std::collections::BTreeMap;
 use ygo_core::paths::Paths;
 
 use crate::error::{AppError, Result};
+use crate::exemplaires::{self, Champ, Etat, Exemplaires};
 
 /// Taille d'un playset — trois exemplaires, la limite de jeu.
 pub const PLAYSET: i64 = 3;
@@ -52,8 +53,14 @@ pub struct Carte {
     pub rarete: String,
     /// Nombre d'exemplaires — au moins 1, une carte possédée l'étant.
     pub quantite: i64,
-    /// État (`NM`, `M`…), vide s'il n'a jamais été renseigné.
+    /// État **commun** (`NM`, `M`…), vide s'il n'a jamais été renseigné —
+    /// celui de chaque exemplaire qui n'est pas réglé à part.
     pub qualite: String,
+    /// Édition commune (`1st`, `unlimited`, `limited`), même règle.
+    pub edition: String,
+    /// Les exemplaires réglés à part : `(id, état)` — cf.
+    /// [`crate::exemplaires`]. Vide pour l'immense majorité des cartes.
+    pub a_part: Vec<(i64, Etat)>,
     /// Illustration en cadre étendu.
     pub overframe: bool,
     /// Identifiant d'image, qui distingue les variantes.
@@ -86,6 +93,29 @@ impl Carte {
     #[must_use]
     pub fn surplus(&self) -> i64 {
         (self.quantite - PLAYSET).max(0)
+    }
+
+    /// Les exemplaires de la carte, un par un ou par état.
+    #[must_use]
+    pub fn exemplaires(&self) -> Exemplaires {
+        Exemplaires::depuis(
+            self.quantite,
+            Etat::nouveau(&self.qualite, &self.edition),
+            self.a_part.clone(),
+        )
+    }
+
+    /// Les états que portent ses exemplaires, sans doublon, l'état commun
+    /// d'abord.
+    #[must_use]
+    pub fn qualites(&self) -> Vec<String> {
+        let mut v: Vec<String> = Vec::new();
+        for (etat, _) in self.exemplaires().groupes() {
+            if !v.contains(&etat.qualite) {
+                v.push(etat.qualite);
+            }
+        }
+        v
     }
 }
 
@@ -194,12 +224,16 @@ pub fn filtrer<'a>(cartes: &'a [Carte], filtre: &Filtre, francais: bool) -> Vec<
             if !filtre.classeur.is_empty() && c.classeur != filtre.classeur {
                 return false;
             }
+            // Une carte répond à un état dès qu'**un** de ses exemplaires le
+            // porte : chercher les « PL », c'est trouver la carte dont deux
+            // exemplaires sur cinq le sont.
             if !filtre.qualite.is_empty() {
-                if filtre.qualite == Filtre::SANS_QUALITE {
-                    if !c.qualite.is_empty() {
-                        return false;
-                    }
-                } else if c.qualite != filtre.qualite {
+                let voulu = if filtre.qualite == Filtre::SANS_QUALITE {
+                    ""
+                } else {
+                    filtre.qualite.as_str()
+                };
+                if !c.qualites().iter().any(|q| q == voulu) {
                     return false;
                 }
             }
@@ -326,6 +360,20 @@ pub fn valeurs(cartes: &[Carte], champ: fn(&Carte) -> &str) -> Vec<String> {
     v
 }
 
+/// Les états présents dans l'inventaire, exemplaires à part compris — pour
+/// la liste déroulante du filtre.
+#[must_use]
+pub fn qualites(cartes: &[Carte]) -> Vec<String> {
+    let mut v: Vec<String> = cartes
+        .iter()
+        .flat_map(Carte::qualites)
+        .filter(|s| !s.is_empty())
+        .collect();
+    v.sort_unstable();
+    v.dedup();
+    v
+}
+
 /// Une ligne désignée : son classeur, et son `rowid` dans ce classeur.
 ///
 /// C'est l'adresse complète d'une ligne — le `rowid` seul ne suffit pas,
@@ -359,8 +407,14 @@ pub struct Touchees {
 ///
 /// Rend une erreur si un classeur ne peut pas être ouvert ou écrit. Les
 /// classeurs déjà traités gardent leurs écritures.
+///
+/// L'état est écrit sur **chaque** exemplaire, réglés à part compris : c'est
+/// la carte entière qu'on a sélectionnée ([`exemplaires::ecrire_pour_tous`]).
 pub fn definir_qualite(paths: &Paths, cibles: &[Adresse], qualite: &str) -> Result<Touchees> {
-    ecrire(paths, cibles, "qualite", &qualite.trim().to_owned())
+    let qualite = qualite.trim().to_owned();
+    appliquer(paths, cibles, false, |transaction, rowid, _| {
+        exemplaires::ecrire_pour_tous(transaction, rowid, Champ::Qualite, &qualite)
+    })
 }
 
 /// Renseigne l'édition d'un lot de cartes.
@@ -373,7 +427,10 @@ pub fn definir_qualite(paths: &Paths, cibles: &[Adresse], qualite: &str) -> Resu
 ///
 /// Voir [`definir_qualite`].
 pub fn definir_edition(paths: &Paths, cibles: &[Adresse], edition: &str) -> Result<Touchees> {
-    ecrire(paths, cibles, "edition", &edition.trim().to_owned())
+    let edition = edition.trim().to_owned();
+    appliquer(paths, cibles, false, |transaction, rowid, _| {
+        exemplaires::ecrire_pour_tous(transaction, rowid, Champ::Edition, &edition)
+    })
 }
 
 /// Fixe la quantité d'un lot de cartes.
@@ -386,12 +443,32 @@ pub fn definir_edition(paths: &Paths, cibles: &[Adresse], edition: &str) -> Resu
 /// Voir [`definir_qualite`].
 pub fn definir_quantite(paths: &Paths, cibles: &[Adresse], quantite: i64) -> Result<Touchees> {
     let quantite = quantite.max(0);
-    appliquer(paths, cibles, |transaction, rowid| {
-        transaction.execute(
-            "UPDATE cards SET quantite = ?1, possessed = ?2 WHERE rowid = ?3",
-            rusqlite::params![quantite, i64::from(quantite > 0), rowid],
-        )
+    // Les exemplaires réglés à part sont gardés tant que la quantité le
+    // permet : les standard partent d'abord.
+    appliquer(paths, cibles, true, |transaction, rowid, defauts| {
+        exemplaires::regler_quantite(transaction, rowid, quantite, defauts)
     })
+}
+
+/// Exécute une demande sur les exemplaires d'une carte de l'inventaire.
+///
+/// Rend les exemplaires tels qu'ils sont devenus — `None` si la ligne
+/// n'existe plus.
+///
+/// # Errors
+///
+/// Rend une erreur si le classeur ne peut pas être écrit, ou si
+/// l'exemplaire désigné n'existe plus.
+pub fn agir_sur_exemplaires(
+    paths: &Paths,
+    adresse: &Adresse,
+    demande: &exemplaires::Demande,
+) -> Result<Option<Exemplaires>> {
+    let (classeur, rowid) = adresse;
+    let mut conn = ygo_db::connexion::ouvrir(paths.classeur_db(classeur))
+        .map_err(|e| AppError::Creation(format!("{classeur} : {e}")))?;
+    let defauts = exemplaires::Defauts::charger(paths, &conn);
+    exemplaires::appliquer(&mut conn, *rowid, demande, &defauts)
 }
 
 /// Retire un lot de cartes de l'inventaire, sans effacer leurs lignes.
@@ -406,25 +483,18 @@ pub fn retirer(paths: &Paths, cibles: &[Adresse]) -> Result<Touchees> {
     definir_quantite(paths, cibles, 0)
 }
 
-/// Écrit une colonne textuelle sur un lot de lignes.
-fn ecrire(paths: &Paths, cibles: &[Adresse], colonne: &str, valeur: &String) -> Result<Touchees> {
-    // La colonne vient d'ici, jamais de l'appelant : les deux seules
-    // valeurs possibles sont écrites en toutes lettres ci-dessous, et la
-    // requête n'est donc pas construite à partir d'une donnée.
-    let requete = match colonne {
-        "qualite" => "UPDATE cards SET qualite = ?1 WHERE rowid = ?2",
-        "edition" => "UPDATE cards SET edition = ?1 WHERE rowid = ?2",
-        autre => return Err(AppError::Creation(format!("colonne inattendue : {autre}"))),
-    };
-    appliquer(paths, cibles, |transaction, rowid| {
-        transaction.execute(requete, rusqlite::params![valeur, rowid])
-    })
-}
-
 /// Le squelette commun : grouper par classeur, une transaction chacun.
-fn appliquer<F>(paths: &Paths, cibles: &[Adresse], mut ecriture: F) -> Result<Touchees>
+///
+/// Avec `avec_defauts`, les défauts de chaque classeur ([`exemplaires::Defauts`])
+/// sont lus une fois et passés à l'écriture ; sinon, des défauts vides.
+fn appliquer<F>(
+    paths: &Paths,
+    cibles: &[Adresse],
+    avec_defauts: bool,
+    mut ecriture: F,
+) -> Result<Touchees>
 where
-    F: FnMut(&rusqlite::Transaction<'_>, i64) -> rusqlite::Result<usize>,
+    F: FnMut(&rusqlite::Transaction<'_>, i64, &exemplaires::Defauts) -> Result<usize>,
 {
     let mut par_classeur: BTreeMap<&str, Vec<i64>> = BTreeMap::new();
     for (classeur, rowid) in cibles {
@@ -437,11 +507,16 @@ where
     for (classeur, rowids) in par_classeur {
         let mut conn = ygo_db::connexion::ouvrir(paths.classeur_db(classeur))
             .map_err(|e| AppError::Creation(format!("{classeur} : {e}")))?;
+        let defauts = if avec_defauts {
+            exemplaires::Defauts::charger(paths, &conn)
+        } else {
+            exemplaires::Defauts::default()
+        };
         let transaction = conn
             .transaction()
             .map_err(|e| AppError::Creation(format!("{classeur} : {e}")))?;
         for rowid in &rowids {
-            ecriture(&transaction, *rowid)
+            ecriture(&transaction, *rowid, &defauts)
                 .map_err(|e| AppError::Creation(format!("{classeur} rowid {rowid} : {e}")))?;
         }
         transaction
@@ -480,17 +555,19 @@ pub fn lire_classeur(paths: &Paths, classeur: &str) -> Result<Vec<Carte>> {
     let mut requete = conn
         .prepare(
             "SELECT rowid, name, name_fr, set_name, set_code, rarity,
-                    quantite, qualite, extended_art, card_image_id
+                    quantite, qualite, extended_art, card_image_id, edition
                FROM cards
               WHERE possessed = 1",
         )
         .map_err(|e| AppError::Creation(format!("{classeur} : {e}")))?;
+    let mut a_part = exemplaires::a_part_du_classeur(&conn)?;
     let cartes = requete
         .query_map([], |l| {
             let quantite: Option<i64> = l.get(6)?;
+            let rowid: i64 = l.get(0)?;
             Ok(Carte {
                 classeur: classeur.to_owned(),
-                rowid: l.get(0)?,
+                rowid,
                 nom: l.get::<_, Option<String>>(1)?.unwrap_or_default(),
                 nom_fr: l.get::<_, Option<String>>(2)?.unwrap_or_default(),
                 set_nom: l.get::<_, Option<String>>(3)?.unwrap_or_default(),
@@ -499,7 +576,17 @@ pub fn lire_classeur(paths: &Paths, classeur: &str) -> Result<Vec<Carte>> {
                 // Une carte possédée compte pour au moins un exemplaire :
                 // c'est ce que « possédée » veut dire.
                 quantite: quantite.filter(|q| *q > 0).unwrap_or(1),
-                qualite: l.get::<_, Option<String>>(7)?.unwrap_or_default(),
+                qualite: l
+                    .get::<_, Option<String>>(7)?
+                    .unwrap_or_default()
+                    .trim()
+                    .to_owned(),
+                edition: l
+                    .get::<_, Option<String>>(10)?
+                    .unwrap_or_default()
+                    .trim()
+                    .to_owned(),
+                a_part: a_part.remove(&rowid).unwrap_or_default(),
                 overframe: l.get::<_, Option<i64>>(8)?.unwrap_or(0) != 0,
                 card_image_id: l.get(9)?,
                 variantes: 1,
@@ -528,6 +615,8 @@ mod tests {
             rarete: rarete.to_owned(),
             quantite,
             qualite: "NM".into(),
+            edition: String::new(),
+            a_part: Vec::new(),
             overframe: false,
             card_image_id: Some(rowid),
             variantes: 1,
@@ -835,6 +924,60 @@ mod tests {
             .unwrap();
         }
         (tmp, paths)
+    }
+
+    /// Le cas de la demande du 2026-10-01, de bout en bout dans
+    /// l'inventaire : cinq exemplaires, deux réglés en `PL`.
+    #[test]
+    fn les_exemplaires_regles_a_part_traversent_l_inventaire() {
+        use crate::exemplaires::{Demande, Exemplaire};
+        let (_tmp, paths) = installation(&[(1, "RA02-EN001", 1, 5), (2, "RA02-EN002", 1, 1)]);
+        let adresse = ("RA02".to_owned(), 1);
+        definir_qualite(&paths, std::slice::from_ref(&adresse), "NM").unwrap();
+        let pl = Etat::nouveau("PL", "");
+        for _ in 0..2 {
+            agir_sur_exemplaires(
+                &paths,
+                &adresse,
+                &Demande::Modifier(Exemplaire::Standard, pl.clone()),
+            )
+            .unwrap();
+        }
+        let cartes = lister(&paths);
+        let c = cartes.iter().find(|c| c.rowid == 1).unwrap();
+        assert_eq!(c.quantite, 5);
+        assert_eq!(
+            c.exemplaires().groupes(),
+            vec![(Etat::nouveau("NM", ""), 3), (pl.clone(), 2)]
+        );
+        assert_eq!(c.qualites(), vec!["NM".to_owned(), "PL".to_owned()]);
+        assert_eq!(qualites(&cartes), vec!["NM".to_owned(), "PL".to_owned()]);
+
+        // Le filtre « PL » la trouve, même si son état commun est NM.
+        let filtre = Filtre {
+            qualite: "PL".into(),
+            ..Filtre::default()
+        };
+        let vues: Vec<i64> = filtrer(&cartes, &filtre, true)
+            .iter()
+            .map(|c| c.rowid)
+            .collect();
+        assert_eq!(vues, vec![1]);
+
+        // Fixer la quantité à 3 garde les deux PL : les standard partent.
+        definir_quantite(&paths, std::slice::from_ref(&adresse), 3).unwrap();
+        let c = lister(&paths).into_iter().find(|c| c.rowid == 1).unwrap();
+        assert_eq!(
+            c.exemplaires().groupes(),
+            vec![(Etat::nouveau("NM", ""), 1), (pl, 2)]
+        );
+
+        // « Mettre en EX » vise chaque exemplaire : tout redevient homogène.
+        definir_qualite(&paths, std::slice::from_ref(&adresse), "EX").unwrap();
+        let c = lister(&paths).into_iter().find(|c| c.rowid == 1).unwrap();
+        assert!(c.exemplaires().homogene());
+        assert_eq!(c.qualite, "EX");
+        assert_eq!(c.quantite, 3);
     }
 
     /// L'inventaire ne montre que ce qui est possédé.

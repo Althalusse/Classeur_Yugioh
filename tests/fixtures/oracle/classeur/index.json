@@ -1,0 +1,184 @@
+[
+ {
+  "cartes": 62,
+  "classeur": "CH01",
+  "doubles_pages": 4,
+  "grille": "3x3",
+  "version": "V1.0.3"
+ },
+ {
+  "cartes": 62,
+  "classeur": "CH02",
+  "doubles_pages": 4,
+  "grille": "3x3",
+  "version": "V1.0.3"
+ },
+ {
+  "cartes": 35,
+  "classeur": "EGO1",
+  "doubles_pages": 3,
+  "grille": "3x3",
+  "version": "V1.0.3"
+ },
+ {
+  "cartes": 38,
+  "classeur": "EGS1",
+  "doubles_pages": 3,
+  "grille": "3x3",
+  "version": "V1.0.3"
+ },
+ {
+  "cartes": 150,
+  "classeur": "L26D",
+  "doubles_pages": 9,
+  "grille": "3x3",
+  "version": "V1.0.3"
+ },
+ {
+  "cartes": 110,
+  "classeur": "LCKC",
+  "doubles_pages": 7,
+  "grille": "3x3",
+  "version": "V1.0.3"
+ },
+ {
+  "cartes": 132,
+  "classeur": "LDK2",
+  "doubles_pages": 8,
+  "grille": "3x3",
+  "version": "V1.0.3"
+ },
+ {
+  "cartes": 313,
+  "classeur": "LOCH-JP",
+  "doubles_pages": 18,
+  "grille": "3x3",
+  "version": "V1.0.3"
+ },
+ {
+  "cartes": 318,
+  "classeur": "LOCR-JP",
+  "doubles_pages": 19,
+  "grille": "3x3",
+  "version": "V1.0.3"
+ },
+ {
+  "cartes": 398,
+  "classeur": "MP24",
+  "doubles_pages": 23,
+  "grille": "3x3",
+  "version": "V1.0.3"
+ },
+ {
+  "cartes": 450,
+  "classeur": "MP25",
+  "doubles_pages": 26,
+  "grille": "3x3",
+  "version": "V1.0.3"
+ },
+ {
+  "cartes": 567,
+  "classeur": "RA02",
+  "doubles_pages": 32,
+  "grille": "3x3",
+  "version": "V1.0.3"
+ },
+ {
+  "cartes": 961,
+  "classeur": "RA04",
+  "doubles_pages": 54,
+  "grille": "3x3",
+  "version": "V1.0.3"
+ },
+ {
+  "cartes": 694,
+  "classeur": "RA05",
+  "doubles_pages": 40,
+  "grille": "3x3",
+  "version": "V1.0.3"
+ },
+ {
+  "cartes": 36,
+  "classeur": "SDLI",
+  "doubles_pages": 3,
+  "grille": "3x3",
+  "version": "V1.0.3"
+ },
+ {
+  "cartes": 49,
+  "classeur": "SDWD",
+  "doubles_pages": 4,
+  "grille": "3x3",
+  "version": "V1.0.3"
+ },
+ {
+  "cartes": 78,
+  "classeur": "VASM",
+  "doubles_pages": 5,
+  "grille": "3x3",
+  "version": "V1.0.3"
+ },
+ {
+  "cartes": 43,
+  "classeur": "EGO1",
+  "doubles_pages": 3,
+  "grille": "3x3",
+  "version": "V1.0.4"
+ },
+ {
+  "cartes": 46,
+  "classeur": "EGS1",
+  "doubles_pages": 4,
+  "grille": "3x3",
+  "version": "V1.0.4"
+ },
+ {
+  "cartes": 262,
+  "classeur": "LDK2",
+  "doubles_pages": 16,
+  "grille": "3x3",
+  "version": "V1.0.4"
+ },
+ {
+  "cartes": 318,
+  "classeur": "LOCR-JP",
+  "doubles_pages": 19,
+  "grille": "3x3",
+  "version": "V1.0.4"
+ },
+ {
+  "cartes": 1120,
+  "classeur": "RA02",
+  "doubles_pages": 63,
+  "grille": "3x3",
+  "version": "V1.0.4"
+ },
+ {
+  "cartes": 695,
+  "classeur": "RA05",
+  "doubles_pages": 40,
+  "grille": "3x3",
+  "version": "V1.0.4"
+ },
+ {
+  "cartes": 72,
+  "classeur": "SDLI",
+  "doubles_pages": 5,
+  "grille": "3x3",
+  "version": "V1.0.4"
+ },
+ {
+  "cartes": 49,
+  "classeur": "SDWD",
+  "doubles_pages": 4,
+  "grille": "3x3",
+  "version": "V1.0.4"
+ },
+ {
+  "cartes": 78,
+  "classeur": "VASM",
+  "doubles_pages": 5,
+  "grille": "3x3",
+  "version": "V1.0.4"
+ }
+]

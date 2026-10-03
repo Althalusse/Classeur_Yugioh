@@ -1,0 +1,8158 @@
+{
+ "EGO1": [
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  }
+ ],
+ "EGS1": [
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  }
+ ],
+ "LDK2": [
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  }
+ ],
+ "RA02": [
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  }
+ ],
+ "RA05": [
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Platinum Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultimate Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Starlight Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  }
+ ],
+ "SDLI": [
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  }
+ ],
+ "SDWD": [
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 2
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 2
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 2
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 2
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Common",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  }
+ ],
+ "VASM": [
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Ultra Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Super Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Collector's Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Quarter Century Secret Rare",
+   "possessed": 0,
+   "quantite": 0
+  },
+  {
+   "rarity": "Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Rare",
+   "possessed": 1,
+   "quantite": 1
+  },
+  {
+   "rarity": "Rare",
+   "possessed": 1,
+   "quantite": 1
+  }
+ ]
+}

@@ -31,7 +31,7 @@ edition = "2021"
 rust-version = "1.85"
 license = "GPL-3.0-or-later"
 authors = ["Althalusse"]
-repository = "https://github.com/Althalusse/ygo-binder"
+repository = "https://github.com/Althalusse/Classeur_Yugioh"
 
 [workspace.dependencies]
 ygo-core = { path = "crates/ygo-core" }

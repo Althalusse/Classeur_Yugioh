@@ -37,6 +37,8 @@
 pub mod artwork;
 pub mod structure;
 
+use std::collections::{HashMap, HashSet};
+
 use serde::Deserialize;
 
 use crate::error::{Result, SourceError};
@@ -364,6 +366,175 @@ pub(crate) fn url_api(parametres: &[(&str, &str)]) -> String {
     url
 }
 
+/// Combien de titres une requête peut regrouper — la limite de MediaWiki pour
+/// un client ordinaire.
+pub const TITRES_PAR_REQUETE: usize = 50;
+
+/// Réponse de `prop=imageinfo` (`formatversion=2`).
+#[derive(Debug, Default, Deserialize)]
+struct ReponseFichiers {
+    #[serde(default)]
+    query: Option<QueryFichiers>,
+}
+
+#[derive(Debug, Default, Deserialize)]
+struct QueryFichiers {
+    #[serde(default)]
+    normalized: Vec<Normalisation>,
+    #[serde(default)]
+    pages: Vec<PageFichier>,
+}
+
+#[derive(Debug, Deserialize)]
+struct Normalisation {
+    from: String,
+    to: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct PageFichier {
+    title: String,
+    #[serde(default)]
+    missing: bool,
+    #[serde(default)]
+    invalid: bool,
+    #[serde(default)]
+    imageinfo: Vec<serde_json::Value>,
+}
+
+/// La réponse rend-elle une page — présente ou `missing` — par fichier
+/// demandé ?
+fn complete(reponse: &ReponseFichiers, demandes: usize) -> bool {
+    reponse
+        .query
+        .as_ref()
+        .is_some_and(|q| q.pages.len() >= demandes)
+}
+
+/// Les noms de la demande que la réponse dit présents — fonction **pure**.
+///
+/// MediaWiki **normalise** les titres (première lettre en capitale, `_` en
+/// espace) et le dit dans `normalized` : la correspondance repasse par là,
+/// sans quoi un nom présent passerait pour absent.
+fn presents(reponse: &ReponseFichiers, demandes: &[String]) -> HashSet<String> {
+    let Some(q) = &reponse.query else {
+        return HashSet::new();
+    };
+    let normalise: HashMap<&str, &str> = q
+        .normalized
+        .iter()
+        .map(|n| (n.from.as_str(), n.to.as_str()))
+        .collect();
+    let existe: HashSet<&str> = q
+        .pages
+        .iter()
+        .filter(|p| !p.missing && !p.invalid && !p.imageinfo.is_empty())
+        .map(|p| p.title.as_str())
+        .collect();
+    demandes
+        .iter()
+        .filter(|nom| {
+            let titre = format!("File:{nom}");
+            let final_ = normalise.get(titre.as_str()).copied().unwrap_or(&titre);
+            existe.contains(final_)
+        })
+        .cloned()
+        .collect()
+}
+
+/// Parmi ces noms de fichiers, lesquels existent sur Yugipedia.
+///
+/// # Pourquoi — 2026-10-02
+///
+/// `Yugipedia:API` : *« The content of multiple pages can be bundled together
+/// into a single request with a pipe »*. Vérifier 27 images de repli coûte
+/// ainsi **une** requête au lieu de 27 téléchargements voués au 404 — et
+/// seules celles qui existent sont ensuite retéléchargées.
+///
+/// Ces réponses ne passent **pas** par le cache de 30 jours
+/// ([`crate::cache::duree_de_cache`]) : elles sont faites pour voir ce qui a
+/// changé, une fois par mise à jour de la base.
+///
+/// # Errors
+///
+/// Rend une erreur sur une panne réseau ou une réponse illisible.
+pub async fn fichiers_existants(client: &ClientHttp, noms: &[String]) -> Result<HashSet<String>> {
+    let mut trouves = HashSet::new();
+    for lot in noms.chunks(TITRES_PAR_REQUETE) {
+        let titres: Vec<String> = lot.iter().map(|n| format!("File:{n}")).collect();
+        let url = url_api(&[
+            ("action", "query"),
+            ("prop", "imageinfo"),
+            ("iiprop", "url"),
+            ("titles", &titres.join("|")),
+        ]);
+        let valeur: serde_json::Value = client.get_json(&url).await?;
+        if let Some(e) = erreur_api(&valeur) {
+            return Err(e);
+        }
+        let reponse: ReponseFichiers = serde_json::from_value(valeur)
+            .map_err(|e| SourceError::deserialisation(url.clone(), e))?;
+        // Une réponse qui ne parle pas de chaque fichier demandé n'est pas un
+        // « absent » : c'est une réponse qu'on ne comprend pas. La lire comme
+        // « rien n'existe » serait faux sans que rien ne le dise.
+        if !complete(&reponse, lot.len()) {
+            return Err(SourceError::Statut {
+                url: url.clone(),
+                statut: 0,
+            });
+        }
+        trouves.extend(presents(&reponse, lot));
+    }
+    Ok(trouves)
+}
+
+/// Le nom de fichier d'une adresse d'image Yugipedia, **décodé** :
+/// `…/a/ab/Dark_Magician%27s-X.png` donne `Dark_Magician's-X.png`.
+///
+/// ```
+/// use ygo_sources::yugipedia::nom_de_fichier;
+/// assert_eq!(
+///     nom_de_fichier("https://ms.yugipedia.com//9/92/TheFluteofGuidingDragon-LOCR-JP-UR.png").as_deref(),
+///     Some("TheFluteofGuidingDragon-LOCR-JP-UR.png")
+/// );
+/// assert_eq!(nom_de_fichier("https://ms.yugipedia.com//a/ab/A%27s%20B.png").as_deref(), Some("A's B.png"));
+/// assert_eq!(nom_de_fichier("https://ms.yugipedia.com//"), None);
+/// ```
+#[must_use]
+pub fn nom_de_fichier(url: &str) -> Option<String> {
+    let sans_requete = url.split(['?', '#']).next()?;
+    // Le chemin seul : l'hôte n'est jamais un nom de fichier.
+    let sans_schema = sans_requete
+        .split_once("://")
+        .map_or(sans_requete, |(_, r)| r);
+    let chemin = sans_schema.split_once('/').map_or("", |(_, c)| c);
+    let dernier = chemin.trim_end_matches('/').rsplit('/').next()?;
+    if dernier.is_empty() || dernier.contains(':') {
+        return None;
+    }
+    let octets = dernier.as_bytes();
+    let mut sortie = Vec::with_capacity(octets.len());
+    let mut i = 0;
+    while i < octets.len() {
+        let octet = octets.get(i).copied().unwrap_or_default();
+        let hexa = octets
+            .get(i + 1..i + 3)
+            .and_then(|h| std::str::from_utf8(h).ok())
+            .and_then(|h| u8::from_str_radix(h, 16).ok());
+        match (octet, hexa) {
+            (b'%', Some(v)) => {
+                sortie.push(v);
+                i += 3;
+            }
+            _ => {
+                sortie.push(octet);
+                i += 1;
+            }
+        }
+    }
+    String::from_utf8(sortie).ok()
+}
+
 /// Encodage de pourcentage, jeu de caractères non réservés de la RFC 3986.
 fn encoder(valeur: &str) -> String {
     let mut sortie = String::with_capacity(valeur.len());
@@ -390,6 +561,55 @@ pub fn erreur_api(valeur: &serde_json::Value) -> Option<SourceError> {
         .and_then(serde_json::Value::as_str)
         .unwrap_or("erreur inconnue");
     Some(SourceError::Archive(format!("API Yugipedia : {info}")))
+}
+
+#[cfg(test)]
+mod tests_fichiers {
+    #![allow(clippy::unwrap_used, clippy::panic, clippy::indexing_slicing)]
+
+    use super::*;
+
+    /// Réponse réelle de forme `formatversion=2` : un fichier présent, un
+    /// absent, et une normalisation (`_` → espace).
+    #[test]
+    fn la_reponse_dit_lesquels_existent_normalisation_comprise() {
+        let reponse: ReponseFichiers = serde_json::from_value(serde_json::json!({
+            "batchcomplete": true,
+            "query": {
+                "normalized": [{"fromencoded": false, "from": "File:Dark_Magician-LOB-EN-UR-1E.png", "to": "File:Dark Magician-LOB-EN-UR-1E.png"}],
+                "pages": [
+                    {"ns": 6, "title": "File:Dark Magician-LOB-EN-UR-1E.png", "pageid": 1,
+                     "imageinfo": [{"url": "https://ms.yugipedia.com//a/ab/Dark_Magician-LOB-EN-UR-1E.png"}]},
+                    {"ns": 6, "title": "File:TheFluteofGuidingDragon-LOCR-JP-UR.png", "missing": true}
+                ]
+            }
+        }))
+        .unwrap();
+        let demandes = vec![
+            "Dark_Magician-LOB-EN-UR-1E.png".to_owned(),
+            "TheFluteofGuidingDragon-LOCR-JP-UR.png".to_owned(),
+        ];
+        let p = presents(&reponse, &demandes);
+        assert!(p.contains("Dark_Magician-LOB-EN-UR-1E.png"));
+        assert!(!p.contains("TheFluteofGuidingDragon-LOCR-JP-UR.png"));
+        assert!(presents(&ReponseFichiers::default(), &demandes).is_empty());
+        assert!(complete(&reponse, 2));
+    }
+
+    /// Une réponse sans `query` — ou avec moins de pages que de fichiers
+    /// demandés — n'est pas « tout est absent ».
+    #[test]
+    fn une_reponse_incomplete_n_est_pas_un_absent() {
+        let vide: ReponseFichiers =
+            serde_json::from_value(serde_json::json!({"batchcomplete": true})).unwrap();
+        assert!(!complete(&vide, 1));
+        let partielle: ReponseFichiers = serde_json::from_value(serde_json::json!({
+            "query": {"pages": [{"title": "File:A.png", "missing": true}]}
+        }))
+        .unwrap();
+        assert!(complete(&partielle, 1));
+        assert!(!complete(&partielle, 2));
+    }
 }
 
 #[cfg(test)]

@@ -22,7 +22,7 @@
 //! |---|---|---|---|
 //! | `langue` | `"FR"` / `"EN"` | `FR` | valeur inconnue → défaut |
 //! | `ui_langue` | `"FR"` / `"EN"` | `FR` | idem |
-//! | `image_source` | `"YGOPRODECK"` / `"YUGIPEDIA"` | `YGOPRODECK` | idem |
+//! | `image_source` | `"YGOPRODECK"` / `"YUGIPEDIA"` | **`YUGIPEDIA`** (écart au Python, cf. [`SourceImage`]) | idem |
 //! | `font_scale` | nombre | `1.0` | borné à 0,5–3,0 |
 //! | `grille_defaut` | `[cols, lignes]` | `[3, 3]` | chaque valeur bornée à 3–10 |
 //! | `ordre_tri_criteres` | liste de 3 critères | `["numero","artwork","rarete"]` | doublons retirés, manquants complétés |
@@ -127,12 +127,27 @@ impl Langue {
 }
 
 /// Source des images de cartes.
+///
+/// # Yugipedia par défaut — écart délibéré au portage, 2026-09-30
+///
+/// La V1.0.4 démarre sur YGOPRODeck. Sur demande de l'utilisateur, une
+/// installation neuve démarre ici sur Yugipedia : c'est la source qui donne
+/// l'artwork **par tirage**, et celle dont la *Set Card List* sert déjà de
+/// compte de contrôle (62 tirages pour `CH01` et `CH02`). Rien n'est perdu en
+/// disponibilité : quand l'image Yugipedia manque, le téléchargeur se replie
+/// sur YGOPRODeck ([`crate::image_source::url_repli`]).
+///
+/// Un choix **enregistré** n'est jamais réinterprété : `"YGOPRODECK"` dans
+/// `app_config.json` reste YGOPRODeck. Seuls une clé absente et un code inconnu
+/// tombent sur le nouveau défaut.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum SourceImage {
-    /// `images.ygoprodeck.com` — JPEG HD, disponibilité maximale. Défaut.
-    #[default]
+    /// `images.ygoprodeck.com` — JPEG, une image par illustration, la même
+    /// pour toutes les raretés d'une carte.
     Ygoprodeck,
-    /// `ms.yugipedia.com` — PNG par tirage, artwork exact par rareté.
+    /// `ms.yugipedia.com` — PNG, l'image de chaque tirage (rareté et édition),
+    /// posée par `ygo_app::images_tirage` ; repli sur YGOPRODeck. Défaut.
+    #[default]
     Yugipedia,
 }
 
@@ -148,8 +163,9 @@ impl SourceImage {
     /// Analyse un code stocké. Toute valeur inconnue retombe sur le défaut.
     pub fn depuis_code(code: &str) -> Self {
         match code {
+            "YGOPRODECK" => Self::Ygoprodeck,
             "YUGIPEDIA" => Self::Yugipedia,
-            _ => Self::Ygoprodeck,
+            _ => Self::default(),
         }
     }
 }
@@ -397,7 +413,7 @@ impl Config {
             .map_or(Langue::default(), Langue::depuis_code)
     }
 
-    /// Source des images. Défaut : `YGOPRODECK`.
+    /// Source des images. Défaut : `YUGIPEDIA` (cf. [`SourceImage`]).
     pub fn source_image(&self) -> SourceImage {
         self.brut(CLE_IMAGE_SOURCE)
             .as_ref()
@@ -781,7 +797,7 @@ mod tests {
 
         assert_eq!(cfg.langue(), Langue::Fr);
         assert_eq!(cfg.ui_langue(), Langue::Fr);
-        assert_eq!(cfg.source_image(), SourceImage::Ygoprodeck);
+        assert_eq!(cfg.source_image(), SourceImage::Yugipedia);
         assert!((cfg.font_scale() - 1.0).abs() < f64::EPSILON);
         assert_eq!(cfg.grille_defaut(), (3, 3));
         assert_eq!(cfg.ordre_tri(), ORDRE_TRI_DEFAUT);
@@ -817,7 +833,7 @@ mod tests {
         assert!((cfg.font_scale() - 1.15).abs() < 1e-9);
         // Tout le reste doit tomber sur son défaut, sans erreur.
         assert_eq!(cfg.langue(), Langue::Fr);
-        assert_eq!(cfg.source_image(), SourceImage::Ygoprodeck);
+        assert_eq!(cfg.source_image(), SourceImage::Yugipedia);
         assert_eq!(cfg.grille_defaut(), (3, 3));
         assert_eq!(cfg.ordre_tri(), ORDRE_TRI_DEFAUT);
     }
@@ -955,6 +971,13 @@ mod tests {
         );
         assert_eq!(
             config_avec(json!({ "image_source": "FLICKR" })).source_image(),
+            SourceImage::Yugipedia
+        );
+        // Un choix enregistré n'est jamais réinterprété par le changement de
+        // défaut : c'est ce qui rend l'écart sans risque pour une installation
+        // existante.
+        assert_eq!(
+            config_avec(json!({ "image_source": "YGOPRODECK" })).source_image(),
             SourceImage::Ygoprodeck
         );
         assert_eq!(Langue::Fr.colonne_nom(), "name_fr");

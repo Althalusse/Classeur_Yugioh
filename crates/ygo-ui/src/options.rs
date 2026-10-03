@@ -411,6 +411,12 @@ impl EcranOptions {
             });
 
             ligne(ui, "Langue de l'interface", |ui| {
+                // L'interface n'existe qu'en français (R7) : le choix est
+                // gardé et enregistré, mais il le dit plutôt que de ne rien
+                // faire en silence.
+                ui.weak("français seulement pour l'instant").on_hover_text(
+                    "L'interface en anglais n'est pas encore faite (R7). Le choix est enregistré.",
+                );
                 if choix_langue(ui, "langue-ui", &mut self.ui_langue) {
                     if let Some(v) = self.ecrire(
                         "langue de l'interface",
@@ -425,20 +431,20 @@ impl EcranOptions {
                 let mut source = self.source;
                 egui::ComboBox::from_id_salt("source-images")
                     .selected_text(match source {
-                        SourceImage::Ygoprodeck => "YGOPRODeck — JPEG, disponibilité maximale",
-                        SourceImage::Yugipedia => "Yugipedia — PNG, artwork exact par rareté",
+                        SourceImage::Ygoprodeck => "YGOPRODeck — une image par carte, la même pour toutes les raretés",
+                        SourceImage::Yugipedia => "Yugipedia — l'image de chaque tirage : rareté et édition (repli YGOPRODeck)",
                     })
-                    .width(340.0)
+                    .width(460.0)
                     .show_ui(ui, |ui| {
                         ui.selectable_value(
                             &mut source,
                             SourceImage::Ygoprodeck,
-                            "YGOPRODeck — JPEG, disponibilité maximale",
+                            "YGOPRODeck — une image par carte, la même pour toutes les raretés",
                         );
                         ui.selectable_value(
                             &mut source,
                             SourceImage::Yugipedia,
-                            "Yugipedia — PNG, artwork exact par rareté",
+                            "Yugipedia — l'image de chaque tirage : rareté et édition (repli YGOPRODeck)",
                         );
                     });
                 if source != self.source {
@@ -502,6 +508,8 @@ impl EcranOptions {
                         self.ecrire("taille du texte", self.config.definir_font_scale(echelle))
                     {
                         self.font_scale = v;
+                        // Tout de suite, sans redémarrage (R9).
+                        crate::polices::appliquer_taille_texte(ui.ctx(), v);
                     }
                 } else {
                     self.font_scale = echelle;
@@ -1157,7 +1165,7 @@ mod tests {
         let paths_du_test = Paths::depuis_racine(tmp.path());
         let ecran = EcranOptions::ouvrir(paths_du_test.clone());
         assert_eq!(ecran.langue, Langue::Fr);
-        assert_eq!(ecran.source, SourceImage::Ygoprodeck);
+        assert_eq!(ecran.source, SourceImage::Yugipedia);
         assert_eq!(ecran.grille, (3, 3));
         assert_eq!(ecran.n_raretes, 0);
         assert!(ecran.completer_artworks);

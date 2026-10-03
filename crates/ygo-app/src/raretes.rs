@@ -34,6 +34,7 @@
 //! `UPDATE ... SET rarity`.
 
 use std::collections::{BTreeMap, BTreeSet};
+use std::path::Path;
 
 use rusqlite::Connection;
 use ygo_core::paths::Paths;
@@ -294,6 +295,138 @@ pub fn ecarter_fantomes(lignes: &mut Vec<LigneClasseur>, reference: &Priorites) 
     ecartes
 }
 
+/// Rejoue la règle des fausses raretés **sur le classeur écrit**.
+///
+/// # Pourquoi un second passage — 2026-09-30
+///
+/// [`ecarter_fantomes`] regarde les lignes **avant** l'écriture. À cet
+/// instant, un fantôme peut être seul sur son illustration : la règle
+/// s'abstient, faute de jumelle reconnue — et c'est ce qu'on lui demande.
+/// Puis la passe artworks crée les tirages manquants du même numéro, et la
+/// ligne se retrouve entourée de vraies raretés.
+///
+/// Mesuré sur `CH01` puis `CH02`, recréés les 2026-09-20 et 2026-09-30 : à
+/// chaque fois **4 écartées au premier passage, 2 survivantes** — les
+/// « New » de `CH01-EN019`/`EN041` et de `CH02-EN028`/`EN041`, écrites aux
+/// rowids 32 et 45 quand leurs sœurs portent les rowids 59 à 64, c'est-à-dire
+/// le bloc ajouté après coup. Yugipedia annonce **62 tirages** pour ces deux
+/// sets ; le classeur en avait 64.
+///
+/// # Ce que ce passage ne fait pas
+///
+/// Il ne touche **jamais** une ligne dont la quantité est renseignée. Une
+/// fausse rareté qu'on a comptée n'est plus une erreur de source : c'est une
+/// carte que l'utilisateur dit posséder, et aucune règle automatique n'a le
+/// droit de l'effacer. Ces lignes sont rendues dans le bilan, marquées, pour
+/// que l'écran puisse le dire.
+///
+/// # Errors
+///
+/// Rend une erreur si le classeur n'est pas ouvrable en écriture.
+/// Une ligne du classeur écrit, telle que le second passage la lit.
+///
+/// Un tuple à six champs se relit mal, et le nom est ce qui fait la différence
+/// entre un écart consigné qu'on peut lire et une liste de codes.
+struct LigneEnBase {
+    rowid: i64,
+    set_code: String,
+    name: String,
+    rarete: String,
+    image: Option<i64>,
+    quantite: i64,
+}
+
+pub fn ecarter_fantomes_en_base(
+    chemin_db: &Path,
+    reference: &Priorites,
+) -> Result<BilanSecondPassage> {
+    // Connexion **simple**, sans les pragmas WAL : le classeur vient d'être
+    // écrit et refermé, et une connexion WAL y laisserait un `-wal` orphelin.
+    // C'est le test de purge des dossiers résiduels qui l'a dit, deux fois.
+    let mut conn = Connection::open(chemin_db)?;
+    let lignes: Vec<LigneEnBase> = {
+        let mut requete = conn.prepare(
+            "SELECT rowid, COALESCE(set_code,''), COALESCE(name,''), COALESCE(rarity,''), \
+                    card_image_id, COALESCE(quantite, 0) FROM cards",
+        )?;
+        requete
+            .query_map([], |l| {
+                Ok(LigneEnBase {
+                    rowid: l.get(0)?,
+                    set_code: l.get(1)?,
+                    name: l.get(2)?,
+                    rarete: l.get(3)?,
+                    image: l.get(4)?,
+                    quantite: l.get(5)?,
+                })
+            })
+            .and_then(Iterator::collect::<rusqlite::Result<Vec<_>>>)?
+    };
+
+    // Les illustrations qui portent au moins une rareté véritable.
+    let mut legitimes: BTreeMap<i64, BTreeSet<String>> = BTreeMap::new();
+    for ligne in &lignes {
+        let (Some(id), Some(canon)) = (ligne.image, canoniser(&ligne.rarete, reference)) else {
+            continue;
+        };
+        legitimes.entry(id).or_default().insert(canon.libelle);
+    }
+
+    let mut bilan = BilanSecondPassage::default();
+    let mut a_supprimer = Vec::new();
+    for ligne in &lignes {
+        let Some(id) = ligne.image else { continue };
+        if canoniser(&ligne.rarete, reference).is_some() {
+            continue;
+        }
+        let Some(jumelles) = legitimes.get(&id) else {
+            continue;
+        };
+        let fantome = Fantome {
+            set_code: ligne.set_code.clone(),
+            name: ligne.name.clone(),
+            rarete: ligne.rarete.clone(),
+            image_id: Some(id),
+            jumelles: jumelles.iter().cloned().collect(),
+        };
+        if ligne.quantite > 0 {
+            bilan.gardees.push(fantome);
+        } else {
+            a_supprimer.push(ligne.rowid);
+            bilan.ecartees.push(fantome);
+        }
+    }
+
+    if !a_supprimer.is_empty() {
+        let transaction = conn.transaction()?;
+        {
+            let mut suppression = transaction.prepare("DELETE FROM cards WHERE rowid = ?1")?;
+            for rowid in &a_supprimer {
+                suppression.execute([rowid])?;
+            }
+        }
+        transaction.commit()?;
+    }
+    Ok(bilan)
+}
+
+/// Ce que le second passage a trouvé sur le classeur écrit.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct BilanSecondPassage {
+    /// Lignes retirées de la base.
+    pub ecartees: Vec<Fantome>,
+    /// Fantômes **gardés** parce qu'ils portent des exemplaires possédés.
+    pub gardees: Vec<Fantome>,
+}
+
+impl BilanSecondPassage {
+    /// Le passage a-t-il trouvé quoi que ce soit ?
+    #[must_use]
+    pub fn vide(&self) -> bool {
+        self.ecartees.is_empty() && self.gardees.is_empty()
+    }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Priorités : génération et synchronisation
 // ─────────────────────────────────────────────────────────────────────────────
@@ -463,6 +596,7 @@ mod tests {
     #![allow(clippy::unwrap_used, clippy::panic, clippy::indexing_slicing)]
 
     use super::*;
+    use std::path::PathBuf;
 
     fn options() -> Priorites {
         Priorites::depuis_paires([
@@ -646,6 +780,129 @@ mod tests {
             cibles.get(&("UR".to_owned(), "Ultra Rare".to_owned())),
             Some(&2)
         );
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // Le second passage, sur la base écrite
+    // ─────────────────────────────────────────────────────────────────────
+
+    /// Un classeur jetable, peuplé de `(set_code, rareté, image, quantité)`.
+    fn classeur_ecrit(lignes: &[(&str, &str, Option<i64>, i64)]) -> (tempfile::TempDir, PathBuf) {
+        let tmp = tempfile::tempdir().unwrap();
+        let chemin = tmp.path().join("CH02.db");
+        let conn = ygo_db::connexion::ouvrir(&chemin).unwrap();
+        conn.execute_batch(ygo_db::schema::DDL_CLASSEUR).unwrap();
+        for (code, rarete, image, quantite) in lignes {
+            conn.execute(
+                "INSERT INTO cards (set_code, rarity, card_image_id, quantite, possessed, name)
+                 VALUES (?1, ?2, ?3, ?4, ?5, 'Carte')",
+                rusqlite::params![code, rarete, image, quantite, i64::from(*quantite > 0)],
+            )
+            .unwrap();
+        }
+        drop(conn);
+        (tmp, chemin)
+    }
+
+    fn raretes_de(chemin: &Path) -> Vec<String> {
+        let conn = ygo_db::connexion::ouvrir_lecture_seule(chemin).unwrap();
+        let mut r = conn
+            .prepare("SELECT rarity FROM cards ORDER BY rowid")
+            .unwrap();
+        r.query_map([], |l| l.get::<_, String>(0))
+            .unwrap()
+            .map(rusqlite::Result::unwrap)
+            .collect()
+    }
+
+    /// La forme exacte de `CH02-EN028` : la « New » est écrite seule, ses
+    /// sœurs arrivent après, par la passe artworks. Le second passage la voit.
+    #[test]
+    fn le_second_passage_rattrape_ce_que_le_premier_ne_pouvait_pas_voir() {
+        let (_tmp, chemin) = classeur_ecrit(&[
+            ("CH02-EN028", "New", Some(11_911_336), 0),
+            ("CH02-EN001", "Ultra Rare", Some(74_364_659), 0),
+            // Les trois sœurs, créées après coup par la passe artworks.
+            ("CH02-EN028", "Secret Rare", Some(11_911_336), 0),
+            ("CH02-EN028", "Starlight Rare", Some(11_911_336), 0),
+            ("CH02-EN028", "Ultra Rare", Some(11_911_336), 0),
+        ]);
+
+        let bilan = ecarter_fantomes_en_base(&chemin, &options()).unwrap();
+
+        assert_eq!(bilan.ecartees.len(), 1);
+        assert_eq!(bilan.ecartees[0].rarete, "New");
+        assert_eq!(bilan.ecartees[0].set_code, "CH02-EN028");
+        assert_eq!(
+            bilan.ecartees[0].jumelles,
+            vec![
+                "Secret Rare".to_owned(),
+                "Starlight Rare".to_owned(),
+                "Ultra Rare".to_owned()
+            ]
+        );
+        assert!(bilan.gardees.is_empty());
+        assert_eq!(
+            raretes_de(&chemin),
+            vec!["Ultra Rare", "Secret Rare", "Starlight Rare", "Ultra Rare"],
+            "la « New » est partie, rien d'autre n'a bougé"
+        );
+    }
+
+    /// Une fausse rareté **possédée** n'est pas effacée : elle est signalée.
+    ///
+    /// C'est la limite que la règle ne franchit pas — une ligne comptée est
+    /// une carte que l'utilisateur dit avoir en main.
+    #[test]
+    fn un_fantome_possede_est_garde_et_signale() {
+        let (_tmp, chemin) = classeur_ecrit(&[
+            ("CH02-EN028", "New", Some(11_911_336), 2),
+            ("CH02-EN028", "Secret Rare", Some(11_911_336), 0),
+        ]);
+
+        let bilan = ecarter_fantomes_en_base(&chemin, &options()).unwrap();
+
+        assert!(bilan.ecartees.is_empty());
+        assert_eq!(bilan.gardees.len(), 1);
+        assert_eq!(bilan.gardees[0].rarete, "New");
+        assert_eq!(raretes_de(&chemin).len(), 2, "rien n'a été supprimé");
+        assert!(!bilan.vide());
+    }
+
+    /// Les deux abstentions du premier passage valent aussi pour le second :
+    /// seul sur son image, ou sans image, on ne tranche pas.
+    #[test]
+    fn le_second_passage_s_abstient_dans_les_memes_cas() {
+        let (_tmp, chemin) = classeur_ecrit(&[
+            ("RA05-EN136", "force-SMW", Some(69_272_449), 0),
+            ("RA05-EN137", "Ultra Rare", Some(1), 0),
+            ("RA05-EN138", "Rareté martienne", None, 0),
+        ]);
+
+        let bilan = ecarter_fantomes_en_base(&chemin, &options()).unwrap();
+
+        assert!(bilan.vide());
+        assert_eq!(raretes_de(&chemin).len(), 3);
+    }
+
+    /// Rejouer le passage ne change plus rien — il est idempotent.
+    #[test]
+    fn un_second_passage_rejoue_ne_trouve_plus_rien() {
+        let (_tmp, chemin) = classeur_ecrit(&[
+            ("CH02-EN028", "New artwork", Some(7), 0),
+            ("CH02-EN028", "Secret Rare", Some(7), 0),
+        ]);
+        assert_eq!(
+            ecarter_fantomes_en_base(&chemin, &options())
+                .unwrap()
+                .ecartees
+                .len(),
+            1
+        );
+        assert!(ecarter_fantomes_en_base(&chemin, &options())
+            .unwrap()
+            .vide());
+        assert_eq!(raretes_de(&chemin), vec!["Secret Rare"]);
     }
 
     // ─────────────────────────────────────────────────────────────────────

@@ -314,6 +314,14 @@ pub fn lignes(
 /// Pas de filtre sur l'image : une carte possédée dont l'illustration
 /// manque reste une carte de la collection.
 ///
+/// # Une ligne par état — 2026-10-01
+///
+/// Une ligne de classeur dont des exemplaires sont réglés à part
+/// ([`crate::exemplaires`]) rend **une `Possedee` par état** : cinq
+/// exemplaires dont deux `PL` sortent en deux lignes Scanflip, `NM ×3` et
+/// `PL ×2`, sur le même rang d'artwork. C'est ce que l'import sait relire
+/// sans rien perdre ([`import::Ecriture::a_part`]).
+///
 /// # Errors
 ///
 /// Rend une erreur si la base est illisible.
@@ -329,7 +337,8 @@ pub fn possedees(paths: &Paths, classeur: &str) -> Result<Vec<Possedee>> {
               ORDER BY sort_order, rowid",
         )
         .map_err(|e| AppError::Creation(format!("{classeur} : {e}")))?;
-    let lignes = requete
+    let mut a_part = crate::exemplaires::a_part_du_classeur(&conn)?;
+    let lignes: Vec<Possedee> = requete
         .query_map([], |l| {
             Ok(Possedee {
                 rowid: l.get(0)?,
@@ -346,7 +355,36 @@ pub fn possedees(paths: &Paths, classeur: &str) -> Result<Vec<Possedee>> {
         })
         .and_then(Iterator::collect::<rusqlite::Result<Vec<_>>>)
         .map_err(|e| AppError::Creation(format!("{classeur} : {e}")))?;
-    Ok(lignes)
+    Ok(lignes
+        .into_iter()
+        .flat_map(|p| {
+            let reglees = a_part.remove(&p.rowid).unwrap_or_default();
+            par_etat(p, reglees)
+        })
+        .collect())
+}
+
+/// Une ligne possédée, éclatée en une `Possedee` par état de ses
+/// exemplaires. Sans exemplaire réglé à part, elle se rend telle quelle.
+fn par_etat(p: Possedee, a_part: Vec<(i64, crate::exemplaires::Etat)>) -> Vec<Possedee> {
+    if a_part.is_empty() {
+        return vec![p];
+    }
+    let exemplaires = crate::exemplaires::Exemplaires::depuis(
+        p.quantite.max(1),
+        crate::exemplaires::Etat::nouveau(&p.qualite, &p.edition),
+        a_part,
+    );
+    exemplaires
+        .groupes()
+        .into_iter()
+        .map(|(etat, n)| Possedee {
+            quantite: n,
+            qualite: etat.qualite,
+            edition: etat.edition,
+            ..p.clone()
+        })
+        .collect()
 }
 
 /// Lit les cartes possédées de plusieurs classeurs, dans l'ordre donné.
@@ -656,6 +694,43 @@ mod tests {
             assert_eq!(e.qualite, "NM");
             assert_eq!(e.edition, Some(Edition::Premiere));
         }
+    }
+
+    /// Cinq exemplaires dont deux `PL Unlimited` : deux lignes Scanflip à
+    /// l'export, et l'import les rend tels quels — quantité, état commun et
+    /// exemplaires à part.
+    #[test]
+    fn des_exemplaires_regles_a_part_font_l_aller_retour() {
+        use crate::exemplaires::Etat;
+        let mut p = possedee(1, "RA02-EN001", "Super Rare", 42);
+        p.quantite = 5;
+        let pl = Etat::nouveau("PL", "unlimited");
+        let eclatees = par_etat(p.clone(), vec![(7, pl.clone()), (8, pl.clone())]);
+        assert_eq!(eclatees.len(), 2, "une ligne par état");
+        assert_eq!(
+            eclatees
+                .iter()
+                .map(|e| (e.qualite.as_str(), e.quantite))
+                .collect::<Vec<_>>(),
+            vec![("NM", 3), ("PL", 2)]
+        );
+        assert!(
+            par_etat(p.clone(), Vec::new()) == vec![p.clone()],
+            "sans réglage, inchangée"
+        );
+
+        let bases = base_des(std::slice::from_ref(&p));
+        let octets =
+            scanflip::ecrire_octets(&lignes(&eclatees, Langue::Francais, &rangs(&bases))).unwrap();
+        let relu = scanflip::lire_octets(&octets).unwrap();
+        let rapport = import::planifier(&relu.lignes, &bases);
+        assert!(rapport.refusees.is_empty(), "{:?}", rapport.refusees);
+        assert_eq!(rapport.ecritures.len(), 1, "une seule ligne de classeur");
+        let e = &rapport.ecritures[0];
+        assert_eq!(e.quantite, 5);
+        assert_eq!(e.commun(), Etat::nouveau("NM", "1st"));
+        assert_eq!(e.a_part, vec![(pl, 2)]);
+        assert_eq!(rapport.fusions_avec_perte().count(), 0, "rien ne se perd");
     }
 
     /// Les classeurs OCG sont écartés, les autres passent.

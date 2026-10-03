@@ -59,6 +59,7 @@
 
 #![forbid(unsafe_code)]
 
+pub mod cache;
 pub mod error;
 pub mod http;
 pub mod version;

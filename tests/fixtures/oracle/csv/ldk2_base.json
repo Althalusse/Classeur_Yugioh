@@ -1,0 +1,1060 @@
+{
+ "LDK2": [
+  {
+   "rowid": 1,
+   "set_code": "LDK2-ENJ01",
+   "rarity": "Common",
+   "card_image_id": 74677422,
+   "name": "Red-Eyes Black Dragon",
+   "name_fr": "Dragon Noir aux Yeux Rouges"
+  },
+  {
+   "rowid": 2,
+   "set_code": "LDK2-ENJ02",
+   "rarity": "Common",
+   "card_image_id": 30079770,
+   "name": "Red-Eyes Black Flare Dragon",
+   "name_fr": "Dragon Flamboyant Noir aux Yeux Rouges"
+  },
+  {
+   "rowid": 3,
+   "set_code": "LDK2-ENJ03",
+   "rarity": "Common",
+   "card_image_id": 39357122,
+   "name": "Red-Eyes Archfiend of Lightning",
+   "name_fr": "Archdémon d'Éclairs aux Yeux Rouges"
+  },
+  {
+   "rowid": 4,
+   "set_code": "LDK2-ENJ04",
+   "rarity": "Common",
+   "card_image_id": 53485634,
+   "name": "Red-Eyes Retro Dragon",
+   "name_fr": "Dragon Rétro aux Yeux Rouges"
+  },
+  {
+   "rowid": 5,
+   "set_code": "LDK2-ENJ05",
+   "rarity": "Ultra Rare",
+   "card_image_id": 66574418,
+   "name": "The Black Stone of Legend",
+   "name_fr": "Pierre Noire Légendaire"
+  },
+  {
+   "rowid": 6,
+   "set_code": "LDK2-ENJ06",
+   "rarity": "Common",
+   "card_image_id": 93969023,
+   "name": "Black Metal Dragon",
+   "name_fr": "Dragon de Métal Noir"
+  },
+  {
+   "rowid": 7,
+   "set_code": "LDK2-ENJ07",
+   "rarity": "Common",
+   "card_image_id": 48305365,
+   "name": "Axe Raider",
+   "name_fr": "Axe Raider"
+  },
+  {
+   "rowid": 8,
+   "set_code": "LDK2-ENJ08",
+   "rarity": "Common",
+   "card_image_id": 64428736,
+   "name": "Alligator's Sword",
+   "name_fr": "Glaive de l'Alligator"
+  },
+  {
+   "rowid": 9,
+   "set_code": "LDK2-ENJ09",
+   "rarity": "Common",
+   "card_image_id": 88819587,
+   "name": "Baby Dragon",
+   "name_fr": "Bébé Dragon"
+  },
+  {
+   "rowid": 10,
+   "set_code": "LDK2-ENJ10",
+   "rarity": "Common",
+   "card_image_id": 77585513,
+   "name": "Jinzo",
+   "name_fr": "Jinzo"
+  },
+  {
+   "rowid": 11,
+   "set_code": "LDK2-ENJ11",
+   "rarity": "Common",
+   "card_image_id": 78658564,
+   "name": "Goblin Attack Force",
+   "name_fr": "Troupe d'Assaut Gobeline"
+  },
+  {
+   "rowid": 12,
+   "set_code": "LDK2-ENJ12",
+   "rarity": "Common",
+   "card_image_id": 423705,
+   "name": "Gearfried the Iron Knight",
+   "name_fr": "Gearfried le Chevalier de Fer"
+  },
+  {
+   "rowid": 13,
+   "set_code": "LDK2-ENJ13",
+   "rarity": "Common",
+   "card_image_id": 30860696,
+   "name": "Rocket Warrior",
+   "name_fr": "Guerrier Roquette"
+  },
+  {
+   "rowid": 14,
+   "set_code": "LDK2-ENJ14",
+   "rarity": "Common",
+   "card_image_id": 50903514,
+   "name": "Blue Flame Swordsman",
+   "name_fr": "Spadassin des Flammes Bleues"
+  },
+  {
+   "rowid": 15,
+   "set_code": "LDK2-ENJ15",
+   "rarity": "Common",
+   "card_image_id": 71625222,
+   "name": "Time Wizard",
+   "name_fr": "Magicien du Temps"
+  },
+  {
+   "rowid": 16,
+   "set_code": "LDK2-ENJ16",
+   "rarity": "Common",
+   "card_image_id": 69488544,
+   "name": "Phoenix Gearfried",
+   "name_fr": "Gearfried Phénix"
+  },
+  {
+   "rowid": 17,
+   "set_code": "LDK2-ENJ17",
+   "rarity": "Common",
+   "card_image_id": 19041767,
+   "name": "Gemini Summoner",
+   "name_fr": "Invocateur Gémeau"
+  },
+  {
+   "rowid": 18,
+   "set_code": "LDK2-ENJ18",
+   "rarity": "Common",
+   "card_image_id": 16984449,
+   "name": "Blazewing Butterfly",
+   "name_fr": "Papillon aux Ailes Ardentes"
+  },
+  {
+   "rowid": 19,
+   "set_code": "LDK2-ENJ19",
+   "rarity": "Common",
+   "card_image_id": 83269557,
+   "name": "Dark Valkyria",
+   "name_fr": "Valkyrie des Ténèbres"
+  },
+  {
+   "rowid": 20,
+   "set_code": "LDK2-ENJ20",
+   "rarity": "Common",
+   "card_image_id": 10375182,
+   "name": "Command Knight",
+   "name_fr": "Chevalier Commandeur"
+  },
+  {
+   "rowid": 21,
+   "set_code": "LDK2-ENJ21",
+   "rarity": "Common",
+   "card_image_id": 99348756,
+   "name": "Valkyrian Knight",
+   "name_fr": "Chevalier Valkyrie"
+  },
+  {
+   "rowid": 22,
+   "set_code": "LDK2-ENJ22",
+   "rarity": "Common",
+   "card_image_id": 66752837,
+   "name": "Keeper of the Shrine",
+   "name_fr": "Veilleur du Sanctuaire"
+  },
+  {
+   "rowid": 23,
+   "set_code": "LDK2-ENJ23",
+   "rarity": "Common",
+   "card_image_id": 52684508,
+   "name": "Inferno Fire Blast",
+   "name_fr": "Souffle du Feu de l'Enfer"
+  },
+  {
+   "rowid": 24,
+   "set_code": "LDK2-ENJ24",
+   "rarity": "Common",
+   "card_image_id": 6172122,
+   "name": "Red-Eyes Fusion",
+   "name_fr": "Fusion aux Yeux Rouges"
+  },
+  {
+   "rowid": 25,
+   "set_code": "LDK2-ENJ25",
+   "rarity": "Common",
+   "card_image_id": 32566831,
+   "name": "Cards of the Red Stone",
+   "name_fr": "Cartes de la Pierre Rouge"
+  },
+  {
+   "rowid": 26,
+   "set_code": "LDK2-ENJ26",
+   "rarity": "Common",
+   "card_image_id": 24094653,
+   "name": "Polymerization",
+   "name_fr": "Polymérisation"
+  },
+  {
+   "rowid": 27,
+   "set_code": "LDK2-ENJ27",
+   "rarity": "Common",
+   "card_image_id": 32268901,
+   "name": "Salamandra",
+   "name_fr": "Salamandra"
+  },
+  {
+   "rowid": 28,
+   "set_code": "LDK2-ENJ28",
+   "rarity": "Common",
+   "card_image_id": 73915051,
+   "name": "Scapegoat",
+   "name_fr": "Bouc Émissaire"
+  },
+  {
+   "rowid": 29,
+   "set_code": "LDK2-ENJ29",
+   "rarity": "Common",
+   "card_image_id": 81439173,
+   "name": "Foolish Burial",
+   "name_fr": "Sacrifice Inutile"
+  },
+  {
+   "rowid": 30,
+   "set_code": "LDK2-ENJ30",
+   "rarity": "Common",
+   "card_image_id": 36708764,
+   "name": "Roulette Spider",
+   "name_fr": "Arraignée à Roulette"
+  },
+  {
+   "rowid": 31,
+   "set_code": "LDK2-ENJ31",
+   "rarity": "Common",
+   "card_image_id": 95750695,
+   "name": "Supervise",
+   "name_fr": "Supervision"
+  },
+  {
+   "rowid": 32,
+   "set_code": "LDK2-ENJ32",
+   "rarity": "Common",
+   "card_image_id": 5318639,
+   "name": "Mystical Space Typhoon",
+   "name_fr": "Typhon d'Espace Mystique"
+  },
+  {
+   "rowid": 33,
+   "set_code": "LDK2-ENJ33",
+   "rarity": "Common",
+   "card_image_id": 78794994,
+   "name": "Symbols of Duty",
+   "name_fr": "Symboles du Devoir"
+  },
+  {
+   "rowid": 34,
+   "set_code": "LDK2-ENJ34",
+   "rarity": "Ultra Rare",
+   "card_image_id": 39387565,
+   "name": "Return of the Red-Eyes",
+   "name_fr": "Le Retour des Yeux Rouges"
+  },
+  {
+   "rowid": 35,
+   "set_code": "LDK2-ENJ35",
+   "rarity": "Common",
+   "card_image_id": 44397496,
+   "name": "Red-Eyes Spirit",
+   "name_fr": "Esprit des Yeux Rouges"
+  },
+  {
+   "rowid": 36,
+   "set_code": "LDK2-ENJ36",
+   "rarity": "Common",
+   "card_image_id": 37390589,
+   "name": "Kunai with Chain",
+   "name_fr": "Kunai avec Chaîne"
+  },
+  {
+   "rowid": 37,
+   "set_code": "LDK2-ENJ37",
+   "rarity": "Common",
+   "card_image_id": 97077563,
+   "name": "Call of the Haunted",
+   "name_fr": "Appel de l'Être Hanté"
+  },
+  {
+   "rowid": 38,
+   "set_code": "LDK2-ENJ38",
+   "rarity": "Common",
+   "card_image_id": 53582587,
+   "name": "Torrential Tribute",
+   "name_fr": "Hommage Torrentiel"
+  },
+  {
+   "rowid": 39,
+   "set_code": "LDK2-ENJ39",
+   "rarity": "Common",
+   "card_image_id": 80163754,
+   "name": "Burst Breath",
+   "name_fr": "Souffle Ardent"
+  },
+  {
+   "rowid": 40,
+   "set_code": "LDK2-ENJ40",
+   "rarity": "Common",
+   "card_image_id": 66742250,
+   "name": "Curse of Anubis",
+   "name_fr": "Malédiction d'Anubis"
+  },
+  {
+   "rowid": 41,
+   "set_code": "LDK2-ENJ41",
+   "rarity": "Ultra Rare",
+   "card_image_id": 44405066,
+   "name": "Red-Eyes Flare Metal Dragon",
+   "name_fr": "Dragon de Métal Flamboyant aux Yeux Rouges"
+  },
+  {
+   "rowid": 42,
+   "set_code": "LDK2-ENJ42",
+   "rarity": "Common",
+   "card_image_id": 45349196,
+   "name": "Archfiend Black Skull Dragon",
+   "name_fr": "Dragon Crâne Noir Archdémon"
+  },
+  {
+   "rowid": 43,
+   "set_code": "LDK2-ENJ43",
+   "rarity": "Common",
+   "card_image_id": 3366982,
+   "name": "Alligator's Sword Dragon",
+   "name_fr": "Dragon du Glaive de l'Alligator"
+  },
+  {
+   "rowid": 44,
+   "set_code": "LDK2-ENK01",
+   "rarity": "Common",
+   "card_image_id": 89631139,
+   "name": "Blue-Eyes White Dragon",
+   "name_fr": "Dragon Blanc aux Yeux Bleus"
+  },
+  {
+   "rowid": 45,
+   "set_code": "LDK2-ENK02",
+   "rarity": "Common",
+   "card_image_id": 45467446,
+   "name": "Dragon Spirit of White",
+   "name_fr": "Esprit du Dragon Blanc"
+  },
+  {
+   "rowid": 46,
+   "set_code": "LDK2-ENK03",
+   "rarity": "Common",
+   "card_image_id": 34627841,
+   "name": "Kaibaman",
+   "name_fr": "Kaibaman"
+  },
+  {
+   "rowid": 47,
+   "set_code": "LDK2-ENK04",
+   "rarity": "Common",
+   "card_image_id": 79814787,
+   "name": "The White Stone of Legend",
+   "name_fr": "Pierre Blanche Légendaire"
+  },
+  {
+   "rowid": 48,
+   "set_code": "LDK2-ENK05",
+   "rarity": "Common",
+   "card_image_id": 71039903,
+   "name": "The White Stone of Ancients",
+   "name_fr": "Pierre Blanche Ancienne"
+  },
+  {
+   "rowid": 49,
+   "set_code": "LDK2-ENK06",
+   "rarity": "Ultra Rare",
+   "card_image_id": 88241506,
+   "name": "Maiden with Eyes of Blue",
+   "name_fr": "Demoiselle aux Yeux Couleur Bleu"
+  },
+  {
+   "rowid": 50,
+   "set_code": "LDK2-ENK07",
+   "rarity": "Common",
+   "card_image_id": 72855441,
+   "name": "Protector with Eyes of Blue",
+   "name_fr": "Protecteur avec des Yeux de Bleu"
+  },
+  {
+   "rowid": 51,
+   "set_code": "LDK2-ENK08",
+   "rarity": "Common",
+   "card_image_id": 45644898,
+   "name": "Master with Eyes of Blue",
+   "name_fr": "Maître avec des Yeux de Bleu"
+  },
+  {
+   "rowid": 52,
+   "set_code": "LDK2-ENK09",
+   "rarity": "Common",
+   "card_image_id": 5053103,
+   "name": "Battle Ox",
+   "name_fr": "Bœuf de Combat"
+  },
+  {
+   "rowid": 53,
+   "set_code": "LDK2-ENK10",
+   "rarity": "Common",
+   "card_image_id": 97590747,
+   "name": "La Jinn the Mystical Genie of the Lamp",
+   "name_fr": "La Jinn le Génie Mystique de la Lampe"
+  },
+  {
+   "rowid": 54,
+   "set_code": "LDK2-ENK11",
+   "rarity": "Common",
+   "card_image_id": 14898066,
+   "name": "Vorse Raider",
+   "name_fr": "Marauseur Vorse"
+  },
+  {
+   "rowid": 55,
+   "set_code": "LDK2-ENK12",
+   "rarity": "Common",
+   "card_image_id": 43096270,
+   "name": "Alexandrite Dragon",
+   "name_fr": "Dragon Alexandrite"
+  },
+  {
+   "rowid": 56,
+   "set_code": "LDK2-ENK13",
+   "rarity": "Common",
+   "card_image_id": 39507162,
+   "name": "Blade Knight",
+   "name_fr": "Chevalier Épée"
+  },
+  {
+   "rowid": 57,
+   "set_code": "LDK2-ENK14",
+   "rarity": "Common",
+   "card_image_id": 54912977,
+   "name": "Ancient Lamp",
+   "name_fr": "Lampe ancienne"
+  },
+  {
+   "rowid": 58,
+   "set_code": "LDK2-ENK15",
+   "rarity": "Common",
+   "card_image_id": 10097168,
+   "name": "Tiger Dragon",
+   "name_fr": "Dragon Tigre"
+  },
+  {
+   "rowid": 59,
+   "set_code": "LDK2-ENK16",
+   "rarity": "Common",
+   "card_image_id": 35629124,
+   "name": "Kidmodo Dragon",
+   "name_fr": "Dragon Kidmodo"
+  },
+  {
+   "rowid": 60,
+   "set_code": "LDK2-ENK17",
+   "rarity": "Common",
+   "card_image_id": 79109599,
+   "name": "King of the Swamp",
+   "name_fr": "Roi des Marais"
+  },
+  {
+   "rowid": 61,
+   "set_code": "LDK2-ENK18",
+   "rarity": "Common",
+   "card_image_id": 14235211,
+   "name": "Rider of the Storm Winds",
+   "name_fr": "Chevaucheur des Vents de Tempête"
+  },
+  {
+   "rowid": 62,
+   "set_code": "LDK2-ENK19",
+   "rarity": "Common",
+   "card_image_id": 17655904,
+   "name": "Burst Stream of Destruction",
+   "name_fr": "Flot Rugissant de Destruction"
+  },
+  {
+   "rowid": 63,
+   "set_code": "LDK2-ENK20",
+   "rarity": "Common",
+   "card_image_id": 50371210,
+   "name": "Beacon of White",
+   "name_fr": "Relais Blanc"
+  },
+  {
+   "rowid": 64,
+   "set_code": "LDK2-ENK21",
+   "rarity": "Common",
+   "card_image_id": 24382602,
+   "name": "Mausoleum of White",
+   "name_fr": "Mausolée Blanc"
+  },
+  {
+   "rowid": 65,
+   "set_code": "LDK2-ENK22",
+   "rarity": "Common",
+   "card_image_id": 24094653,
+   "name": "Polymerization",
+   "name_fr": "Polymérisation"
+  },
+  {
+   "rowid": 66,
+   "set_code": "LDK2-ENK23",
+   "rarity": "Common",
+   "card_image_id": 98045062,
+   "name": "Enemy Controller",
+   "name_fr": "Contrôleur d'Ennemi"
+  },
+  {
+   "rowid": 67,
+   "set_code": "LDK2-ENK24",
+   "rarity": "Common",
+   "card_image_id": 55713623,
+   "name": "Shrink",
+   "name_fr": "Rétrécissement"
+  },
+  {
+   "rowid": 68,
+   "set_code": "LDK2-ENK25",
+   "rarity": "Common",
+   "card_image_id": 42534368,
+   "name": "Silent Doom",
+   "name_fr": "Jugement Silencieux"
+  },
+  {
+   "rowid": 69,
+   "set_code": "LDK2-ENK26",
+   "rarity": "Ultra Rare",
+   "card_image_id": 48800175,
+   "name": "The Melody of Awakening Dragon",
+   "name_fr": "La Mélodie du Réveil des Dragons"
+  },
+  {
+   "rowid": 70,
+   "set_code": "LDK2-ENK27",
+   "rarity": "Common",
+   "card_image_id": 10667321,
+   "name": "Ancient Rules",
+   "name_fr": "Anciens Règlements"
+  },
+  {
+   "rowid": 71,
+   "set_code": "LDK2-ENK28",
+   "rarity": "Common",
+   "card_image_id": 38120068,
+   "name": "Trade-In",
+   "name_fr": "Transaction"
+  },
+  {
+   "rowid": 72,
+   "set_code": "LDK2-ENK29",
+   "rarity": "Common",
+   "card_image_id": 51405049,
+   "name": "Where Arf Thou?",
+   "name_fr": "Woùf es-tu ?"
+  },
+  {
+   "rowid": 73,
+   "set_code": "LDK2-ENK30",
+   "rarity": "Common",
+   "card_image_id": 98672567,
+   "name": "Pot of Dichotomy",
+   "name_fr": "Pot de Dichotomie"
+  },
+  {
+   "rowid": 74,
+   "set_code": "LDK2-ENK31",
+   "rarity": "Common",
+   "card_image_id": 74335036,
+   "name": "Fusion Substitute",
+   "name_fr": "Fusion Alternative"
+  },
+  {
+   "rowid": 75,
+   "set_code": "LDK2-ENK32",
+   "rarity": "Common",
+   "card_image_id": 911883,
+   "name": "Unexpected Dai",
+   "name_fr": "Dai Imprévu"
+  },
+  {
+   "rowid": 76,
+   "set_code": "LDK2-ENK33",
+   "rarity": "Common",
+   "card_image_id": 14315573,
+   "name": "Negate Attack",
+   "name_fr": "Annulation d'Attaque"
+  },
+  {
+   "rowid": 77,
+   "set_code": "LDK2-ENK34",
+   "rarity": "Common",
+   "card_image_id": 52503575,
+   "name": "Final Attack Orders",
+   "name_fr": "Derniers Ordres de Combat"
+  },
+  {
+   "rowid": 78,
+   "set_code": "LDK2-ENK35",
+   "rarity": "Common",
+   "card_image_id": 29267084,
+   "name": "Shadow Spell",
+   "name_fr": "Sortilège de l'ombre"
+  },
+  {
+   "rowid": 79,
+   "set_code": "LDK2-ENK36",
+   "rarity": "Common",
+   "card_image_id": 86871614,
+   "name": "Cloning",
+   "name_fr": "Duplication des Clones"
+  },
+  {
+   "rowid": 80,
+   "set_code": "LDK2-ENK37",
+   "rarity": "Common",
+   "card_image_id": 66127916,
+   "name": "Fusion Reserve",
+   "name_fr": "Réserve de Fusion"
+  },
+  {
+   "rowid": 81,
+   "set_code": "LDK2-ENK38",
+   "rarity": "Common",
+   "card_image_id": 98954106,
+   "name": "Jar of Avarice",
+   "name_fr": "Jarre d'Avarice"
+  },
+  {
+   "rowid": 82,
+   "set_code": "LDK2-ENK39",
+   "rarity": "Common",
+   "card_image_id": 40908371,
+   "name": "Azure-Eyes Silver Dragon",
+   "name_fr": "Dragon Argent aux Yeux Azur"
+  },
+  {
+   "rowid": 83,
+   "set_code": "LDK2-ENK40",
+   "rarity": "Ultra Rare",
+   "card_image_id": 23995346,
+   "name": "Blue-Eyes Ultimate Dragon",
+   "name_fr": "Dragon Ultime aux Yeux Bleus"
+  },
+  {
+   "rowid": 84,
+   "set_code": "LDK2-ENK41",
+   "rarity": "Common",
+   "card_image_id": 10817524,
+   "name": "First of the Dragons",
+   "name_fr": "Premier des Dragons"
+  },
+  {
+   "rowid": 85,
+   "set_code": "LDK2-ENS01",
+   "rarity": "Ultra Rare",
+   "card_image_id": 10000020,
+   "name": "Slifer the Sky Dragon",
+   "name_fr": "Slifer, le Dragon Céleste"
+  },
+  {
+   "rowid": 86,
+   "set_code": "LDK2-ENS02",
+   "rarity": "Ultra Rare",
+   "card_image_id": 10000000,
+   "name": "Obelisk the Tormentor",
+   "name_fr": "Obelisk, le Tourmenteur"
+  },
+  {
+   "rowid": 87,
+   "set_code": "LDK2-ENS03",
+   "rarity": "Ultra Rare",
+   "card_image_id": 10000010,
+   "name": "The Winged Dragon of Ra",
+   "name_fr": "Le Dragon Ailé de Râ"
+  },
+  {
+   "rowid": 88,
+   "set_code": "LDK2-ENS04",
+   "rarity": "Secret Rare",
+   "card_image_id": 49702428,
+   "name": "Dark Burning Attack",
+   "name_fr": "Attaque Brûlante des Ténèbres"
+  },
+  {
+   "rowid": 89,
+   "set_code": "LDK2-ENS05",
+   "rarity": "Secret Rare",
+   "card_image_id": 75190122,
+   "name": "Dark Burning Magic",
+   "name_fr": "Magie Brûlante des Ténèbres"
+  },
+  {
+   "rowid": 90,
+   "set_code": "LDK2-ENS06",
+   "rarity": "Secret Rare",
+   "card_image_id": 48680970,
+   "name": "Eternal Soul",
+   "name_fr": "Âme Éternelle"
+  },
+  {
+   "rowid": 91,
+   "set_code": "LDK2-ENY01",
+   "rarity": "Ultra Rare",
+   "card_image_id": 58604027,
+   "name": "The Legendary Exodia Incarnate",
+   "name_fr": "L'Incarné du Légendaire Éxodia"
+  },
+  {
+   "rowid": 92,
+   "set_code": "LDK2-ENY02",
+   "rarity": "Ultra Rare",
+   "card_image_id": 40450317,
+   "name": "Ties of the Brethren",
+   "name_fr": "Liens des Camarades"
+  },
+  {
+   "rowid": 93,
+   "set_code": "LDK2-ENY03",
+   "rarity": "Ultra Rare",
+   "card_image_id": 64043465,
+   "name": "Obliterate!!!",
+   "name_fr": "Destruction !!!"
+  },
+  {
+   "rowid": 94,
+   "set_code": "LDK2-ENY04",
+   "rarity": "Common",
+   "card_image_id": 33396948,
+   "name": "Exodia the Forbidden One",
+   "name_fr": "Éxodia l'Interdit"
+  },
+  {
+   "rowid": 95,
+   "set_code": "LDK2-ENY05",
+   "rarity": "Common",
+   "card_image_id": 70903634,
+   "name": "Right Arm of the Forbidden One",
+   "name_fr": "Bras Droit de l'Interdit"
+  },
+  {
+   "rowid": 96,
+   "set_code": "LDK2-ENY06",
+   "rarity": "Common",
+   "card_image_id": 7902349,
+   "name": "Left Arm of the Forbidden One",
+   "name_fr": "Bras Gauche de l'Interdit"
+  },
+  {
+   "rowid": 97,
+   "set_code": "LDK2-ENY07",
+   "rarity": "Common",
+   "card_image_id": 8124921,
+   "name": "Right Leg of the Forbidden One",
+   "name_fr": "Jambe Droite de l'Interdit"
+  },
+  {
+   "rowid": 98,
+   "set_code": "LDK2-ENY08",
+   "rarity": "Common",
+   "card_image_id": 44519536,
+   "name": "Left Leg of the Forbidden One",
+   "name_fr": "Jambe Gauche de l'Interdit"
+  },
+  {
+   "rowid": 99,
+   "set_code": "LDK2-ENY09",
+   "rarity": "Common",
+   "card_image_id": 12600382,
+   "name": "Exodia Necross",
+   "name_fr": "Éxodia Necross"
+  },
+  {
+   "rowid": 100,
+   "set_code": "LDK2-ENY10",
+   "rarity": "Common",
+   "card_image_id": 36996508,
+   "name": "Dark Magician",
+   "name_fr": "Magicien Sombre"
+  },
+  {
+   "rowid": 101,
+   "set_code": "LDK2-ENY11",
+   "rarity": "Common",
+   "card_image_id": 38033121,
+   "name": "Dark Magician Girl",
+   "name_fr": "Magicienne des Ténèbres"
+  },
+  {
+   "rowid": 102,
+   "set_code": "LDK2-ENY12",
+   "rarity": "Common",
+   "card_image_id": 78193831,
+   "name": "Buster Blader",
+   "name_fr": "Buster Blader"
+  },
+  {
+   "rowid": 103,
+   "set_code": "LDK2-ENY13",
+   "rarity": "Common",
+   "card_image_id": 72443568,
+   "name": "Silent Magician LV8",
+   "name_fr": "Magicien Silencieux LV8"
+  },
+  {
+   "rowid": 104,
+   "set_code": "LDK2-ENY14",
+   "rarity": "Common",
+   "card_image_id": 73665146,
+   "name": "Silent Magician LV4",
+   "name_fr": "Magicien Silencieux LV4"
+  },
+  {
+   "rowid": 105,
+   "set_code": "LDK2-ENY15",
+   "rarity": "Common",
+   "card_image_id": 14778250,
+   "name": "The Tricky",
+   "name_fr": "Le Mystérieux"
+  },
+  {
+   "rowid": 106,
+   "set_code": "LDK2-ENY16",
+   "rarity": "Common",
+   "card_image_id": 65240384,
+   "name": "Big Shield Gardna",
+   "name_fr": "Sentinelle au Grand Bouclier"
+  },
+  {
+   "rowid": 107,
+   "set_code": "LDK2-ENY17",
+   "rarity": "Common",
+   "card_image_id": 80304126,
+   "name": "Magician's Valkyria",
+   "name_fr": "Valkyrie de Magicien"
+  },
+  {
+   "rowid": 108,
+   "set_code": "LDK2-ENY18",
+   "rarity": "Common",
+   "card_image_id": 21051146,
+   "name": "Blast Magician",
+   "name_fr": "Le Magicien du Tourment"
+  },
+  {
+   "rowid": 109,
+   "set_code": "LDK2-ENY19",
+   "rarity": "Common",
+   "card_image_id": 48115277,
+   "name": "Blockman",
+   "name_fr": "Homme-Bloc"
+  },
+  {
+   "rowid": 110,
+   "set_code": "LDK2-ENY20",
+   "rarity": "Common",
+   "card_image_id": 31305911,
+   "name": "Marshmallon",
+   "name_fr": "Marshmallon"
+  },
+  {
+   "rowid": 111,
+   "set_code": "LDK2-ENY21",
+   "rarity": "Common",
+   "card_image_id": 26202165,
+   "name": "Sangan",
+   "name_fr": "Sangan"
+  },
+  {
+   "rowid": 112,
+   "set_code": "LDK2-ENY22",
+   "rarity": "Common",
+   "card_image_id": 75500286,
+   "name": "Gold Sarcophagus",
+   "name_fr": "Sarcophage Doré"
+  },
+  {
+   "rowid": 113,
+   "set_code": "LDK2-ENY23",
+   "rarity": "Common",
+   "card_image_id": 72302403,
+   "name": "Swords of Revealing Light",
+   "name_fr": "Épées de Révélation de la Lumière"
+  },
+  {
+   "rowid": 114,
+   "set_code": "LDK2-ENY24",
+   "rarity": "Common",
+   "card_image_id": 28553439,
+   "name": "Magical Dimension",
+   "name_fr": "Dimension Magique"
+  },
+  {
+   "rowid": 115,
+   "set_code": "LDK2-ENY25",
+   "rarity": "Common",
+   "card_image_id": 36045450,
+   "name": "Magicians Unite",
+   "name_fr": "Unité des Magiciens"
+  },
+  {
+   "rowid": 116,
+   "set_code": "LDK2-ENY26",
+   "rarity": "Common",
+   "card_image_id": 75622824,
+   "name": "Tricky Spell 4",
+   "name_fr": "Magie du Mystérieux 4"
+  },
+  {
+   "rowid": 117,
+   "set_code": "LDK2-ENY27",
+   "rarity": "Common",
+   "card_image_id": 63391643,
+   "name": "Thousand Knives",
+   "name_fr": "Mille Couteaux"
+  },
+  {
+   "rowid": 118,
+   "set_code": "LDK2-ENY28",
+   "rarity": "Common",
+   "card_image_id": 2314238,
+   "name": "Dark Magic Attack",
+   "name_fr": "Attaque de Magie Noire"
+  },
+  {
+   "rowid": 119,
+   "set_code": "LDK2-ENY29",
+   "rarity": "Common",
+   "card_image_id": 33244944,
+   "name": "Contract with Exodia",
+   "name_fr": "Contrat avec Éxodia"
+  },
+  {
+   "rowid": 120,
+   "set_code": "LDK2-ENY30",
+   "rarity": "Common",
+   "card_image_id": 44656491,
+   "name": "Messenger of Peace",
+   "name_fr": "Messager de Paix"
+  },
+  {
+   "rowid": 121,
+   "set_code": "LDK2-ENY31",
+   "rarity": "Common",
+   "card_image_id": 90928333,
+   "name": "Dark Factory of Mass Production",
+   "name_fr": "Usine de Production de Masse des Ténèbres"
+  },
+  {
+   "rowid": 122,
+   "set_code": "LDK2-ENY32",
+   "rarity": "Common",
+   "card_image_id": 74848038,
+   "name": "Monster Reincarnation",
+   "name_fr": "Réincarnation de Monstre"
+  },
+  {
+   "rowid": 123,
+   "set_code": "LDK2-ENY33",
+   "rarity": "Common",
+   "card_image_id": 68462976,
+   "name": "Secret Village of the Spellcasters",
+   "name_fr": "Village Secret des Magiciens"
+  },
+  {
+   "rowid": 124,
+   "set_code": "LDK2-ENY34",
+   "rarity": "Common",
+   "card_image_id": 98645731,
+   "name": "Pot of Duality",
+   "name_fr": "Pot de Dualité"
+  },
+  {
+   "rowid": 125,
+   "set_code": "LDK2-ENY35",
+   "rarity": "Common",
+   "card_image_id": 44095762,
+   "name": "Mirror Force",
+   "name_fr": "Force de Miroir"
+  },
+  {
+   "rowid": 126,
+   "set_code": "LDK2-ENY36",
+   "rarity": "Common",
+   "card_image_id": 81210420,
+   "name": "Magical Hats",
+   "name_fr": "Chapeaux Magiques"
+  },
+  {
+   "rowid": 127,
+   "set_code": "LDK2-ENY37",
+   "rarity": "Common",
+   "card_image_id": 62279055,
+   "name": "Magic Cylinder",
+   "name_fr": "Cylindre Magique"
+  },
+  {
+   "rowid": 128,
+   "set_code": "LDK2-ENY38",
+   "rarity": "Common",
+   "card_image_id": 50755,
+   "name": "Magician's Circle",
+   "name_fr": "Cercle du Magicien"
+  },
+  {
+   "rowid": 129,
+   "set_code": "LDK2-ENY39",
+   "rarity": "Common",
+   "card_image_id": 36280194,
+   "name": "Backup Soldier",
+   "name_fr": "Soldat de Réserve"
+  },
+  {
+   "rowid": 130,
+   "set_code": "LDK2-ENY40",
+   "rarity": "Common",
+   "card_image_id": 85742772,
+   "name": "Gravity Bind",
+   "name_fr": "Filet Gravitationnel"
+  },
+  {
+   "rowid": 131,
+   "set_code": "LDK2-ENK01",
+   "rarity": "Common",
+   "card_image_id": 89631139,
+   "name": "Blue-Eyes White Dragon",
+   "name_fr": "Dragon Blanc aux Yeux Bleus"
+  },
+  {
+   "rowid": 132,
+   "set_code": "LDK2-ENK01",
+   "rarity": "Common",
+   "card_image_id": 89631139,
+   "name": "Blue-Eyes White Dragon",
+   "name_fr": "Dragon Blanc aux Yeux Bleus"
+  }
+ ]
+}

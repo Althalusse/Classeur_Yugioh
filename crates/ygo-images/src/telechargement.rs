@@ -98,6 +98,10 @@ pub struct Telechargeur<'a> {
     signature: Option<SignaturePlaceholder>,
     /// Le contenu à écrire quand aucune source ne répond.
     substitut: Option<Vec<u8>>,
+    /// Les images servies par la source de **repli** : `(destination, URL
+    /// primaire)`. L'appelant les consigne, pour qu'une mise à jour de la
+    /// base puisse retenter la source primaire.
+    replis: std::sync::Mutex<Vec<(PathBuf, String)>>,
 }
 
 impl std::fmt::Debug for Telechargeur<'_> {
@@ -126,7 +130,15 @@ impl<'a> Telechargeur<'a> {
             client,
             signature,
             substitut,
+            replis: std::sync::Mutex::new(Vec::new()),
         }
+    }
+
+    /// Les images que la source de repli a servies depuis la création du
+    /// téléchargeur : `(destination, URL primaire)`.
+    #[must_use]
+    pub fn replis(&self) -> Vec<(PathBuf, String)> {
+        self.replis.lock().map(|v| v.clone()).unwrap_or_default()
     }
 
     /// La signature du substitut, pour le planificateur.
@@ -150,6 +162,9 @@ impl<'a> Telechargeur<'a> {
         }
         if let Some(repli) = &cible.url_repli {
             if self.tenter(repli, &cible.destination).await {
+                if let Ok(mut v) = self.replis.lock() {
+                    v.push((cible.destination.clone(), cible.url_primaire.clone()));
+                }
                 return true;
             }
         }
@@ -163,8 +178,15 @@ impl<'a> Telechargeur<'a> {
     }
 
     /// Une tentative sur une URL. N'écrit rien en cas d'échec.
+    ///
+    /// Le quota de l'hôte est attendu par `get_ok` lui-même, avant chaque
+    /// envoi : l'attendre ici aussi coûtait deux créneaux par image
+    /// (2,2 s chez Yugipedia au lieu de 1,1 — mesuré le 2026-10-01).
     async fn tenter(&self, url: &str, destination: &Path) -> bool {
-        self.client.attendre_quota(url).await;
+        // Une seule requête Yugipedia en vol (API etiquette MediaWiki) : le
+        // jeton est gardé jusqu'à la fin de la lecture du corps. Les autres
+        // hôtes gardent le parallélisme.
+        let _jeton = ygo_sources::http::en_serie(url).await;
         let reponse = match self.client.get_ok(url).await {
             Ok(r) => r,
             Err(e) => {

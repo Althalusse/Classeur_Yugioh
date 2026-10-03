@@ -1,0 +1,1559 @@
+[
+ {
+  "nom": "Apollousa, Bow of the Goddess",
+  "art_a": "1dcf6830-df4b-408b-80df-6bd863eab285",
+  "art_b": "398bf213-f296-4dae-a637-e16a07acb72f",
+  "art_index": 2,
+  "prefixe": "RA02",
+  "code": "RA02-EN040",
+  "rarete": "Collector's Rare"
+ },
+ {
+  "nom": "Apollousa, Bow of the Goddess",
+  "art_a": "1dcf6830-df4b-408b-80df-6bd863eab285",
+  "art_b": "398bf213-f296-4dae-a637-e16a07acb72f",
+  "art_index": 2,
+  "prefixe": "RA02",
+  "code": "RA02-EN040",
+  "rarete": "Platinum Secret Rare"
+ },
+ {
+  "nom": "Apollousa, Bow of the Goddess",
+  "art_a": "1dcf6830-df4b-408b-80df-6bd863eab285",
+  "art_b": "398bf213-f296-4dae-a637-e16a07acb72f",
+  "art_index": 2,
+  "prefixe": "RA02",
+  "code": "RA02-EN040",
+  "rarete": "Quarter Century Secret Rare"
+ },
+ {
+  "nom": "Apollousa, Bow of the Goddess",
+  "art_a": "1dcf6830-df4b-408b-80df-6bd863eab285",
+  "art_b": "398bf213-f296-4dae-a637-e16a07acb72f",
+  "art_index": 2,
+  "prefixe": "RA02",
+  "code": "RA02-EN040",
+  "rarete": "Secret Rare"
+ },
+ {
+  "nom": "Apollousa, Bow of the Goddess",
+  "art_a": "1dcf6830-df4b-408b-80df-6bd863eab285",
+  "art_b": "398bf213-f296-4dae-a637-e16a07acb72f",
+  "art_index": 2,
+  "prefixe": "RA02",
+  "code": "RA02-EN040",
+  "rarete": "Super Rare"
+ },
+ {
+  "nom": "Apollousa, Bow of the Goddess",
+  "art_a": "1dcf6830-df4b-408b-80df-6bd863eab285",
+  "art_b": "398bf213-f296-4dae-a637-e16a07acb72f",
+  "art_index": 2,
+  "prefixe": "RA02",
+  "code": "RA02-EN040",
+  "rarete": "Ultimate Rare"
+ },
+ {
+  "nom": "Apollousa, Bow of the Goddess",
+  "art_a": "1dcf6830-df4b-408b-80df-6bd863eab285",
+  "art_b": "398bf213-f296-4dae-a637-e16a07acb72f",
+  "art_index": 2,
+  "prefixe": "RA02",
+  "code": "RA02-EN040",
+  "rarete": "Ultra Rare"
+ },
+ {
+  "nom": "Ash Blossom & Joyous Spring",
+  "art_a": "e14f3401-4e61-464c-9d4c-f1400db8716d",
+  "art_b": "41d9109f-b01b-4a77-8064-af232707dd7d",
+  "art_index": 1,
+  "prefixe": "RA05",
+  "code": "RA05-EN091",
+  "rarete": "Starlight Rare"
+ },
+ {
+  "nom": "Ash Blossom & Joyous Spring",
+  "art_a": "e14f3401-4e61-464c-9d4c-f1400db8716d",
+  "art_b": "41d9109f-b01b-4a77-8064-af232707dd7d",
+  "art_index": 1,
+  "prefixe": "RA05",
+  "code": "RA05-EN091",
+  "rarete": "Ultra Rare"
+ },
+ {
+  "nom": "Ash Blossom & Joyous Spring",
+  "art_a": "e14f3401-4e61-464c-9d4c-f1400db8716d",
+  "art_b": "41d9109f-b01b-4a77-8064-af232707dd7d",
+  "art_index": 1,
+  "prefixe": "SDWD",
+  "code": "SDWD-EN017",
+  "rarete": "Common"
+ },
+ {
+  "nom": "Blue-Eyes Ultimate Dragon",
+  "art_a": "c781cd1a-f8c4-4b32-ad0f-d4a0f1245ad2",
+  "art_b": "5db22803-b6f1-4126-91ff-8c9b5ad3af3e",
+  "art_index": 1,
+  "prefixe": "SDWD",
+  "code": "SDWD-EN034",
+  "rarete": "Common"
+ },
+ {
+  "nom": "Blue-Eyes Ultimate Dragon",
+  "art_a": "c781cd1a-f8c4-4b32-ad0f-d4a0f1245ad2",
+  "art_b": "e3914999-d9ee-4948-97c2-4283e1ef9ce3",
+  "art_index": 3,
+  "prefixe": "SDWD",
+  "code": "SDWD-EN034",
+  "rarete": "Common"
+ },
+ {
+  "nom": "Blue-Eyes White Dragon",
+  "art_a": "305465ca-c543-45b8-9d94-fb807b8f100e",
+  "art_b": "0012fcd5-c216-4a74-85c6-8738ed2d5e6d",
+  "art_index": 1,
+  "prefixe": "RA05",
+  "code": "RA05-EN085",
+  "rarete": "Starlight Rare"
+ },
+ {
+  "nom": "Blue-Eyes White Dragon",
+  "art_a": "305465ca-c543-45b8-9d94-fb807b8f100e",
+  "art_b": "0012fcd5-c216-4a74-85c6-8738ed2d5e6d",
+  "art_index": 1,
+  "prefixe": "RA05",
+  "code": "RA05-EN085",
+  "rarete": "Ultra Rare"
+ },
+ {
+  "nom": "Blue-Eyes White Dragon",
+  "art_a": "305465ca-c543-45b8-9d94-fb807b8f100e",
+  "art_b": "0012fcd5-c216-4a74-85c6-8738ed2d5e6d",
+  "art_index": 1,
+  "prefixe": "SDWD",
+  "code": "SDWD-EN003",
+  "rarete": "Common"
+ },
+ {
+  "nom": "Blue-Eyes White Dragon",
+  "art_a": "305465ca-c543-45b8-9d94-fb807b8f100e",
+  "art_b": "3d219e93-a755-4a81-a21b-a64d75578a64",
+  "art_index": 3,
+  "prefixe": "RA05",
+  "code": "RA05-EN085",
+  "rarete": "Starlight Rare"
+ },
+ {
+  "nom": "Blue-Eyes White Dragon",
+  "art_a": "305465ca-c543-45b8-9d94-fb807b8f100e",
+  "art_b": "3d219e93-a755-4a81-a21b-a64d75578a64",
+  "art_index": 3,
+  "prefixe": "RA05",
+  "code": "RA05-EN085",
+  "rarete": "Ultra Rare"
+ },
+ {
+  "nom": "Blue-Eyes White Dragon",
+  "art_a": "305465ca-c543-45b8-9d94-fb807b8f100e",
+  "art_b": "3d219e93-a755-4a81-a21b-a64d75578a64",
+  "art_index": 3,
+  "prefixe": "SDWD",
+  "code": "SDWD-EN003",
+  "rarete": "Common"
+ },
+ {
+  "nom": "Blue-Eyes White Dragon",
+  "art_a": "305465ca-c543-45b8-9d94-fb807b8f100e",
+  "art_b": "513acaea-4ae9-4252-8054-9b34dbc8d097",
+  "art_index": 4,
+  "prefixe": "RA05",
+  "code": "RA05-EN085",
+  "rarete": "Starlight Rare"
+ },
+ {
+  "nom": "Blue-Eyes White Dragon",
+  "art_a": "305465ca-c543-45b8-9d94-fb807b8f100e",
+  "art_b": "513acaea-4ae9-4252-8054-9b34dbc8d097",
+  "art_index": 4,
+  "prefixe": "RA05",
+  "code": "RA05-EN085",
+  "rarete": "Ultra Rare"
+ },
+ {
+  "nom": "Blue-Eyes White Dragon",
+  "art_a": "305465ca-c543-45b8-9d94-fb807b8f100e",
+  "art_b": "513acaea-4ae9-4252-8054-9b34dbc8d097",
+  "art_index": 4,
+  "prefixe": "SDWD",
+  "code": "SDWD-EN003",
+  "rarete": "Common"
+ },
+ {
+  "nom": "Blue-Eyes White Dragon",
+  "art_a": "305465ca-c543-45b8-9d94-fb807b8f100e",
+  "art_b": "7543a7b9-1166-4bd7-b58e-4e55bb0fbb04",
+  "art_index": 5,
+  "prefixe": "RA05",
+  "code": "RA05-EN085",
+  "rarete": "Starlight Rare"
+ },
+ {
+  "nom": "Blue-Eyes White Dragon",
+  "art_a": "305465ca-c543-45b8-9d94-fb807b8f100e",
+  "art_b": "7543a7b9-1166-4bd7-b58e-4e55bb0fbb04",
+  "art_index": 5,
+  "prefixe": "RA05",
+  "code": "RA05-EN085",
+  "rarete": "Ultra Rare"
+ },
+ {
+  "nom": "Blue-Eyes White Dragon",
+  "art_a": "305465ca-c543-45b8-9d94-fb807b8f100e",
+  "art_b": "7543a7b9-1166-4bd7-b58e-4e55bb0fbb04",
+  "art_index": 5,
+  "prefixe": "SDWD",
+  "code": "SDWD-EN003",
+  "rarete": "Common"
+ },
+ {
+  "nom": "Blue-Eyes White Dragon",
+  "art_a": "305465ca-c543-45b8-9d94-fb807b8f100e",
+  "art_b": "99d705f3-09ec-47a0-8642-7cd6e9e0fb14",
+  "art_index": 6,
+  "prefixe": "RA05",
+  "code": "RA05-EN085",
+  "rarete": "Starlight Rare"
+ },
+ {
+  "nom": "Blue-Eyes White Dragon",
+  "art_a": "305465ca-c543-45b8-9d94-fb807b8f100e",
+  "art_b": "99d705f3-09ec-47a0-8642-7cd6e9e0fb14",
+  "art_index": 6,
+  "prefixe": "RA05",
+  "code": "RA05-EN085",
+  "rarete": "Ultra Rare"
+ },
+ {
+  "nom": "Blue-Eyes White Dragon",
+  "art_a": "305465ca-c543-45b8-9d94-fb807b8f100e",
+  "art_b": "99d705f3-09ec-47a0-8642-7cd6e9e0fb14",
+  "art_index": 6,
+  "prefixe": "SDWD",
+  "code": "SDWD-EN003",
+  "rarete": "Common"
+ },
+ {
+  "nom": "Blue-Eyes White Dragon",
+  "art_a": "305465ca-c543-45b8-9d94-fb807b8f100e",
+  "art_b": "bf89b79f-b356-47a9-af45-a6c5e7d11564",
+  "art_index": 7,
+  "prefixe": "RA05",
+  "code": "RA05-EN085",
+  "rarete": "Starlight Rare"
+ },
+ {
+  "nom": "Blue-Eyes White Dragon",
+  "art_a": "305465ca-c543-45b8-9d94-fb807b8f100e",
+  "art_b": "bf89b79f-b356-47a9-af45-a6c5e7d11564",
+  "art_index": 7,
+  "prefixe": "RA05",
+  "code": "RA05-EN085",
+  "rarete": "Ultra Rare"
+ },
+ {
+  "nom": "Blue-Eyes White Dragon",
+  "art_a": "305465ca-c543-45b8-9d94-fb807b8f100e",
+  "art_b": "bf89b79f-b356-47a9-af45-a6c5e7d11564",
+  "art_index": 7,
+  "prefixe": "SDWD",
+  "code": "SDWD-EN003",
+  "rarete": "Common"
+ },
+ {
+  "nom": "Blue-Eyes White Dragon",
+  "art_a": "305465ca-c543-45b8-9d94-fb807b8f100e",
+  "art_b": "f2112de8-09c8-4726-8e5b-8de68676d79c",
+  "art_index": 8,
+  "prefixe": "RA05",
+  "code": "RA05-EN085",
+  "rarete": "Starlight Rare"
+ },
+ {
+  "nom": "Blue-Eyes White Dragon",
+  "art_a": "305465ca-c543-45b8-9d94-fb807b8f100e",
+  "art_b": "f2112de8-09c8-4726-8e5b-8de68676d79c",
+  "art_index": 8,
+  "prefixe": "RA05",
+  "code": "RA05-EN085",
+  "rarete": "Ultra Rare"
+ },
+ {
+  "nom": "Blue-Eyes White Dragon",
+  "art_a": "305465ca-c543-45b8-9d94-fb807b8f100e",
+  "art_b": "f2112de8-09c8-4726-8e5b-8de68676d79c",
+  "art_index": 8,
+  "prefixe": "SDWD",
+  "code": "SDWD-EN003",
+  "rarete": "Common"
+ },
+ {
+  "nom": "Dark Magician",
+  "art_a": "86c4f121-7be3-40ed-972e-7592310782a7",
+  "art_b": "1f427e37-7b2f-4637-a90c-0b0ea56b9162",
+  "art_index": 1,
+  "prefixe": "RA05",
+  "code": "RA05-EN083",
+  "rarete": "Starlight Rare"
+ },
+ {
+  "nom": "Dark Magician",
+  "art_a": "86c4f121-7be3-40ed-972e-7592310782a7",
+  "art_b": "1f427e37-7b2f-4637-a90c-0b0ea56b9162",
+  "art_index": 1,
+  "prefixe": "RA05",
+  "code": "RA05-EN083",
+  "rarete": "Ultra Rare"
+ },
+ {
+  "nom": "Dark Magician",
+  "art_a": "86c4f121-7be3-40ed-972e-7592310782a7",
+  "art_b": "1f9b7876-271c-4959-a2cb-132e0e31a8d9",
+  "art_index": 2,
+  "prefixe": "RA05",
+  "code": "RA05-EN083",
+  "rarete": "Starlight Rare"
+ },
+ {
+  "nom": "Dark Magician",
+  "art_a": "86c4f121-7be3-40ed-972e-7592310782a7",
+  "art_b": "1f9b7876-271c-4959-a2cb-132e0e31a8d9",
+  "art_index": 2,
+  "prefixe": "RA05",
+  "code": "RA05-EN083",
+  "rarete": "Ultra Rare"
+ },
+ {
+  "nom": "Dark Magician",
+  "art_a": "86c4f121-7be3-40ed-972e-7592310782a7",
+  "art_b": "2f3b7aed-ca1d-4d17-b333-9d19a81b23a1",
+  "art_index": 3,
+  "prefixe": "RA05",
+  "code": "RA05-EN083",
+  "rarete": "Starlight Rare"
+ },
+ {
+  "nom": "Dark Magician",
+  "art_a": "86c4f121-7be3-40ed-972e-7592310782a7",
+  "art_b": "2f3b7aed-ca1d-4d17-b333-9d19a81b23a1",
+  "art_index": 3,
+  "prefixe": "RA05",
+  "code": "RA05-EN083",
+  "rarete": "Ultra Rare"
+ },
+ {
+  "nom": "Dark Magician",
+  "art_a": "86c4f121-7be3-40ed-972e-7592310782a7",
+  "art_b": "5b501525-f0dc-4d64-82fc-c6c0a2ecef90",
+  "art_index": 4,
+  "prefixe": "RA05",
+  "code": "RA05-EN083",
+  "rarete": "Starlight Rare"
+ },
+ {
+  "nom": "Dark Magician",
+  "art_a": "86c4f121-7be3-40ed-972e-7592310782a7",
+  "art_b": "5b501525-f0dc-4d64-82fc-c6c0a2ecef90",
+  "art_index": 4,
+  "prefixe": "RA05",
+  "code": "RA05-EN083",
+  "rarete": "Ultra Rare"
+ },
+ {
+  "nom": "Dark Magician",
+  "art_a": "86c4f121-7be3-40ed-972e-7592310782a7",
+  "art_b": "c3ca54c7-97e1-4be5-a49b-e1efb23293ea",
+  "art_index": 6,
+  "prefixe": "RA05",
+  "code": "RA05-EN083",
+  "rarete": "Starlight Rare"
+ },
+ {
+  "nom": "Dark Magician",
+  "art_a": "86c4f121-7be3-40ed-972e-7592310782a7",
+  "art_b": "c3ca54c7-97e1-4be5-a49b-e1efb23293ea",
+  "art_index": 6,
+  "prefixe": "RA05",
+  "code": "RA05-EN083",
+  "rarete": "Ultra Rare"
+ },
+ {
+  "nom": "Dark Magician",
+  "art_a": "86c4f121-7be3-40ed-972e-7592310782a7",
+  "art_b": "cb876619-bdc7-48f4-bbfa-878fa6a47d58",
+  "art_index": 7,
+  "prefixe": "RA05",
+  "code": "RA05-EN083",
+  "rarete": "Starlight Rare"
+ },
+ {
+  "nom": "Dark Magician",
+  "art_a": "86c4f121-7be3-40ed-972e-7592310782a7",
+  "art_b": "cb876619-bdc7-48f4-bbfa-878fa6a47d58",
+  "art_index": 7,
+  "prefixe": "RA05",
+  "code": "RA05-EN083",
+  "rarete": "Ultra Rare"
+ },
+ {
+  "nom": "Dark Magician",
+  "art_a": "86c4f121-7be3-40ed-972e-7592310782a7",
+  "art_b": "db2482b7-4815-4b13-849c-c857c3d10931",
+  "art_index": 8,
+  "prefixe": "RA05",
+  "code": "RA05-EN083",
+  "rarete": "Starlight Rare"
+ },
+ {
+  "nom": "Dark Magician",
+  "art_a": "86c4f121-7be3-40ed-972e-7592310782a7",
+  "art_b": "db2482b7-4815-4b13-849c-c857c3d10931",
+  "art_index": 8,
+  "prefixe": "RA05",
+  "code": "RA05-EN083",
+  "rarete": "Ultra Rare"
+ },
+ {
+  "nom": "Dark Magician",
+  "art_a": "86c4f121-7be3-40ed-972e-7592310782a7",
+  "art_b": "eaa278cf-5e65-486e-b8cf-5d6110476356",
+  "art_index": 9,
+  "prefixe": "RA05",
+  "code": "RA05-EN083",
+  "rarete": "Starlight Rare"
+ },
+ {
+  "nom": "Dark Magician",
+  "art_a": "86c4f121-7be3-40ed-972e-7592310782a7",
+  "art_b": "eaa278cf-5e65-486e-b8cf-5d6110476356",
+  "art_index": 9,
+  "prefixe": "RA05",
+  "code": "RA05-EN083",
+  "rarete": "Ultra Rare"
+ },
+ {
+  "nom": "Dark Magician Girl",
+  "art_a": "e36e8a38-9b98-4c6a-82f7-1feb1418f0cc",
+  "art_b": "58517cd6-98ae-416b-b2d4-4e88f33ff96f",
+  "art_index": 1,
+  "prefixe": "RA05",
+  "code": "RA05-EN084",
+  "rarete": "Starlight Rare"
+ },
+ {
+  "nom": "Dark Magician Girl",
+  "art_a": "e36e8a38-9b98-4c6a-82f7-1feb1418f0cc",
+  "art_b": "58517cd6-98ae-416b-b2d4-4e88f33ff96f",
+  "art_index": 1,
+  "prefixe": "RA05",
+  "code": "RA05-EN084",
+  "rarete": "Ultra Rare"
+ },
+ {
+  "nom": "Dark Magician Girl",
+  "art_a": "e36e8a38-9b98-4c6a-82f7-1feb1418f0cc",
+  "art_b": "662104d0-265a-4b67-8018-29786f50f922",
+  "art_index": 2,
+  "prefixe": "RA05",
+  "code": "RA05-EN084",
+  "rarete": "Starlight Rare"
+ },
+ {
+  "nom": "Dark Magician Girl",
+  "art_a": "e36e8a38-9b98-4c6a-82f7-1feb1418f0cc",
+  "art_b": "662104d0-265a-4b67-8018-29786f50f922",
+  "art_index": 2,
+  "prefixe": "RA05",
+  "code": "RA05-EN084",
+  "rarete": "Ultra Rare"
+ },
+ {
+  "nom": "Dark Magician Girl",
+  "art_a": "e36e8a38-9b98-4c6a-82f7-1feb1418f0cc",
+  "art_b": "6e33bac4-014f-439c-9aaa-690fa27bc205",
+  "art_index": 3,
+  "prefixe": "RA05",
+  "code": "RA05-EN084",
+  "rarete": "Starlight Rare"
+ },
+ {
+  "nom": "Dark Magician Girl",
+  "art_a": "e36e8a38-9b98-4c6a-82f7-1feb1418f0cc",
+  "art_b": "6e33bac4-014f-439c-9aaa-690fa27bc205",
+  "art_index": 3,
+  "prefixe": "RA05",
+  "code": "RA05-EN084",
+  "rarete": "Ultra Rare"
+ },
+ {
+  "nom": "Dark Magician Girl",
+  "art_a": "e36e8a38-9b98-4c6a-82f7-1feb1418f0cc",
+  "art_b": "71897043-5588-4c7f-aaaa-b83812b0e8be",
+  "art_index": 4,
+  "prefixe": "RA05",
+  "code": "RA05-EN084",
+  "rarete": "Starlight Rare"
+ },
+ {
+  "nom": "Dark Magician Girl",
+  "art_a": "e36e8a38-9b98-4c6a-82f7-1feb1418f0cc",
+  "art_b": "71897043-5588-4c7f-aaaa-b83812b0e8be",
+  "art_index": 4,
+  "prefixe": "RA05",
+  "code": "RA05-EN084",
+  "rarete": "Ultra Rare"
+ },
+ {
+  "nom": "Dark Magician Girl",
+  "art_a": "e36e8a38-9b98-4c6a-82f7-1feb1418f0cc",
+  "art_b": "af5b78f1-a3e4-469d-815c-2edfa9c96575",
+  "art_index": 5,
+  "prefixe": "RA05",
+  "code": "RA05-EN084",
+  "rarete": "Starlight Rare"
+ },
+ {
+  "nom": "Dark Magician Girl",
+  "art_a": "e36e8a38-9b98-4c6a-82f7-1feb1418f0cc",
+  "art_b": "af5b78f1-a3e4-469d-815c-2edfa9c96575",
+  "art_index": 5,
+  "prefixe": "RA05",
+  "code": "RA05-EN084",
+  "rarete": "Ultra Rare"
+ },
+ {
+  "nom": "Dominus Impulse",
+  "art_a": "7811d7e2-f9f2-4e8e-b2c2-b04c29cc7e4d",
+  "art_b": "03e5faf2-d77c-46d9-bb2e-9e400dacc871",
+  "art_index": 1,
+  "prefixe": "RA05",
+  "code": "RA05-EN080",
+  "rarete": "Common"
+ },
+ {
+  "nom": "Droll & Lock Bird",
+  "art_a": "56b5457c-50c8-4c78-a0b0-a9928707a5f4",
+  "art_b": "486ac1c1-66f0-40d2-98c3-22c6778ab7e3",
+  "art_index": 1,
+  "prefixe": "RA02",
+  "code": "RA02-EN006",
+  "rarete": "Collector's Rare"
+ },
+ {
+  "nom": "Droll & Lock Bird",
+  "art_a": "56b5457c-50c8-4c78-a0b0-a9928707a5f4",
+  "art_b": "486ac1c1-66f0-40d2-98c3-22c6778ab7e3",
+  "art_index": 1,
+  "prefixe": "RA02",
+  "code": "RA02-EN006",
+  "rarete": "Platinum Secret Rare"
+ },
+ {
+  "nom": "Droll & Lock Bird",
+  "art_a": "56b5457c-50c8-4c78-a0b0-a9928707a5f4",
+  "art_b": "486ac1c1-66f0-40d2-98c3-22c6778ab7e3",
+  "art_index": 1,
+  "prefixe": "RA02",
+  "code": "RA02-EN006",
+  "rarete": "Quarter Century Secret Rare"
+ },
+ {
+  "nom": "Droll & Lock Bird",
+  "art_a": "56b5457c-50c8-4c78-a0b0-a9928707a5f4",
+  "art_b": "486ac1c1-66f0-40d2-98c3-22c6778ab7e3",
+  "art_index": 1,
+  "prefixe": "RA02",
+  "code": "RA02-EN006",
+  "rarete": "Secret Rare"
+ },
+ {
+  "nom": "Droll & Lock Bird",
+  "art_a": "56b5457c-50c8-4c78-a0b0-a9928707a5f4",
+  "art_b": "486ac1c1-66f0-40d2-98c3-22c6778ab7e3",
+  "art_index": 1,
+  "prefixe": "RA02",
+  "code": "RA02-EN006",
+  "rarete": "Super Rare"
+ },
+ {
+  "nom": "Droll & Lock Bird",
+  "art_a": "56b5457c-50c8-4c78-a0b0-a9928707a5f4",
+  "art_b": "486ac1c1-66f0-40d2-98c3-22c6778ab7e3",
+  "art_index": 1,
+  "prefixe": "RA02",
+  "code": "RA02-EN006",
+  "rarete": "Ultimate Rare"
+ },
+ {
+  "nom": "Droll & Lock Bird",
+  "art_a": "56b5457c-50c8-4c78-a0b0-a9928707a5f4",
+  "art_b": "486ac1c1-66f0-40d2-98c3-22c6778ab7e3",
+  "art_index": 1,
+  "prefixe": "RA02",
+  "code": "RA02-EN006",
+  "rarete": "Ultra Rare"
+ },
+ {
+  "nom": "Fantastical Dragon Phantazmay",
+  "art_a": "6324d16c-ee9a-4ee4-a2a0-d369bf2df6f5",
+  "art_b": "048cb4ee-c6e6-40f2-a0b4-55be7dc25d84",
+  "art_index": 1,
+  "prefixe": "RA02",
+  "code": "RA02-EN013",
+  "rarete": "Collector's Rare"
+ },
+ {
+  "nom": "Fantastical Dragon Phantazmay",
+  "art_a": "6324d16c-ee9a-4ee4-a2a0-d369bf2df6f5",
+  "art_b": "048cb4ee-c6e6-40f2-a0b4-55be7dc25d84",
+  "art_index": 1,
+  "prefixe": "RA02",
+  "code": "RA02-EN013",
+  "rarete": "Platinum Secret Rare"
+ },
+ {
+  "nom": "Fantastical Dragon Phantazmay",
+  "art_a": "6324d16c-ee9a-4ee4-a2a0-d369bf2df6f5",
+  "art_b": "048cb4ee-c6e6-40f2-a0b4-55be7dc25d84",
+  "art_index": 1,
+  "prefixe": "RA02",
+  "code": "RA02-EN013",
+  "rarete": "Quarter Century Secret Rare"
+ },
+ {
+  "nom": "Fantastical Dragon Phantazmay",
+  "art_a": "6324d16c-ee9a-4ee4-a2a0-d369bf2df6f5",
+  "art_b": "048cb4ee-c6e6-40f2-a0b4-55be7dc25d84",
+  "art_index": 1,
+  "prefixe": "RA02",
+  "code": "RA02-EN013",
+  "rarete": "Secret Rare"
+ },
+ {
+  "nom": "Fantastical Dragon Phantazmay",
+  "art_a": "6324d16c-ee9a-4ee4-a2a0-d369bf2df6f5",
+  "art_b": "048cb4ee-c6e6-40f2-a0b4-55be7dc25d84",
+  "art_index": 1,
+  "prefixe": "RA02",
+  "code": "RA02-EN013",
+  "rarete": "Super Rare"
+ },
+ {
+  "nom": "Fantastical Dragon Phantazmay",
+  "art_a": "6324d16c-ee9a-4ee4-a2a0-d369bf2df6f5",
+  "art_b": "048cb4ee-c6e6-40f2-a0b4-55be7dc25d84",
+  "art_index": 1,
+  "prefixe": "RA02",
+  "code": "RA02-EN013",
+  "rarete": "Ultimate Rare"
+ },
+ {
+  "nom": "Fantastical Dragon Phantazmay",
+  "art_a": "6324d16c-ee9a-4ee4-a2a0-d369bf2df6f5",
+  "art_b": "048cb4ee-c6e6-40f2-a0b4-55be7dc25d84",
+  "art_index": 1,
+  "prefixe": "RA02",
+  "code": "RA02-EN013",
+  "rarete": "Ultra Rare"
+ },
+ {
+  "nom": "Foolish Burial",
+  "art_a": "ee67dbd1-61da-4687-b5e3-1b70b86c52bc",
+  "art_b": "00dcaa0c-48c0-435d-8822-55808c794389",
+  "art_index": 1,
+  "prefixe": "RA02",
+  "code": "RA02-EN049",
+  "rarete": "Collector's Rare"
+ },
+ {
+  "nom": "Foolish Burial",
+  "art_a": "ee67dbd1-61da-4687-b5e3-1b70b86c52bc",
+  "art_b": "00dcaa0c-48c0-435d-8822-55808c794389",
+  "art_index": 1,
+  "prefixe": "RA02",
+  "code": "RA02-EN049",
+  "rarete": "Platinum Secret Rare"
+ },
+ {
+  "nom": "Foolish Burial",
+  "art_a": "ee67dbd1-61da-4687-b5e3-1b70b86c52bc",
+  "art_b": "00dcaa0c-48c0-435d-8822-55808c794389",
+  "art_index": 1,
+  "prefixe": "RA02",
+  "code": "RA02-EN049",
+  "rarete": "Quarter Century Secret Rare"
+ },
+ {
+  "nom": "Foolish Burial",
+  "art_a": "ee67dbd1-61da-4687-b5e3-1b70b86c52bc",
+  "art_b": "00dcaa0c-48c0-435d-8822-55808c794389",
+  "art_index": 1,
+  "prefixe": "RA02",
+  "code": "RA02-EN049",
+  "rarete": "Secret Rare"
+ },
+ {
+  "nom": "Foolish Burial",
+  "art_a": "ee67dbd1-61da-4687-b5e3-1b70b86c52bc",
+  "art_b": "00dcaa0c-48c0-435d-8822-55808c794389",
+  "art_index": 1,
+  "prefixe": "RA02",
+  "code": "RA02-EN049",
+  "rarete": "Super Rare"
+ },
+ {
+  "nom": "Foolish Burial",
+  "art_a": "ee67dbd1-61da-4687-b5e3-1b70b86c52bc",
+  "art_b": "00dcaa0c-48c0-435d-8822-55808c794389",
+  "art_index": 1,
+  "prefixe": "RA02",
+  "code": "RA02-EN049",
+  "rarete": "Ultimate Rare"
+ },
+ {
+  "nom": "Foolish Burial",
+  "art_a": "ee67dbd1-61da-4687-b5e3-1b70b86c52bc",
+  "art_b": "00dcaa0c-48c0-435d-8822-55808c794389",
+  "art_index": 1,
+  "prefixe": "RA02",
+  "code": "RA02-EN049",
+  "rarete": "Ultra Rare"
+ },
+ {
+  "nom": "Foolish Burial",
+  "art_a": "ee67dbd1-61da-4687-b5e3-1b70b86c52bc",
+  "art_b": "00dcaa0c-48c0-435d-8822-55808c794389",
+  "art_index": 1,
+  "prefixe": "RA05",
+  "code": "RA05-EN138",
+  "rarete": "Starlight Rare"
+ },
+ {
+  "nom": "Foolish Burial",
+  "art_a": "ee67dbd1-61da-4687-b5e3-1b70b86c52bc",
+  "art_b": "00dcaa0c-48c0-435d-8822-55808c794389",
+  "art_index": 1,
+  "prefixe": "RA05",
+  "code": "RA05-EN138",
+  "rarete": "Ultra Rare"
+ },
+ {
+  "nom": "Foolish Burial",
+  "art_a": "ee67dbd1-61da-4687-b5e3-1b70b86c52bc",
+  "art_b": "00dcaa0c-48c0-435d-8822-55808c794389",
+  "art_index": 1,
+  "prefixe": "VASM",
+  "code": "VASM-EN055",
+  "rarete": "Rare"
+ },
+ {
+  "nom": "Ghost Belle & Haunted Mansion",
+  "art_a": "a6fcc5b5-7004-4870-8fac-47e1582dc64c",
+  "art_b": "4bbb4eca-b346-4532-9cf0-cef627db616c",
+  "art_index": 1,
+  "prefixe": "RA05",
+  "code": "RA05-EN092",
+  "rarete": "Starlight Rare"
+ },
+ {
+  "nom": "Ghost Belle & Haunted Mansion",
+  "art_a": "a6fcc5b5-7004-4870-8fac-47e1582dc64c",
+  "art_b": "4bbb4eca-b346-4532-9cf0-cef627db616c",
+  "art_index": 1,
+  "prefixe": "RA05",
+  "code": "RA05-EN092",
+  "rarete": "Ultra Rare"
+ },
+ {
+  "nom": "Ghost Mourner & Moonlit Chill",
+  "art_a": "fcca9a5a-b46a-456e-885e-a9935673f13f",
+  "art_b": "a13a3b59-5633-4801-9b24-4373b9b82987",
+  "art_index": 1,
+  "prefixe": "RA02",
+  "code": "RA02-EN015",
+  "rarete": "Collector's Rare"
+ },
+ {
+  "nom": "Ghost Mourner & Moonlit Chill",
+  "art_a": "fcca9a5a-b46a-456e-885e-a9935673f13f",
+  "art_b": "a13a3b59-5633-4801-9b24-4373b9b82987",
+  "art_index": 1,
+  "prefixe": "RA02",
+  "code": "RA02-EN015",
+  "rarete": "Platinum Secret Rare"
+ },
+ {
+  "nom": "Ghost Mourner & Moonlit Chill",
+  "art_a": "fcca9a5a-b46a-456e-885e-a9935673f13f",
+  "art_b": "a13a3b59-5633-4801-9b24-4373b9b82987",
+  "art_index": 1,
+  "prefixe": "RA02",
+  "code": "RA02-EN015",
+  "rarete": "Quarter Century Secret Rare"
+ },
+ {
+  "nom": "Ghost Mourner & Moonlit Chill",
+  "art_a": "fcca9a5a-b46a-456e-885e-a9935673f13f",
+  "art_b": "a13a3b59-5633-4801-9b24-4373b9b82987",
+  "art_index": 1,
+  "prefixe": "RA02",
+  "code": "RA02-EN015",
+  "rarete": "Secret Rare"
+ },
+ {
+  "nom": "Ghost Mourner & Moonlit Chill",
+  "art_a": "fcca9a5a-b46a-456e-885e-a9935673f13f",
+  "art_b": "a13a3b59-5633-4801-9b24-4373b9b82987",
+  "art_index": 1,
+  "prefixe": "RA02",
+  "code": "RA02-EN015",
+  "rarete": "Super Rare"
+ },
+ {
+  "nom": "Ghost Mourner & Moonlit Chill",
+  "art_a": "fcca9a5a-b46a-456e-885e-a9935673f13f",
+  "art_b": "a13a3b59-5633-4801-9b24-4373b9b82987",
+  "art_index": 1,
+  "prefixe": "RA02",
+  "code": "RA02-EN015",
+  "rarete": "Ultimate Rare"
+ },
+ {
+  "nom": "Ghost Mourner & Moonlit Chill",
+  "art_a": "fcca9a5a-b46a-456e-885e-a9935673f13f",
+  "art_b": "a13a3b59-5633-4801-9b24-4373b9b82987",
+  "art_index": 1,
+  "prefixe": "RA02",
+  "code": "RA02-EN015",
+  "rarete": "Ultra Rare"
+ },
+ {
+  "nom": "Ghost Mourner & Moonlit Chill",
+  "art_a": "fcca9a5a-b46a-456e-885e-a9935673f13f",
+  "art_b": "a13a3b59-5633-4801-9b24-4373b9b82987",
+  "art_index": 1,
+  "prefixe": "RA05",
+  "code": "RA05-EN096",
+  "rarete": "Starlight Rare"
+ },
+ {
+  "nom": "Ghost Mourner & Moonlit Chill",
+  "art_a": "fcca9a5a-b46a-456e-885e-a9935673f13f",
+  "art_b": "a13a3b59-5633-4801-9b24-4373b9b82987",
+  "art_index": 1,
+  "prefixe": "RA05",
+  "code": "RA05-EN096",
+  "rarete": "Ultra Rare"
+ },
+ {
+  "nom": "Ghost Ogre & Snow Rabbit",
+  "art_a": "073a32f3-bc11-46ac-a015-bde55f736385",
+  "art_b": "dc433de1-2e4b-4cc7-b366-8742dc878646",
+  "art_index": 2,
+  "prefixe": "RA02",
+  "code": "RA02-EN009",
+  "rarete": "Collector's Rare"
+ },
+ {
+  "nom": "Ghost Ogre & Snow Rabbit",
+  "art_a": "073a32f3-bc11-46ac-a015-bde55f736385",
+  "art_b": "dc433de1-2e4b-4cc7-b366-8742dc878646",
+  "art_index": 2,
+  "prefixe": "RA02",
+  "code": "RA02-EN009",
+  "rarete": "Platinum Secret Rare"
+ },
+ {
+  "nom": "Ghost Ogre & Snow Rabbit",
+  "art_a": "073a32f3-bc11-46ac-a015-bde55f736385",
+  "art_b": "dc433de1-2e4b-4cc7-b366-8742dc878646",
+  "art_index": 2,
+  "prefixe": "RA02",
+  "code": "RA02-EN009",
+  "rarete": "Quarter Century Secret Rare"
+ },
+ {
+  "nom": "Ghost Ogre & Snow Rabbit",
+  "art_a": "073a32f3-bc11-46ac-a015-bde55f736385",
+  "art_b": "dc433de1-2e4b-4cc7-b366-8742dc878646",
+  "art_index": 2,
+  "prefixe": "RA02",
+  "code": "RA02-EN009",
+  "rarete": "Secret Rare"
+ },
+ {
+  "nom": "Ghost Ogre & Snow Rabbit",
+  "art_a": "073a32f3-bc11-46ac-a015-bde55f736385",
+  "art_b": "dc433de1-2e4b-4cc7-b366-8742dc878646",
+  "art_index": 2,
+  "prefixe": "RA02",
+  "code": "RA02-EN009",
+  "rarete": "Super Rare"
+ },
+ {
+  "nom": "Ghost Ogre & Snow Rabbit",
+  "art_a": "073a32f3-bc11-46ac-a015-bde55f736385",
+  "art_b": "dc433de1-2e4b-4cc7-b366-8742dc878646",
+  "art_index": 2,
+  "prefixe": "RA02",
+  "code": "RA02-EN009",
+  "rarete": "Ultimate Rare"
+ },
+ {
+  "nom": "Ghost Ogre & Snow Rabbit",
+  "art_a": "073a32f3-bc11-46ac-a015-bde55f736385",
+  "art_b": "dc433de1-2e4b-4cc7-b366-8742dc878646",
+  "art_index": 2,
+  "prefixe": "RA02",
+  "code": "RA02-EN009",
+  "rarete": "Ultra Rare"
+ },
+ {
+  "nom": "Ghost Ogre & Snow Rabbit",
+  "art_a": "073a32f3-bc11-46ac-a015-bde55f736385",
+  "art_b": "dc433de1-2e4b-4cc7-b366-8742dc878646",
+  "art_index": 2,
+  "prefixe": "RA05",
+  "code": "RA05-EN131",
+  "rarete": "Starlight Rare"
+ },
+ {
+  "nom": "Ghost Ogre & Snow Rabbit",
+  "art_a": "073a32f3-bc11-46ac-a015-bde55f736385",
+  "art_b": "dc433de1-2e4b-4cc7-b366-8742dc878646",
+  "art_index": 2,
+  "prefixe": "RA05",
+  "code": "RA05-EN131",
+  "rarete": "Ultra Rare"
+ },
+ {
+  "nom": "Ghost Sister & Spooky Dogwood",
+  "art_a": "c7b273c5-16eb-4031-80e8-a82b9b41601c",
+  "art_b": "44ab1539-1cab-40f4-8e98-963565712d69",
+  "art_index": 1,
+  "prefixe": "VASM",
+  "code": "VASM-EN043",
+  "rarete": "Rare"
+ },
+ {
+  "nom": "I:P Masquerena",
+  "art_a": "1db5bb15-fd78-4729-b924-585bdff65455",
+  "art_b": "aa510045-f41f-405b-9ba3-269bbe4bad9d",
+  "art_index": 2,
+  "prefixe": "RA02",
+  "code": "RA02-EN042",
+  "rarete": "Collector's Rare"
+ },
+ {
+  "nom": "I:P Masquerena",
+  "art_a": "1db5bb15-fd78-4729-b924-585bdff65455",
+  "art_b": "aa510045-f41f-405b-9ba3-269bbe4bad9d",
+  "art_index": 2,
+  "prefixe": "RA02",
+  "code": "RA02-EN042",
+  "rarete": "Platinum Secret Rare"
+ },
+ {
+  "nom": "I:P Masquerena",
+  "art_a": "1db5bb15-fd78-4729-b924-585bdff65455",
+  "art_b": "aa510045-f41f-405b-9ba3-269bbe4bad9d",
+  "art_index": 2,
+  "prefixe": "RA02",
+  "code": "RA02-EN042",
+  "rarete": "Quarter Century Secret Rare"
+ },
+ {
+  "nom": "I:P Masquerena",
+  "art_a": "1db5bb15-fd78-4729-b924-585bdff65455",
+  "art_b": "aa510045-f41f-405b-9ba3-269bbe4bad9d",
+  "art_index": 2,
+  "prefixe": "RA02",
+  "code": "RA02-EN042",
+  "rarete": "Secret Rare"
+ },
+ {
+  "nom": "I:P Masquerena",
+  "art_a": "1db5bb15-fd78-4729-b924-585bdff65455",
+  "art_b": "aa510045-f41f-405b-9ba3-269bbe4bad9d",
+  "art_index": 2,
+  "prefixe": "RA02",
+  "code": "RA02-EN042",
+  "rarete": "Super Rare"
+ },
+ {
+  "nom": "I:P Masquerena",
+  "art_a": "1db5bb15-fd78-4729-b924-585bdff65455",
+  "art_b": "aa510045-f41f-405b-9ba3-269bbe4bad9d",
+  "art_index": 2,
+  "prefixe": "RA02",
+  "code": "RA02-EN042",
+  "rarete": "Ultimate Rare"
+ },
+ {
+  "nom": "I:P Masquerena",
+  "art_a": "1db5bb15-fd78-4729-b924-585bdff65455",
+  "art_b": "aa510045-f41f-405b-9ba3-269bbe4bad9d",
+  "art_index": 2,
+  "prefixe": "RA02",
+  "code": "RA02-EN042",
+  "rarete": "Ultra Rare"
+ },
+ {
+  "nom": "I:P Masquerena",
+  "art_a": "1db5bb15-fd78-4729-b924-585bdff65455",
+  "art_b": "aa510045-f41f-405b-9ba3-269bbe4bad9d",
+  "art_index": 2,
+  "prefixe": "RA05",
+  "code": "RA05-EN105",
+  "rarete": "Starlight Rare"
+ },
+ {
+  "nom": "I:P Masquerena",
+  "art_a": "1db5bb15-fd78-4729-b924-585bdff65455",
+  "art_b": "aa510045-f41f-405b-9ba3-269bbe4bad9d",
+  "art_index": 2,
+  "prefixe": "RA05",
+  "code": "RA05-EN105",
+  "rarete": "Ultra Rare"
+ },
+ {
+  "nom": "Maliss <P> White Rabbit",
+  "art_a": "b6dcad47-3b7c-42bb-a6bb-60378f34e969",
+  "art_b": "af716d57-bb2f-4023-8b7d-7edcf10f17e2",
+  "art_index": 1,
+  "prefixe": "RA05",
+  "code": "RA05-EN136",
+  "rarete": "Starlight Rare"
+ },
+ {
+  "nom": "Maliss <P> White Rabbit",
+  "art_a": "b6dcad47-3b7c-42bb-a6bb-60378f34e969",
+  "art_b": "af716d57-bb2f-4023-8b7d-7edcf10f17e2",
+  "art_index": 1,
+  "prefixe": "RA05",
+  "code": "RA05-EN136",
+  "rarete": "Ultra Rare"
+ },
+ {
+  "nom": "Maliss in Underground",
+  "art_a": "6cbea2dc-881b-4e7e-bc23-2a85954091af",
+  "art_b": "80dee9d7-1c67-4029-b3e9-d2da9f67f38d",
+  "art_index": 2,
+  "prefixe": "LOCR-JP",
+  "code": "LOCR-JP038",
+  "rarete": "Prismatic Secret Rare"
+ },
+ {
+  "nom": "Maliss in Underground",
+  "art_a": "6cbea2dc-881b-4e7e-bc23-2a85954091af",
+  "art_b": "80dee9d7-1c67-4029-b3e9-d2da9f67f38d",
+  "art_index": 2,
+  "prefixe": "LOCR-JP",
+  "code": "LOCR-JP038",
+  "rarete": "Secret Rare"
+ },
+ {
+  "nom": "Maliss in Underground",
+  "art_a": "6cbea2dc-881b-4e7e-bc23-2a85954091af",
+  "art_b": "80dee9d7-1c67-4029-b3e9-d2da9f67f38d",
+  "art_index": 2,
+  "prefixe": "LOCR-JP",
+  "code": "LOCR-JP038",
+  "rarete": "Ultra Rare"
+ },
+ {
+  "nom": "Monster Reborn",
+  "art_a": "f8f82801-d649-4892-877a-6c6805ceaa93",
+  "art_b": "4ff901d5-cf0c-4349-b3ed-155eb0f544c4",
+  "art_index": 1,
+  "prefixe": "RA05",
+  "code": "RA05-EN108",
+  "rarete": "Starlight Rare"
+ },
+ {
+  "nom": "Monster Reborn",
+  "art_a": "f8f82801-d649-4892-877a-6c6805ceaa93",
+  "art_b": "4ff901d5-cf0c-4349-b3ed-155eb0f544c4",
+  "art_index": 1,
+  "prefixe": "RA05",
+  "code": "RA05-EN108",
+  "rarete": "Ultra Rare"
+ },
+ {
+  "nom": "Number 41: Bagooska the Terribly Tired Tapir",
+  "art_a": "d6e53bb8-39d2-431d-8390-a9d1afd90b69",
+  "art_b": "76d48073-4789-41fe-be1e-d25c8ac9f407",
+  "art_index": 1,
+  "prefixe": "VASM",
+  "code": "VASM-EN044",
+  "rarete": "Rare"
+ },
+ {
+  "nom": "Obelisk the Tormentor",
+  "art_a": "c6ae9550-3f75-452e-9ec6-79ece0ec2232",
+  "art_b": "9150d9b6-f0f0-4b8c-a8cd-5fd488808e9c",
+  "art_index": 1,
+  "prefixe": "RA05",
+  "code": "RA05-EN129",
+  "rarete": "Starlight Rare"
+ },
+ {
+  "nom": "Obelisk the Tormentor",
+  "art_a": "c6ae9550-3f75-452e-9ec6-79ece0ec2232",
+  "art_b": "9150d9b6-f0f0-4b8c-a8cd-5fd488808e9c",
+  "art_index": 1,
+  "prefixe": "RA05",
+  "code": "RA05-EN129",
+  "rarete": "Ultra Rare"
+ },
+ {
+  "nom": "Obelisk the Tormentor",
+  "art_a": "c6ae9550-3f75-452e-9ec6-79ece0ec2232",
+  "art_b": "cea06f0c-9338-4de4-ba59-8387512ca70a",
+  "art_index": 3,
+  "prefixe": "RA05",
+  "code": "RA05-EN129",
+  "rarete": "Starlight Rare"
+ },
+ {
+  "nom": "Obelisk the Tormentor",
+  "art_a": "c6ae9550-3f75-452e-9ec6-79ece0ec2232",
+  "art_b": "cea06f0c-9338-4de4-ba59-8387512ca70a",
+  "art_index": 3,
+  "prefixe": "RA05",
+  "code": "RA05-EN129",
+  "rarete": "Ultra Rare"
+ },
+ {
+  "nom": "Polymerization",
+  "art_a": "3e89c5f8-18f2-4fda-9dca-4dfc3ba194fd",
+  "art_b": "35fd4de8-35ef-4eaf-af5e-107914a6767a",
+  "art_index": 1,
+  "prefixe": "RA02",
+  "code": "RA02-EN047",
+  "rarete": "Collector's Rare"
+ },
+ {
+  "nom": "Polymerization",
+  "art_a": "3e89c5f8-18f2-4fda-9dca-4dfc3ba194fd",
+  "art_b": "35fd4de8-35ef-4eaf-af5e-107914a6767a",
+  "art_index": 1,
+  "prefixe": "RA02",
+  "code": "RA02-EN047",
+  "rarete": "Platinum Secret Rare"
+ },
+ {
+  "nom": "Polymerization",
+  "art_a": "3e89c5f8-18f2-4fda-9dca-4dfc3ba194fd",
+  "art_b": "35fd4de8-35ef-4eaf-af5e-107914a6767a",
+  "art_index": 1,
+  "prefixe": "RA02",
+  "code": "RA02-EN047",
+  "rarete": "Quarter Century Secret Rare"
+ },
+ {
+  "nom": "Polymerization",
+  "art_a": "3e89c5f8-18f2-4fda-9dca-4dfc3ba194fd",
+  "art_b": "35fd4de8-35ef-4eaf-af5e-107914a6767a",
+  "art_index": 1,
+  "prefixe": "RA02",
+  "code": "RA02-EN047",
+  "rarete": "Secret Rare"
+ },
+ {
+  "nom": "Polymerization",
+  "art_a": "3e89c5f8-18f2-4fda-9dca-4dfc3ba194fd",
+  "art_b": "35fd4de8-35ef-4eaf-af5e-107914a6767a",
+  "art_index": 1,
+  "prefixe": "RA02",
+  "code": "RA02-EN047",
+  "rarete": "Super Rare"
+ },
+ {
+  "nom": "Polymerization",
+  "art_a": "3e89c5f8-18f2-4fda-9dca-4dfc3ba194fd",
+  "art_b": "35fd4de8-35ef-4eaf-af5e-107914a6767a",
+  "art_index": 1,
+  "prefixe": "RA02",
+  "code": "RA02-EN047",
+  "rarete": "Ultimate Rare"
+ },
+ {
+  "nom": "Polymerization",
+  "art_a": "3e89c5f8-18f2-4fda-9dca-4dfc3ba194fd",
+  "art_b": "35fd4de8-35ef-4eaf-af5e-107914a6767a",
+  "art_index": 1,
+  "prefixe": "RA02",
+  "code": "RA02-EN047",
+  "rarete": "Ultra Rare"
+ },
+ {
+  "nom": "Primite Drillbeam",
+  "art_a": "dc86211e-9b2f-447c-8d37-fa13a0067e71",
+  "art_b": "0da1ad52-bb03-418e-b92a-ac276716c363",
+  "art_index": 1,
+  "prefixe": "LOCR-JP",
+  "code": "LOCR-JP074",
+  "rarete": "Prismatic Secret Rare"
+ },
+ {
+  "nom": "Primite Drillbeam",
+  "art_a": "dc86211e-9b2f-447c-8d37-fa13a0067e71",
+  "art_b": "0da1ad52-bb03-418e-b92a-ac276716c363",
+  "art_index": 1,
+  "prefixe": "LOCR-JP",
+  "code": "LOCR-JP074",
+  "rarete": "Secret Rare"
+ },
+ {
+  "nom": "Primite Drillbeam",
+  "art_a": "dc86211e-9b2f-447c-8d37-fa13a0067e71",
+  "art_b": "0da1ad52-bb03-418e-b92a-ac276716c363",
+  "art_index": 1,
+  "prefixe": "LOCR-JP",
+  "code": "LOCR-JP074",
+  "rarete": "Super Rare"
+ },
+ {
+  "nom": "Primite Drillbeam",
+  "art_a": "dc86211e-9b2f-447c-8d37-fa13a0067e71",
+  "art_b": "0da1ad52-bb03-418e-b92a-ac276716c363",
+  "art_index": 1,
+  "prefixe": "LOCR-JP",
+  "code": "LOCR-JP074",
+  "rarete": "Ultimate Rare"
+ },
+ {
+  "nom": "Primite Lordly Lode",
+  "art_a": "6b3073aa-8703-4ac6-b015-348efe5025a2",
+  "art_b": "a03c30da-0f80-4e8e-880f-6f94f9ad88fa",
+  "art_index": 2,
+  "prefixe": "LOCR-JP",
+  "code": "LOCR-JP076",
+  "rarete": "Prismatic Secret Rare"
+ },
+ {
+  "nom": "Primite Lordly Lode",
+  "art_a": "6b3073aa-8703-4ac6-b015-348efe5025a2",
+  "art_b": "a03c30da-0f80-4e8e-880f-6f94f9ad88fa",
+  "art_index": 2,
+  "prefixe": "LOCR-JP",
+  "code": "LOCR-JP076",
+  "rarete": "Secret Rare"
+ },
+ {
+  "nom": "Primite Lordly Lode",
+  "art_a": "6b3073aa-8703-4ac6-b015-348efe5025a2",
+  "art_b": "a03c30da-0f80-4e8e-880f-6f94f9ad88fa",
+  "art_index": 2,
+  "prefixe": "LOCR-JP",
+  "code": "LOCR-JP076",
+  "rarete": "Super Rare"
+ },
+ {
+  "nom": "Primite Lordly Lode",
+  "art_a": "6b3073aa-8703-4ac6-b015-348efe5025a2",
+  "art_b": "a03c30da-0f80-4e8e-880f-6f94f9ad88fa",
+  "art_index": 2,
+  "prefixe": "LOCR-JP",
+  "code": "LOCR-JP076",
+  "rarete": "Ultimate Rare"
+ },
+ {
+  "nom": "Primite Lordly Lode",
+  "art_a": "6b3073aa-8703-4ac6-b015-348efe5025a2",
+  "art_b": "a03c30da-0f80-4e8e-880f-6f94f9ad88fa",
+  "art_index": 2,
+  "prefixe": "RA05",
+  "code": "RA05-EN072",
+  "rarete": "Common"
+ },
+ {
+  "nom": "Primite Roar",
+  "art_a": "46b84d22-50eb-4ac5-b98c-576670ce0d62",
+  "art_b": "b3ad1f6d-e807-43fa-8ecd-b8f72a9afb87",
+  "art_index": 2,
+  "prefixe": "LOCR-JP",
+  "code": "LOCR-JP073",
+  "rarete": "Prismatic Secret Rare"
+ },
+ {
+  "nom": "Primite Roar",
+  "art_a": "46b84d22-50eb-4ac5-b98c-576670ce0d62",
+  "art_b": "b3ad1f6d-e807-43fa-8ecd-b8f72a9afb87",
+  "art_index": 2,
+  "prefixe": "LOCR-JP",
+  "code": "LOCR-JP073",
+  "rarete": "Secret Rare"
+ },
+ {
+  "nom": "Primite Roar",
+  "art_a": "46b84d22-50eb-4ac5-b98c-576670ce0d62",
+  "art_b": "b3ad1f6d-e807-43fa-8ecd-b8f72a9afb87",
+  "art_index": 2,
+  "prefixe": "LOCR-JP",
+  "code": "LOCR-JP073",
+  "rarete": "Super Rare"
+ },
+ {
+  "nom": "Primite Roar",
+  "art_a": "46b84d22-50eb-4ac5-b98c-576670ce0d62",
+  "art_b": "b3ad1f6d-e807-43fa-8ecd-b8f72a9afb87",
+  "art_index": 2,
+  "prefixe": "LOCR-JP",
+  "code": "LOCR-JP073",
+  "rarete": "Ultimate Rare"
+ },
+ {
+  "nom": "Red-Eyes Black Dragon",
+  "art_a": "b286f447-3a23-49a0-8b63-281f05dbb948",
+  "art_b": "4a83c1ae-5c8a-492a-a4ec-bff931209213",
+  "art_index": 1,
+  "prefixe": "RA05",
+  "code": "RA05-EN086",
+  "rarete": "Starlight Rare"
+ },
+ {
+  "nom": "Red-Eyes Black Dragon",
+  "art_a": "b286f447-3a23-49a0-8b63-281f05dbb948",
+  "art_b": "4a83c1ae-5c8a-492a-a4ec-bff931209213",
+  "art_index": 1,
+  "prefixe": "RA05",
+  "code": "RA05-EN086",
+  "rarete": "Ultra Rare"
+ },
+ {
+  "nom": "Red-Eyes Black Dragon",
+  "art_a": "b286f447-3a23-49a0-8b63-281f05dbb948",
+  "art_b": "8279a6c6-b56e-417f-bcf8-9ecefc28fb23",
+  "art_index": 2,
+  "prefixe": "RA05",
+  "code": "RA05-EN086",
+  "rarete": "Starlight Rare"
+ },
+ {
+  "nom": "Red-Eyes Black Dragon",
+  "art_a": "b286f447-3a23-49a0-8b63-281f05dbb948",
+  "art_b": "8279a6c6-b56e-417f-bcf8-9ecefc28fb23",
+  "art_index": 2,
+  "prefixe": "RA05",
+  "code": "RA05-EN086",
+  "rarete": "Ultra Rare"
+ },
+ {
+  "nom": "Red-Eyes Black Dragon",
+  "art_a": "b286f447-3a23-49a0-8b63-281f05dbb948",
+  "art_b": "8733caf8-c862-4720-bc03-0c0427e0f705",
+  "art_index": 3,
+  "prefixe": "RA05",
+  "code": "RA05-EN086",
+  "rarete": "Starlight Rare"
+ },
+ {
+  "nom": "Red-Eyes Black Dragon",
+  "art_a": "b286f447-3a23-49a0-8b63-281f05dbb948",
+  "art_b": "8733caf8-c862-4720-bc03-0c0427e0f705",
+  "art_index": 3,
+  "prefixe": "RA05",
+  "code": "RA05-EN086",
+  "rarete": "Ultra Rare"
+ },
+ {
+  "nom": "Red-Eyes Black Dragon",
+  "art_a": "b286f447-3a23-49a0-8b63-281f05dbb948",
+  "art_b": "b2de2424-e5c3-43ea-ab2d-44baad9d7cc4",
+  "art_index": 5,
+  "prefixe": "RA05",
+  "code": "RA05-EN086",
+  "rarete": "Starlight Rare"
+ },
+ {
+  "nom": "Red-Eyes Black Dragon",
+  "art_a": "b286f447-3a23-49a0-8b63-281f05dbb948",
+  "art_b": "b2de2424-e5c3-43ea-ab2d-44baad9d7cc4",
+  "art_index": 5,
+  "prefixe": "RA05",
+  "code": "RA05-EN086",
+  "rarete": "Ultra Rare"
+ },
+ {
+  "nom": "Red-Eyes Black Dragon",
+  "art_a": "b286f447-3a23-49a0-8b63-281f05dbb948",
+  "art_b": "e17a6b6d-2347-4e2f-b62b-3f9c52ad4ea1",
+  "art_index": 6,
+  "prefixe": "RA05",
+  "code": "RA05-EN086",
+  "rarete": "Starlight Rare"
+ },
+ {
+  "nom": "Red-Eyes Black Dragon",
+  "art_a": "b286f447-3a23-49a0-8b63-281f05dbb948",
+  "art_b": "e17a6b6d-2347-4e2f-b62b-3f9c52ad4ea1",
+  "art_index": 6,
+  "prefixe": "RA05",
+  "code": "RA05-EN086",
+  "rarete": "Ultra Rare"
+ },
+ {
+  "nom": "Rescue Cat",
+  "art_a": "1e086d41-0cc9-4091-afdb-f6602f6b397f",
+  "art_b": "d957bff1-4d92-42fd-8bbf-213b9b723b23",
+  "art_index": 2,
+  "prefixe": "RA02",
+  "code": "RA02-EN001",
+  "rarete": "Collector's Rare"
+ },
+ {
+  "nom": "Rescue Cat",
+  "art_a": "1e086d41-0cc9-4091-afdb-f6602f6b397f",
+  "art_b": "d957bff1-4d92-42fd-8bbf-213b9b723b23",
+  "art_index": 2,
+  "prefixe": "RA02",
+  "code": "RA02-EN001",
+  "rarete": "Platinum Secret Rare"
+ },
+ {
+  "nom": "Rescue Cat",
+  "art_a": "1e086d41-0cc9-4091-afdb-f6602f6b397f",
+  "art_b": "d957bff1-4d92-42fd-8bbf-213b9b723b23",
+  "art_index": 2,
+  "prefixe": "RA02",
+  "code": "RA02-EN001",
+  "rarete": "Quarter Century Secret Rare"
+ },
+ {
+  "nom": "Rescue Cat",
+  "art_a": "1e086d41-0cc9-4091-afdb-f6602f6b397f",
+  "art_b": "d957bff1-4d92-42fd-8bbf-213b9b723b23",
+  "art_index": 2,
+  "prefixe": "RA02",
+  "code": "RA02-EN001",
+  "rarete": "Secret Rare"
+ },
+ {
+  "nom": "Rescue Cat",
+  "art_a": "1e086d41-0cc9-4091-afdb-f6602f6b397f",
+  "art_b": "d957bff1-4d92-42fd-8bbf-213b9b723b23",
+  "art_index": 2,
+  "prefixe": "RA02",
+  "code": "RA02-EN001",
+  "rarete": "Super Rare"
+ },
+ {
+  "nom": "Rescue Cat",
+  "art_a": "1e086d41-0cc9-4091-afdb-f6602f6b397f",
+  "art_b": "d957bff1-4d92-42fd-8bbf-213b9b723b23",
+  "art_index": 2,
+  "prefixe": "RA02",
+  "code": "RA02-EN001",
+  "rarete": "Ultimate Rare"
+ },
+ {
+  "nom": "Rescue Cat",
+  "art_a": "1e086d41-0cc9-4091-afdb-f6602f6b397f",
+  "art_b": "d957bff1-4d92-42fd-8bbf-213b9b723b23",
+  "art_index": 2,
+  "prefixe": "RA02",
+  "code": "RA02-EN001",
+  "rarete": "Ultra Rare"
+ },
+ {
+  "nom": "Slifer the Sky Dragon",
+  "art_a": "406a8c28-9bec-46e9-8cb3-23a968c1ff94",
+  "art_b": "36e1b16d-f26b-44f7-8e57-4b52e0459246",
+  "art_index": 1,
+  "prefixe": "RA05",
+  "code": "RA05-EN128",
+  "rarete": "Starlight Rare"
+ },
+ {
+  "nom": "Slifer the Sky Dragon",
+  "art_a": "406a8c28-9bec-46e9-8cb3-23a968c1ff94",
+  "art_b": "36e1b16d-f26b-44f7-8e57-4b52e0459246",
+  "art_index": 1,
+  "prefixe": "RA05",
+  "code": "RA05-EN128",
+  "rarete": "Ultra Rare"
+ },
+ {
+  "nom": "Slifer the Sky Dragon",
+  "art_a": "406a8c28-9bec-46e9-8cb3-23a968c1ff94",
+  "art_b": "fc5ad5e7-0765-4c7f-85b7-574c7fe1693d",
+  "art_index": 3,
+  "prefixe": "RA05",
+  "code": "RA05-EN128",
+  "rarete": "Starlight Rare"
+ },
+ {
+  "nom": "Slifer the Sky Dragon",
+  "art_a": "406a8c28-9bec-46e9-8cb3-23a968c1ff94",
+  "art_b": "fc5ad5e7-0765-4c7f-85b7-574c7fe1693d",
+  "art_index": 3,
+  "prefixe": "RA05",
+  "code": "RA05-EN128",
+  "rarete": "Ultra Rare"
+ },
+ {
+  "nom": "The Winged Dragon of Ra",
+  "art_a": "ac8fa580-52a9-4d56-9959-b7e05b63ac75",
+  "art_b": "b295aee3-aeea-4f24-ba6e-e9f53e144d8b",
+  "art_index": 2,
+  "prefixe": "RA05",
+  "code": "RA05-EN130",
+  "rarete": "Starlight Rare"
+ },
+ {
+  "nom": "The Winged Dragon of Ra",
+  "art_a": "ac8fa580-52a9-4d56-9959-b7e05b63ac75",
+  "art_b": "b295aee3-aeea-4f24-ba6e-e9f53e144d8b",
+  "art_index": 2,
+  "prefixe": "RA05",
+  "code": "RA05-EN130",
+  "rarete": "Ultra Rare"
+ },
+ {
+  "nom": "The Winged Dragon of Ra",
+  "art_a": "ac8fa580-52a9-4d56-9959-b7e05b63ac75",
+  "art_b": "c0c5f4f8-28dd-45e7-ad2b-08839d39ee09",
+  "art_index": 3,
+  "prefixe": "RA05",
+  "code": "RA05-EN130",
+  "rarete": "Starlight Rare"
+ },
+ {
+  "nom": "The Winged Dragon of Ra",
+  "art_a": "ac8fa580-52a9-4d56-9959-b7e05b63ac75",
+  "art_b": "c0c5f4f8-28dd-45e7-ad2b-08839d39ee09",
+  "art_index": 3,
+  "prefixe": "RA05",
+  "code": "RA05-EN130",
+  "rarete": "Ultra Rare"
+ },
+ {
+  "nom": "Tour Guide From the Underworld",
+  "art_a": "4c8ed491-d2a8-4df6-b33f-e13688af47f9",
+  "art_b": "a089f1d5-abe1-48d0-8b20-95363329b541",
+  "art_index": 2,
+  "prefixe": "RA05",
+  "code": "RA05-EN090",
+  "rarete": "Starlight Rare"
+ },
+ {
+  "nom": "Tour Guide From the Underworld",
+  "art_a": "4c8ed491-d2a8-4df6-b33f-e13688af47f9",
+  "art_b": "a089f1d5-abe1-48d0-8b20-95363329b541",
+  "art_index": 2,
+  "prefixe": "RA05",
+  "code": "RA05-EN090",
+  "rarete": "Ultra Rare"
+ }
+]

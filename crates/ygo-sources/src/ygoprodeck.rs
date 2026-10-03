@@ -42,8 +42,31 @@ use crate::http::ClientHttp;
 
 /// Catalogue complet de l'API YGOPRODeck, alias compris.
 ///
-/// `includeAliased=true` est indispensable : sans lui, les artworks alternatifs
-/// — qui sont précisément l'objet de l'expansion — n'apparaissent pas.
+/// # `includeAliased=true` est indispensable — mesuré le 2026-10-02
+///
+/// Le paramètre n'est pas dans le guide de l'API. Il a donc été **mesuré**
+/// plutôt que cru : les deux réponses du même jour, puis deux `cardinfo.db`
+/// construites par ce pipeline à partir de la même archive YGOJSON.
+///
+/// - Il ajoute **172 entrées** : chaque illustration alternative publiée sous
+///   son propre identifiant (Obelisk `10000001`, `10000002`…). Sans lui, ces
+///   illustrations n'existent que comme images de la carte d'origine, avec
+///   la liste de sets **commune**. Avec lui, 130 d'entre elles portent la
+///   liste des seuls sets où **cette** illustration a été imprimée.
+/// - Sans lui, [`resoudre_et_etendre_artworks`] ajoute **0** tirage au lieu
+///   de **2 435** (`set_prints` : 323 979 contre 326 414), 43 tirages restent
+///   rattachés à la mauvaise illustration (Dark Magician `HAC1-EN002`…), et 2
+///   cartes qui n'existent que sous un identifiant alias perdent leurs
+///   statistiques.
+/// - Sur les 16 sets de l'utilisateur, 5 sont touchés (EGO1, EGS1, LCKC, LDK2,
+///   SDLI) : 71 tirages, dont l'Obelisk et le Slifer alternatifs d'EGO1/EGS1.
+///
+/// Coût vis-à-vis des règles de l'API : **aucun** — une seule requête dans les
+/// deux cas, réponse plus lourde de 2 % (21,8 Mo contre 21,3 Mo).
+///
+/// La construction « avec » est identique, table par table, à la base réelle
+/// 147.20 de l'utilisateur : la mesure porte bien sur ce que l'application
+/// produit.
 pub const YGOPRODECK_URL: &str =
     "https://db.ygoprodeck.com/api/v7/cardinfo.php?includeAliased=true";
 
@@ -125,9 +148,29 @@ fn vers_i64(v: &serde_json::Value) -> Option<i64> {
 ///
 /// Retourne `Ok(vec![])` si la source répond mal — l'appelant traite ce cas
 /// comme une dégradation, pas comme un échec.
+///
+/// Avec son propre délai, [`crate::http::DELAI_CATALOGUE`] — cf. sa
+/// documentation pour la mesure qui l'a fixé.
 pub async fn telecharger_catalogue(client: &ClientHttp) -> Result<Vec<CarteYgoprodeck>> {
-    let reponse: ReponseCatalogue = client.get_json(YGOPRODECK_URL).await?;
-    tracing::info!(entrees = reponse.data.len(), "catalogue YGOPRODeck reçu");
+    catalogue_depuis(client, YGOPRODECK_URL, crate::http::DELAI_CATALOGUE).await
+}
+
+/// Le catalogue depuis une URL et avec un délai donnés.
+///
+/// Séparé de [`telecharger_catalogue`] pour qu'un test puisse le pointer sur
+/// un serveur local lent, sans réseau.
+async fn catalogue_depuis(
+    client: &ClientHttp,
+    url: &str,
+    delai: std::time::Duration,
+) -> Result<Vec<CarteYgoprodeck>> {
+    let debut = std::time::Instant::now();
+    let reponse: ReponseCatalogue = client.get_json_avec_delai(url, delai).await?;
+    tracing::info!(
+        entrees = reponse.data.len(),
+        secondes = debut.elapsed().as_secs(),
+        "catalogue YGOPRODeck reçu"
+    );
     Ok(reponse.data)
 }
 
@@ -410,6 +453,15 @@ mod tests {
     #![allow(clippy::unwrap_used, clippy::panic, clippy::indexing_slicing)]
 
     use super::*;
+
+    /// Garde-fou : sans `includeAliased`, l'expansion des artworks tombe de
+    /// 2 435 tirages à 0 (mesure du 2026-10-02). Ce paramètre absent du guide
+    /// de l'API ressemble à un reste à nettoyer ; il ne l'est pas.
+    #[test]
+    fn le_catalogue_demande_les_alias() {
+        assert!(YGOPRODECK_URL.contains("includeAliased=true"));
+        assert!(YGOPRODECK_URL.starts_with("https://db.ygoprodeck.com/api/v7/cardinfo.php"));
+    }
 
     fn image(uuid: &str, carte: &str, pw: Option<i64>) -> LigneImage {
         LigneImage {
@@ -701,5 +753,70 @@ mod tests {
             "Pharaoh%27s%20Servant",
             "l'apostrophe doit être encodée, sinon l'URL est invalide"
         );
+    }
+
+    /// Un serveur local qui attend `lenteur` avant de répondre, et compte les
+    /// connexions reçues — c'est-à-dire les tentatives.
+    fn serveur_lent(
+        lenteur: std::time::Duration,
+    ) -> (String, std::sync::Arc<std::sync::atomic::AtomicUsize>) {
+        use std::io::{Read, Write};
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        let ecoute = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let adresse = ecoute.local_addr().unwrap();
+        let connexions = std::sync::Arc::new(AtomicUsize::new(0));
+        let compte = connexions.clone();
+        std::thread::spawn(move || {
+            for flux in ecoute.incoming() {
+                let Ok(mut flux) = flux else { break };
+                compte.fetch_add(1, Ordering::SeqCst);
+                std::thread::spawn(move || {
+                    let mut tampon = [0_u8; 2048];
+                    let _ = flux.read(&mut tampon);
+                    std::thread::sleep(lenteur);
+                    let corps = r#"{"data":[{"id":46986414},{"id":89631139}]}"#;
+                    let _ = write!(
+                        flux,
+                        "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\
+                         Content-Length: {}\r\nConnection: close\r\n\r\n{corps}",
+                        corps.len()
+                    );
+                });
+            }
+        });
+        (format!("http://{adresse}/cardinfo.php"), connexions)
+    }
+
+    /// Dette 11 : un serveur lent mais vivant doit être **attendu**, pas
+    /// relancé. Avec un délai plus court que sa lenteur, on reproduit le
+    /// 2026-09-20 — trois tentatives et un catalogue perdu ; avec un délai
+    /// plus long, une seule connexion suffit.
+    #[tokio::test(flavor = "multi_thread")]
+    async fn un_catalogue_lent_est_attendu_et_non_relance() {
+        use std::sync::atomic::Ordering;
+        use std::time::Duration;
+        let client = ClientHttp::new().unwrap();
+
+        let (url, connexions) = serveur_lent(Duration::from_millis(400));
+        let echec = catalogue_depuis(&client, &url, Duration::from_millis(100)).await;
+        assert!(echec.is_err(), "coupé avant la réponse : catalogue perdu");
+        assert_eq!(connexions.load(Ordering::SeqCst), 3, "trois tentatives");
+
+        let (url, connexions) = serveur_lent(Duration::from_millis(400));
+        let cartes = catalogue_depuis(&client, &url, Duration::from_secs(5))
+            .await
+            .unwrap();
+        assert_eq!(cartes.len(), 2);
+        assert_eq!(connexions.load(Ordering::SeqCst), 1, "une seule tentative");
+    }
+
+    /// Le délai du catalogue couvre la fabrication mesurée à froid.
+    #[test]
+    fn le_delai_du_catalogue_couvre_la_mesure_du_20_septembre() {
+        use crate::http::{DELAI_CATALOGUE, DELAI_REQUETE};
+        // Deux coupures à 45 s, puis 2 s : la fabrication a duré entre 45 et
+        // 92 s. Le délai doit dépasser la borne haute.
+        assert!(DELAI_CATALOGUE.as_secs() > 92);
+        assert!(DELAI_CATALOGUE > DELAI_REQUETE);
     }
 }

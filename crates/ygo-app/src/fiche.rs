@@ -766,7 +766,10 @@ mod tests {
                  'Divine-Beast', 1, 10000000);",
         )
         .unwrap();
-        let (f, uuid) = lire_ligne(&conn, 1, SourceImage::default())
+        // Source fixée à YGOPRODeck : c'est elle qui déduit un fichier de
+        // l'identifiant quand aucune URL n'est stockée. Le défaut est passé à
+        // Yugipedia le 2026-09-30 ; ce test porte sur les colonnes, pas sur lui.
+        let (f, uuid) = lire_ligne(&conn, 1, SourceImage::Ygoprodeck)
             .unwrap()
             .expect("la ligne existe");
         assert_eq!(f.nom, "Obelisk");
@@ -779,6 +782,13 @@ mod tests {
         // d'illustration — exactement comme dans la liste du classeur, sans
         // quoi la fiche montrerait une autre image que la case.
         assert_eq!(f.fichier_image.as_deref(), Some("10000000.jpg"));
+        // Yugipedia ne fabrique rien : sans URL stockée, pas de fichier — et la
+        // case de la liste n'en montre pas non plus. Aucune ligne réelle n'est
+        // dans ce cas (0 URL vide sur 4 328, mesuré le 2026-09-30).
+        let (f, _) = lire_ligne(&conn, 1, SourceImage::Yugipedia)
+            .unwrap()
+            .expect("la ligne existe");
+        assert_eq!(f.fichier_image, None);
         // Une ligne qui n'existe pas se dit par `None`, pas par une erreur.
         assert!(lire_ligne(&conn, 99, SourceImage::default())
             .unwrap()

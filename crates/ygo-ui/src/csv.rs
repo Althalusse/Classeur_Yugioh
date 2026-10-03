@@ -550,20 +550,14 @@ impl PanneauCsv {
                         ))
                         .show(ui, |ui| {
                             ui.small(
-                                "La base n'a qu'une ligne par (tirage, rareté, artwork) : \
-                                 elle ne peut garder ni la langue, ni deux éditions d'un \
-                                 même exemplaire.",
+                                "La base ne garde pas la langue d'un exemplaire : deux \
+                                 langues d'un même tirage se fondent. L'état et \
+                                 l'édition, eux, sont gardés exemplaire par exemplaire.",
                             );
                             for f in rapport.fusions_avec_perte() {
                                 let mut quoi = Vec::new();
                                 if f.perte.langue {
                                     quoi.push("langue");
-                                }
-                                if f.perte.edition {
-                                    quoi.push("édition");
-                                }
-                                if f.perte.qualite {
-                                    quoi.push("état");
                                 }
                                 ui.small(format!(
                                     "{} {} · lignes {:?} · {}",

@@ -135,6 +135,7 @@ where
     let (cibles, _deja, nb_lignes) = a_faire(paths, code, source, &telechargeur)?;
     let a_telecharger = cibles.len();
     let bilan = telechargeur.toutes(&cibles, progression).await;
+    crate::replis::consigner(paths, &telechargeur.replis());
     Ok(Issue {
         lignes: nb_lignes,
         a_telecharger,
