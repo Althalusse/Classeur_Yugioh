@@ -1,0 +1,20 @@
+[package]
+name = "ygo-db"
+description = "Accès SQLite : schémas cardinfo/classeur, migrations, connexions sérialisées par base."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+ygo-core.workspace = true
+rusqlite.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[lints]
+workspace = true

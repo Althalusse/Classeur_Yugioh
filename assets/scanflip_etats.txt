@@ -1,0 +1,72 @@
+# Guide de notation de Scanflip (https://www.scanflip.fr/fr/infos/grading-guide),
+# relevé le 2026-09-21.
+#
+# Ce fichier est la RECOPIE FIDÈLE de la page. Il fait autorité sur le NOM et
+# le SENS des états, comme scanflip_regles.txt fait autorité sur ce que leur
+# import accepte. Les deux sont de Scanflip et diffèrent sur un point, réel :
+#   · PL s'appelle « Played » ici, « Lightly Played » dans la page d'aide de
+#     l'import. Le guide est la définition du grade ; la page d'aide, la liste
+#     des écritures que l'import tolère. L'affichage suit le guide, l'import
+#     accepte les deux.
+#
+# Introduction de la page, première phrase : « L'évaluation de l'état d'une
+# carte n'est pas une science exacte. Deux collectionneurs expérimentés peuvent
+# observer la même carte et ne pas lui attribuer exactement le même grade. »
+#
+# Format, une section par état, dans l'ordre de la page :
+#   [CODE|Nom]
+#   la phrase d'ouverture
+#   - un critère
+#   + un défaut toléré
+#   > une remarque
+
+[M|Mint]
+Une carte Mint est en état irréprochable, équivalente à une carte fraîchement sortie de booster, sans aucun défaut visible.
+- Aucun blanchiment sur les coins ou les bords
+- Aucune rayure, marque, trace d'usure ou clouding
+- Surface parfaitement propre, recto comme verso
+- Coins nets et bien formés
++ De très légers défauts d'usine
++ Un centrage imparfait, sans autre altération
+> Une carte Mint est une carte que l'on peut envoyer en gradation avec une probabilité réaliste d'obtenir une note de 9 ou 10.
+
+[NM|Near Mint]
+Une carte Near Mint est très proche du neuf, généralement sortie de booster et immédiatement protégée.
+- Les coins et les bords sont quasi parfaits
+- Aucun défaut identifiable lors d'une inspection non poussée à l'oeil nu
+- À la lumière, de très légers défauts peuvent être perceptibles
+> Un bon test mental pour cet état : si la carte est mélangée avec plusieurs exemplaires identiques, recto ou verso, il doit être impossible de la reconnaître
+
+[EX|Excellent]
+Une carte en état 'Excellent' reste une très belle carte qui peut présenter des défauts visibles à l'inspection rapide :
+- Léger clouding ou micro-rayures d'usage
+- Petits défauts sur les bords
+- Légers blanchiments sur un à 2 coins
+- Défauts parfois visibles dès le premier regard, mais restant limités
+> Certaines cartes peuvent être Excellent dès la sortie de booster, en raison de défauts d'usine.
+
+[GD|Good]
+Une carte Good présente une usure clairement visible et commence à devenir problématique pour un collectionneur exigeant :
+- Un défaut marqué, ou plus de 2 coins blanchis/abîmés
+- Rayures ou traces d'usure notables
+- Bords et angles nettement affectés
+> Dans une logique de gradation, une carte Good ne dépassera généralement pas une note de 5.
+
+[PL|Played]
+Une carte Played, comme son nom l'indique, a été largement manipulée ou jouée sans protège-carte. Elle comporte :
+- De nombreuses rayures
+- Un clouding très prononcé
+- Des coins ou des bords fortement usés
+
+[PO|Poor]
+Une carte Poor est dans un état très dégradé :
+- Usure extrême
+- Défauts visibles et perceptibles au toucher
+- Texture ou rigidité altérée
+
+[DM|Damaged]
+Une carte Damaged est gravement endommagée :
+- Pliée, froissée, déchirée ou fortement déformée
+- Coins détruits
+- Traces irréversibles (eau, écriture, encre, etc.)
+> Une carte présentant des traces irréversibles, de type eau ou écriture, est automatiquement classée comme carte Damaged, quel que soit son grade potentiel.

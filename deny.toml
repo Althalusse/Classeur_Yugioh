@@ -1,0 +1,38 @@
+# Politique de licences — §3.8 du cahier des charges.
+#
+# Le projet est sous GNU GPL v3.0. Toute dépendance retenue doit être
+# compatible. `cargo deny check licenses` fait échouer la construction sur
+# toute licence non listée ici.
+#
+#     cargo install cargo-deny
+#     cargo deny check licenses
+
+[licenses]
+# Licences compatibles GPLv3 (permissives ou copyleft faible).
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Zlib",
+    "MPL-2.0",
+    "Unicode-3.0",
+    "Unlicense",
+    "CC0-1.0",
+    "GPL-3.0",
+    "GPL-3.0-or-later",
+]
+confidence-threshold = 0.9
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+
+[advisories]
+yanked = "deny"
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"

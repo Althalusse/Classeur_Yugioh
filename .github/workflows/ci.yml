@@ -1,0 +1,104 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: -D warnings
+
+jobs:
+  qualite:
+    name: Qualité et tests
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Chaîne d'outils
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - uses: Swatinem/rust-cache@v2
+
+      # NF-6 : clippy vert, `unwrap()` et `expect()` interdits hors tests.
+      - name: Format
+        run: cargo fmt --all --check
+
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Tests
+        run: cargo test --workspace
+
+      - name: Documentation
+        run: cargo doc --workspace --no-deps
+
+  licences:
+    name: Licences (GPLv3-compatibles)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: taiki-e/install-action@cargo-deny
+      # §3.8 : toute licence non listée dans deny.toml fait échouer la CI.
+      - run: cargo deny check licenses
+
+  i18n:
+    name: Traductions FR/EN
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # §3.6 : fr.json et en.json doivent avoir exactement le même jeu de clés.
+      - name: Jeux de clés identiques
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json, sys
+          fr = json.load(open("assets/i18n/fr.json", encoding="utf-8"))
+          en = json.load(open("assets/i18n/en.json", encoding="utf-8"))
+          manquantes_en = sorted(set(fr) - set(en))
+          manquantes_fr = sorted(set(en) - set(fr))
+          if manquantes_en or manquantes_fr:
+              if manquantes_en:
+                  print(f"absentes de en.json : {manquantes_en}")
+              if manquantes_fr:
+                  print(f"absentes de fr.json : {manquantes_fr}")
+              sys.exit(1)
+          print(f"{len(fr)} clés, identiques des deux côtés")
+          PY
+
+  architecture:
+    name: Règles d'architecture
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # R1 : ygo-core ne dépend ni du réseau, ni de SQLite, ni de l'interface.
+      # La vérification est volontairement brutale : une simple recherche dans
+      # le manifeste. Elle échoue tôt et pour une raison lisible.
+      - name: R1 — ygo-core reste pur
+        shell: bash
+        run: |
+          interdits="rusqlite reqwest tokio iced eframe egui slint"
+          for crate in $interdits; do
+            if grep -qE "^\s*$crate" crates/ygo-core/Cargo.toml; then
+              echo "R1 violée : ygo-core dépend de $crate"
+              exit 1
+            fi
+          done
+          echo "R1 respectée"
+
+      # R6 : ygo-app ne connaîtra aucun type d'interface (crate à venir).
+      - name: R6 — ygo-app ignore l'interface
+        shell: bash
+        run: |
+          if [ -f crates/ygo-app/Cargo.toml ]; then
+            for crate in iced eframe egui slint; do
+              if grep -qE "^\s*$crate" crates/ygo-app/Cargo.toml; then
+                echo "R6 violée : ygo-app dépend de $crate"
+                exit 1
+              fi
+            done
+          fi
+          echo "R6 respectée"

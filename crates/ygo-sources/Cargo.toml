@@ -1,0 +1,32 @@
+[package]
+name = "ygo-sources"
+description = "Sources de données externes : YGOPRODeck, YGOJSON, Yugipedia. Client HTTP unique porteur des quotas."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+ygo-core.workspace = true
+reqwest.workspace = true
+governor.workspace = true
+futures-util.workspace = true
+tokio.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+indexmap.workspace = true
+zip.workspace = true
+regex.workspace = true
+crc32fast.workspace = true
+html-escape.workspace = true
+tempfile.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+serde.workspace = true
+
+[lints]
+workspace = true

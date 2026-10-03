@@ -1,0 +1,17 @@
+# Emplacement des artefacts de compilation.
+#
+# Laisse a Cargo son defaut : `target/` a la racine de ce projet.
+#
+# Le projet de laboratoire renvoyait les artefacts dans un dossier voisin
+# (« Projet Rust COMPIL »), pour garder les sources propres. Ici ce serait un
+# contresens : ce dossier doit se suffire a lui-meme et se deplacer d'un
+# glisser. Des artefacts poses a l'exterieur casseraient les deux, et les
+# scripts Compiler.ps1 / Preparer-Une-Distribution.ps1 cherchent
+# `target\release\` DANS ce dossier.
+#
+# `target/` pese plusieurs gigaoctets une fois le projet compile, et
+# .gitignore l'ecarte deja. Il se supprime sans rien perdre : la compilation
+# suivante le refait.
+#
+# `CARGO_TARGET_DIR` dans l'environnement a priorite sur ce reglage, s'il faut
+# compiler ailleurs ponctuellement.

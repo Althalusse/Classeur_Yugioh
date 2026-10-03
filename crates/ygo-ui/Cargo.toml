@@ -1,0 +1,33 @@
+[package]
+name = "ygo-ui"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+ygo-app.workspace = true
+ygo-core.workspace = true
+ygo-db.workspace = true
+ygo-images.workspace = true
+ygo-sources.workspace = true
+tokio.workspace = true
+anyhow.workspace = true
+tracing.workspace = true
+eframe = { version = "0.36", default-features = false, features = ["default_fonts", "glow", "wayland", "x11"] }
+egui_extras = { version = "0.36", features = ["image"] }
+chrono.workspace = true
+rfd.workspace = true
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp", "gif"] }
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "ygo-ui"
+path = "src/main.rs"
+
+[dev-dependencies]
+tempfile.workspace = true

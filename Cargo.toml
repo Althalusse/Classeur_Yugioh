@@ -1,0 +1,144 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/ygo-core",
+    "crates/ygo-db",
+    "crates/ygo-sources",
+    "crates/ygo-app",
+    "crates/ygo-images",
+    "crates/ygo-cli",
+    "crates/ygo-ui",
+]
+#
+# `ygo-ui` est DANS le workspace, contrairement aux prototypes : le framework
+# est tranché (egui, cf. §6 du Construction_Projet), et c'est désormais du
+# produit. Il compile donc à chaque `cargo test --workspace` — une fois, puis
+# le cache fait le reste.
+
+# Les deux prototypes d'interface sont DEHORS, et volontairement.
+#
+# Ce sont des artefacts d'arbitrage, pas du produit : ils servent à choisir
+# entre egui et Iced, puis l'un des deux sera jeté. Les inclure ferait
+# compiler deux piles graphiques entières à chaque `cargo test --workspace` —
+# plusieurs minutes ajoutées à la boucle de travail, pour du code destiné à
+# disparaître. Ils ont chacun leur propre workspace et dépendent de `ygo-app`
+# par chemin.
+exclude = ["prototypes/accueil-egui", "prototypes/accueil-iced"]
+
+[workspace.package]
+version = "2.0.0-alpha.1"
+edition = "2021"
+rust-version = "1.85"
+license = "GPL-3.0-or-later"
+authors = ["Althalusse"]
+repository = "https://github.com/Althalusse/ygo-binder"
+
+[workspace.dependencies]
+ygo-core = { path = "crates/ygo-core" }
+ygo-db = { path = "crates/ygo-db" }
+ygo-sources = { path = "crates/ygo-sources" }
+ygo-app = { path = "crates/ygo-app" }
+ygo-images = { path = "crates/ygo-images" }
+ygo-ui = { path = "crates/ygo-ui" }
+
+anyhow = "1"
+thiserror = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# `indexmap` préserve l'ordre d'apparition des clés JSON. Ce n'est pas un
+# détail : `set_locales.id` est un entier AUTOINCREMENT, donc l'ordre
+# d'insertion des locales détermine les identifiants que référencera
+# `set_prints.set_locale_id`. Un ordre alphabétique produirait une base
+# fonctionnellement équivalente mais non comparable ligne à ligne avec celle
+# de la V1.0.4 — ce qui ferait perdre l'oracle.
+indexmap = { version = "2", features = ["serde"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "chrono"] }
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+tracing-appender = "0.2"
+rusqlite = { version = "0.37", features = ["bundled"] }
+# Lecture/écriture CSV. Le format Scanflip cite ses champs (« Minerva la
+# Demoiselle, Seigneur Lumière ») : un découpage naïf sur la virgule
+# couperait 21 des 407 lignes de l'export réel en plein milieu.
+csv = "1"
+tempfile = "3"
+# Boîtes de dialogue de fichier **natives** — celles du système, pas un
+# sélecteur redessiné en egui. Sur Windows c'est `IFileDialog`, donc les
+# raccourcis, les emplacements récents et la saisie de chemin que
+# l'utilisateur connaît déjà.
+#
+# `default-features = false` : le jeu par défaut tire `async-std` pour la
+# variante asynchrone, dont nous n'avons pas l'usage — l'appel bloquant part
+# sur un fil à nous. `xdg-portal` + `tokio` fournit la voie Linux (portail
+# XDG, sans dépendance GTK) ; sous Windows aucune des deux ne sert, le crate
+# passe par l'API du système.
+rfd = { version = "0.15", default-features = false, features = ["xdg-portal", "tokio"] }
+
+# Réseau — `rustls` et NON `native-tls` : c'est ce choix précis qui supprime la
+# classe de crash « access violation dans OpenSSL depuis un fil secondaire ».
+# rustls est une implémentation TLS en Rust pur, sans état global C partagé.
+#
+# `rustls-tls-native-roots` et non `rustls-tls` : les racines de confiance
+# viennent du magasin du système, pas d'un jeu figé compilé dans le binaire.
+# C'est ce qui permet à l'application de fonctionner derrière un proxy à
+# inspection TLS — courant en entreprise, et rencontré dès le premier essai
+# réel de ce pipeline. Le Python forçait `certifi`, et aurait échoué là.
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls-native-roots", "stream", "json", "gzip"] }
+governor = "0.10"
+futures-util = { version = "0.3", default-features = false, features = ["std"] }
+tokio = { version = "1", features = ["rt-multi-thread", "fs", "io-util", "time", "sync", "macros"] }
+zip = { version = "6", default-features = false, features = ["deflate"] }
+
+# Yugipedia : le wikitext des Set lists. `regex` pour dérouler les liens
+# `[[A|B]]`, `html-escape` pour reproduire `html.unescape` du Python — deux
+# opérations qu'il serait imprudent de coder à la main sur des données que
+# l'application ne contrôle pas.
+# Identifiants synthetiques des artworks Yugipedia : CRC32 du nom de fichier,
+# rendu negatif pour ne jamais croiser un password Konami.
+crc32fast = "1"
+regex = "1"
+html-escape = "0.2"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Lints du workspace — exigences NF-2 et NF-6 du cahier des charges.
+# ─────────────────────────────────────────────────────────────────────────────
+# `unsafe` est interdit dans les crates métier (déclaré aussi par
+# #![forbid(unsafe_code)] en tête de chaque lib.rs, pour que ce soit visible
+# à la lecture du fichier et pas seulement ici).
+#
+# `unwrap()` et `expect()` sont interdits hors tests : ce sont exactement les
+# constructions qui transforment une erreur récupérable en arrêt du processus,
+# c'est-à-dire ce qu'on cherche à supprimer en quittant Python.
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_debug_implementations = "warn"
+
+[workspace.lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+indexing_slicing = "warn"
+todo = "warn"
+unimplemented = "deny"
+
+# Les dépendances sont optimisées MÊME en debug.
+#
+# Le décodage d'une carte (813 × 1 185 px) prend 277 ms compilé sans
+# optimisation, contre 9,6 ms avec. Neuf cartes par page, décodées dans la
+# frame : deux secondes et demie à chaque changement de page contre quatre-
+# vingt-six millisecondes. C'est le décodeur JPEG qui paie, et il est chez
+# `image`, pas chez nous.
+#
+# `package."*"` ne touche QUE les dépendances : nos propres crates restent en
+# debug, avec leurs symboles et leur recompilation rapide. Seule la première
+# compilation après ce changement est longue, le temps de rebâtir `image` et
+# ses semblables — ensuite elles ne bougent plus.
+[profile.dev.package."*"]
+opt-level = 3
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+strip = true
+panic = "abort"

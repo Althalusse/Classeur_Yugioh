@@ -1,0 +1,27 @@
+[package]
+name = "ygo-cli"
+description = "Binaire de diagnostic sans écran : vérification de schéma, création de bases, comparaison avec les bases produites par la V1.0.4 Python."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[[bin]]
+name = "ygo-cli"
+path = "src/main.rs"
+
+[dependencies]
+ygo-core.workspace = true
+ygo-db.workspace = true
+ygo-sources.workspace = true
+ygo-app.workspace = true
+ygo-images.workspace = true
+tokio.workspace = true
+anyhow.workspace = true
+rusqlite.workspace = true
+chrono.workspace = true
+tracing.workspace = true
+
+[lints]
+workspace = true

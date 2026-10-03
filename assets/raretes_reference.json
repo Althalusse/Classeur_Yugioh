@@ -1,0 +1,286 @@
+[
+ {
+  "code": "C",
+  "fr": "Commune",
+  "en": "Common",
+  "alias": [
+   "Short Print",
+   "Super Short Print"
+  ]
+ },
+ {
+  "code": "CPA",
+  "fr": "Commune Parallèle",
+  "en": "Normal Parallel Rare",
+  "alias": [
+   "Common Parallel Rare"
+  ]
+ },
+ {
+  "code": "CDT",
+  "fr": "Commune Duel Terminal",
+  "en": "Duel Terminal Normal Parallel Rare",
+  "alias": [
+   "Duel Terminal Normal Rare Parallel Rare"
+  ]
+ },
+ {
+  "code": "R",
+  "fr": "Rare",
+  "en": "Rare",
+  "alias": []
+ },
+ {
+  "code": "RDT",
+  "fr": "Rare Duel Terminal",
+  "en": "Duel Terminal Rare Parallel Rare",
+  "alias": []
+ },
+ {
+  "code": "RVI",
+  "fr": "Rare Violet",
+  "en": "Purple Rare",
+  "alias": []
+ },
+ {
+  "code": "RVE",
+  "fr": "Rare Vert",
+  "en": "Green Rare",
+  "alias": []
+ },
+ {
+  "code": "RBR",
+  "fr": "Rare Bronze",
+  "en": "Bronze Rare",
+  "alias": []
+ },
+ {
+  "code": "RBL",
+  "fr": "Rare Bleu",
+  "en": "Blue Rare",
+  "alias": []
+ },
+ {
+  "code": "RRO",
+  "fr": "Rare Rouge",
+  "en": "Red Rare",
+  "alias": []
+ },
+ {
+  "code": "RAR",
+  "fr": "Rare Argent",
+  "en": "Silver Rare",
+  "alias": []
+ },
+ {
+  "code": "SFR",
+  "fr": "Starfoil Rare",
+  "en": "Starfoil Rare",
+  "alias": [
+   "Starfoil"
+  ]
+ },
+ {
+  "code": "SDT",
+  "fr": "Super Rare Duel Terminal",
+  "en": "Duel Terminal Super Parallel Rare",
+  "alias": [
+   "Super Parallel Rare"
+  ]
+ },
+ {
+  "code": "MO",
+  "fr": "Mosaic Rare",
+  "en": "Mosaic Rare",
+  "alias": []
+ },
+ {
+  "code": "SHA",
+  "fr": "Shatterfoil Rare",
+  "en": "Shatterfoil Rare",
+  "alias": []
+ },
+ {
+  "code": "SR",
+  "fr": "Super Rare",
+  "en": "Super Rare",
+  "alias": []
+ },
+ {
+  "code": "U",
+  "fr": "Ultra Rare",
+  "en": "Ultra Rare",
+  "alias": []
+ },
+ {
+  "code": "UDT",
+  "fr": "Ultra Rare Duel Terminal",
+  "en": "Duel Terminal Ultra Parallel Rare",
+  "alias": [
+   "Ultra Parallel Rare"
+  ]
+ },
+ {
+  "code": "UBL",
+  "fr": "Ultra Rare Bleu",
+  "en": "Blue Ultra Rare",
+  "alias": []
+ },
+ {
+  "code": "UB",
+  "fr": "Ultra Blasonnée",
+  "en": "Crested Ultra Rare",
+  "alias": []
+ },
+ {
+  "code": "URO",
+  "fr": "Ultra Rare Rouge",
+  "en": "Red Ultra Rare",
+  "alias": []
+ },
+ {
+  "code": "UVI",
+  "fr": "Ultra Rare Violet",
+  "en": "Purple Ultra Rare",
+  "alias": []
+ },
+ {
+  "code": "UAR",
+  "fr": "Ultra Argent",
+  "en": "Silver Ultra Rare",
+  "alias": []
+ },
+ {
+  "code": "UVE",
+  "fr": "Ultra Rare Vert",
+  "en": "Green Ultra Rare",
+  "alias": []
+ },
+ {
+  "code": "SCR",
+  "fr": "Secrète Rare",
+  "en": "Secret Rare",
+  "alias": []
+ },
+ {
+  "code": "SCRB",
+  "fr": "Secret Rare Blasonnée",
+  "en": "Crested Secret Rare",
+  "alias": []
+ },
+ {
+  "code": "PAR",
+  "fr": "Parallèle Rare",
+  "en": "Parallel Rare",
+  "alias": []
+ },
+ {
+  "code": "PLA",
+  "fr": "Platinum Rare",
+  "en": "Platinum Rare",
+  "alias": []
+ },
+ {
+  "code": "GLD",
+  "fr": "Gold Rare",
+  "en": "Gold Rare",
+  "alias": []
+ },
+ {
+  "code": "GS",
+  "fr": "Gold Secrète Rare",
+  "en": "Gold Secret Rare",
+  "alias": []
+ },
+ {
+  "code": "COL",
+  "fr": "Collector's Rare",
+  "en": "Collector's Rare",
+  "alias": []
+ },
+ {
+  "code": "PRG",
+  "fr": "Premium Gold Rare",
+  "en": "Premium Gold Rare",
+  "alias": []
+ },
+ {
+  "code": "UTR",
+  "fr": "Ultimate Rare",
+  "en": "Ultimate Rare",
+  "alias": []
+ },
+ {
+  "code": "SPL",
+  "fr": "Secrète Platinum",
+  "en": "Platinum Secret Rare",
+  "alias": []
+ },
+ {
+  "code": "PHR",
+  "fr": "Pharaonique Rare",
+  "en": "Ultra Rare (Pharaoh's Rare)",
+  "alias": [
+   "Pharaoh's Rare"
+  ]
+ },
+ {
+  "code": "PRI",
+  "fr": "Prismatique",
+  "en": "Prismatic Secret Rare",
+  "alias": []
+ },
+ {
+  "code": "STR",
+  "fr": "Starlight Rare",
+  "en": "Starlight Rare",
+  "alias": []
+ },
+ {
+  "code": "GMR",
+  "fr": "Grand Master Rare",
+  "en": "Grand Master Rare",
+  "alias": [
+   "Grandmaster Rare",
+   "GMR"
+  ]
+ },
+ {
+  "code": "S10K",
+  "fr": "Secrète 10000",
+  "en": "10000 Secret Rare",
+  "alias": []
+ },
+ {
+  "code": "GG",
+  "fr": "Ghost Gold Rare",
+  "en": "Ghost/Gold Rare",
+  "alias": []
+ },
+ {
+  "code": "EXS",
+  "fr": "Extra Secrète",
+  "en": "Extra Secret Rare",
+  "alias": [
+   "Extra Secret"
+  ]
+ },
+ {
+  "code": "RSC",
+  "fr": "Remote Secrète Rare",
+  "en": "Remote Secret Rare",
+  "alias": []
+ },
+ {
+  "code": "QCR",
+  "fr": "Secrète Rare Quart de Siècle",
+  "en": "Quarter Century Secret Rare",
+  "alias": []
+ },
+ {
+  "code": "G",
+  "fr": "Ghost Rare",
+  "en": "Ghost Rare",
+  "alias": []
+ }
+]

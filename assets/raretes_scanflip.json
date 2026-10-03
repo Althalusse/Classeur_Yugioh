@@ -1,0 +1,211 @@
+{
+ "raretes": [
+  {
+   "code": "CPA",
+   "fr": "Commune Parallèle"
+  },
+  {
+   "code": "C",
+   "fr": "Commune"
+  },
+  {
+   "code": "CDT",
+   "fr": "Commune Duel Terminal"
+  },
+  {
+   "code": "RVI",
+   "fr": "Rare Violet"
+  },
+  {
+   "code": "R",
+   "fr": "Rare"
+  },
+  {
+   "code": "RDT",
+   "fr": "Rare Duel Terminal"
+  },
+  {
+   "code": "RVE",
+   "fr": "Rare Vert"
+  },
+  {
+   "code": "RBR",
+   "fr": "Rare Bronze"
+  },
+  {
+   "code": "RBL",
+   "fr": "Rare Bleu"
+  },
+  {
+   "code": "RRO",
+   "fr": "Rare Rouge"
+  },
+  {
+   "code": "RAR",
+   "fr": "Rare Argent"
+  },
+  {
+   "code": "SFR",
+   "fr": "Starfoil Rare"
+  },
+  {
+   "code": "SDT",
+   "fr": "Super Rare Duel Terminal"
+  },
+  {
+   "code": "MO",
+   "fr": "Mosaic Rare"
+  },
+  {
+   "code": "SR",
+   "fr": "Super Rare"
+  },
+  {
+   "code": "SHA",
+   "fr": "Shatterfoil Rare"
+  },
+  {
+   "code": "UDT",
+   "fr": "Ultra Rare Duel Terminal"
+  },
+  {
+   "code": "U",
+   "fr": "Ultra Rare"
+  },
+  {
+   "code": "UBL",
+   "fr": "Ultra Rare Bleu"
+  },
+  {
+   "code": "UB",
+   "fr": "Ultra Blasonnée"
+  },
+  {
+   "code": "URO",
+   "fr": "Ultra Rare Rouge"
+  },
+  {
+   "code": "UVI",
+   "fr": "Ultra Rare Violet"
+  },
+  {
+   "code": "UAR",
+   "fr": "Ultra Argent"
+  },
+  {
+   "code": "UVE",
+   "fr": "Ultra Rare Vert"
+  },
+  {
+   "code": "SCR",
+   "fr": "Secrète Rare"
+  },
+  {
+   "code": "SCRB",
+   "fr": "Secret Rare Blasonnée"
+  },
+  {
+   "code": "PAR",
+   "fr": "Parallèle Rare"
+  },
+  {
+   "code": "PLA",
+   "fr": "Platinum Rare"
+  },
+  {
+   "code": "GLD",
+   "fr": "Gold Rare"
+  },
+  {
+   "code": "GS",
+   "fr": "Gold Secrète Rare"
+  },
+  {
+   "code": "COL",
+   "fr": "Collector's Rare"
+  },
+  {
+   "code": "PRG",
+   "fr": "Premium Gold Rare"
+  },
+  {
+   "code": "UTR",
+   "fr": "Ultimate Rare"
+  },
+  {
+   "code": "SPL",
+   "fr": "Secrète Platinum"
+  },
+  {
+   "code": "PHR",
+   "fr": "Pharaonique Rare"
+  },
+  {
+   "code": "PRI",
+   "fr": "Prismatique"
+  },
+  {
+   "code": "STR",
+   "fr": "Starlight Rare"
+  },
+  {
+   "code": "STRB",
+   "fr": "Starlight Blasonnée"
+  },
+  {
+   "code": "S10K",
+   "fr": "Secrète 10000"
+  },
+  {
+   "code": "GG",
+   "fr": "Ghost Gold Rare"
+  },
+  {
+   "code": "EXS",
+   "fr": "Extra Secrète"
+  },
+  {
+   "code": "RSC",
+   "fr": "Remote Secrète Rare"
+  },
+  {
+   "code": "QCR",
+   "fr": "Secrète Rare Quart de Siècle"
+  },
+  {
+   "code": "G",
+   "fr": "Ghost Rare"
+  }
+ ],
+ "qualites": [
+  [
+   "M",
+   "Mint"
+  ],
+  [
+   "NM",
+   "NM+",
+   "Near Mint"
+  ],
+  [
+   "EX",
+   "Excellent"
+  ],
+  [
+   "GD",
+   "Good"
+  ],
+  [
+   "PL",
+   "Lightly Played"
+  ],
+  [
+   "PO",
+   "Poor"
+  ],
+  [
+   "DM",
+   "Damaged"
+  ]
+ ]
+}

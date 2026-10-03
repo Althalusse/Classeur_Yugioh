@@ -1,0 +1,23 @@
+[package]
+name = "ygo-core"
+description = "Modèles et règles métier pures du Yu-Gi-Oh! Collection Manager — aucune I/O réseau, aucune dépendance SQLite ni interface (règle R1)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+tracing-appender.workspace = true
+chrono.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[lints]
+workspace = true

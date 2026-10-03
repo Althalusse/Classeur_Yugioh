@@ -1,0 +1,139 @@
+[
+  {
+    "abreviation": "C",
+    "canonique": "Common",
+    "source": "ygoprodeck"
+  },
+  {
+    "abreviation": "CR",
+    "canonique": "Collector's Rare",
+    "source": "ygoprodeck"
+  },
+  {
+    "abreviation": "DNPR",
+    "canonique": "Duel Terminal Normal Parallel Rare",
+    "source": "ygoprodeck"
+  },
+  {
+    "abreviation": "DRPR",
+    "canonique": "Duel Terminal Rare Parallel Rare",
+    "source": "ygoprodeck"
+  },
+  {
+    "abreviation": "DSPR",
+    "canonique": "Duel Terminal Super Parallel Rare",
+    "source": "ygoprodeck"
+  },
+  {
+    "abreviation": "DUPR",
+    "canonique": "Duel Terminal Ultra Parallel Rare",
+    "source": "ygoprodeck"
+  },
+  {
+    "abreviation": "GGR",
+    "canonique": "Ghost/Gold Rare",
+    "source": "ygoprodeck"
+  },
+  {
+    "abreviation": "GR",
+    "canonique": "Ghost Rare",
+    "source": "ygoprodeck"
+  },
+  {
+    "abreviation": "GScR",
+    "canonique": "Gold Secret Rare",
+    "source": "ygoprodeck"
+  },
+  {
+    "abreviation": "GUR",
+    "canonique": "Gold Rare",
+    "source": "ygoprodeck"
+  },
+  {
+    "abreviation": "MSR",
+    "canonique": "Mosaic Rare",
+    "source": "ygoprodeck"
+  },
+  {
+    "abreviation": "PG",
+    "canonique": "Premium Gold Rare",
+    "source": "ygoprodeck"
+  },
+  {
+    "abreviation": "PIR",
+    "canonique": "Platinum Rare",
+    "source": "ygoprodeck"
+  },
+  {
+    "abreviation": "PS",
+    "canonique": "Platinum Secret Rare",
+    "source": "ygoprodeck"
+  },
+  {
+    "abreviation": "PScR",
+    "canonique": "Prismatic Secret Rare",
+    "source": "ygoprodeck"
+  },
+  {
+    "abreviation": "PlScR",
+    "canonique": "Platinum Secret Rare",
+    "source": "yugipedia",
+    "preuve": "https://yugipedia.com/wiki/Platinum_Secret_Rare — AshBlossomJoyousSpring-RA01-EN-PlScR-1E.png"
+  },
+  {
+    "abreviation": "QCScR",
+    "canonique": "Quarter Century Secret Rare",
+    "source": "yugipedia",
+    "preuve": "https://yugipedia.com/wiki/Quarter_Century_Secret_Rare — AshBlossomJoyousSpring-RA01-EN-QCScR-1E.png"
+  },
+  {
+    "abreviation": "R",
+    "canonique": "Rare",
+    "source": "ygoprodeck"
+  },
+  {
+    "abreviation": "SFR",
+    "canonique": "Starfoil Rare",
+    "source": "ygoprodeck"
+  },
+  {
+    "abreviation": "SHR",
+    "canonique": "Shatterfoil Rare",
+    "source": "ygoprodeck"
+  },
+  {
+    "abreviation": "SP",
+    "canonique": "Short Print",
+    "source": "ygoprodeck"
+  },
+  {
+    "abreviation": "SR",
+    "canonique": "Super Rare",
+    "source": "ygoprodeck"
+  },
+  {
+    "abreviation": "ScR",
+    "canonique": "Secret Rare",
+    "source": "ygoprodeck"
+  },
+  {
+    "abreviation": "StR",
+    "canonique": "Starlight Rare",
+    "source": "ygoprodeck"
+  },
+  {
+    "abreviation": "UPR",
+    "canonique": "Ultra Parallel Rare",
+    "source": "ygoprodeck"
+  },
+  {
+    "abreviation": "UR",
+    "canonique": "Ultra Rare",
+    "source": "ygoprodeck"
+  },
+  {
+    "abreviation": "UtR",
+    "canonique": "Ultimate Rare",
+    "source": "ygoprodeck"
+  }
+]

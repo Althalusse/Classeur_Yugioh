@@ -1,0 +1,8 @@
+# Version de chaîne d'outils épinglée.
+#
+# Risque R7 du cahier des charges : dérive d'API entre versions mineures. On
+# épingle la chaîne d'outils et on versionne Cargo.lock ; les montées de version
+# se font hors lot, jamais au milieu d'un portage.
+[toolchain]
+channel = "1.95.0"
+components = ["rustfmt", "clippy"]

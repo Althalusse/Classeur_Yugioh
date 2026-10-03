@@ -1,0 +1,69 @@
+# Règles d'import de Scanflip (https://scanflip.fr), relevées le 2026-08-30.
+#
+# Ce fichier est la RECOPIE FIDÈLE de la page d'aide de Scanflip. Il fait
+# autorité sur ce que leur import accepte — et donc sur ce que notre export
+# doit écrire, et sur ce que notre import doit savoir lire.
+#
+# Il diffère de assets/raretes_reference.json (extrait du Python V1.0.4) sur
+# deux points, tous deux réels :
+#   · STRB « Starlight Blasonnée » existe ici et manquait là-bas ;
+#   · GMR « Grand Master Rare » existe là-bas et n'existe pas ici — c'est une
+#     rareté OCG, que Scanflip (site TCG francophone) ne connaît pas.
+#
+# Format : CODE|libellé français, une rareté par ligne.
+
+[raretes]
+CPA|Commune Parallèle
+C|Commune
+CDT|Commune Duel Terminal
+RVI|Rare Violet
+R|Rare
+RDT|Rare Duel Terminal
+RVE|Rare Vert
+RBR|Rare Bronze
+RBL|Rare Bleu
+RRO|Rare Rouge
+RAR|Rare Argent
+SFR|Starfoil Rare
+SDT|Super Rare Duel Terminal
+MO|Mosaic Rare
+SR|Super Rare
+SHA|Shatterfoil Rare
+UDT|Ultra Rare Duel Terminal
+U|Ultra Rare
+UBL|Ultra Rare Bleu
+UB|Ultra Blasonnée
+URO|Ultra Rare Rouge
+UVI|Ultra Rare Violet
+UAR|Ultra Argent
+UVE|Ultra Rare Vert
+SCR|Secrète Rare
+SCRB|Secret Rare Blasonnée
+PAR|Parallèle Rare
+PLA|Platinum Rare
+GLD|Gold Rare
+GS|Gold Secrète Rare
+COL|Collector's Rare
+PRG|Premium Gold Rare
+UTR|Ultimate Rare
+SPL|Secrète Platinum
+PHR|Pharaonique Rare
+PRI|Prismatique
+STR|Starlight Rare
+STRB|Starlight Blasonnée
+S10K|Secrète 10000
+GG|Ghost Gold Rare
+EXS|Extra Secrète
+RSC|Remote Secrète Rare
+QCR|Secrète Rare Quart de Siècle
+G|Ghost Rare
+
+# Les qualités : code court, puis les autres écritures acceptées.
+[qualites]
+M|Mint
+NM|NM+|Near Mint
+EX|Excellent
+GD|Good
+PL|Lightly Played
+PO|Poor
+DM|Damaged
