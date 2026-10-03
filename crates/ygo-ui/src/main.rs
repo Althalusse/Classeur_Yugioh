@@ -19,6 +19,17 @@
 //! Le service vit ici, au-dessus des deux. Les écrans ne le connaissent pas :
 //! l'un reçoit un ordre de rafraîchir son cache, l'autre rien du tout. C'est
 //! ce qui les garde dessinables sans réseau, et testables sans fenêtre.
+//!
+//! # Pas de console
+//!
+//! Compilé en `--release` (ce que fait `Compiler.ps1`, ce qui part en
+//! distribution), l'exécutable est une application **fenêtrée** : Windows ne
+//! lui ouvre plus de console noire à côté de la fenêtre. Ce qui s'y écrivait
+//! va déjà au journal (`logs/`) — c'est lui qu'on lit en cas de souci.
+//!
+//! En debug (`cargo run`), la console reste : c'est l'outil du développeur.
+
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use std::path::PathBuf;
 
@@ -87,6 +98,12 @@ fn main() -> eframe::Result<()> {
         }
     };
 
+    // La mémoire des requêtes, avant le premier accès réseau : ce que les
+    // sources ont déjà répondu ne leur est pas redemandé (cf.
+    // `ygo_sources::cache`). L'application sera partagée ; leurs règles
+    // doivent tenir pour tous ses utilisateurs.
+    ygo_sources::cache::activer(&paths.cache_http());
+
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_inner_size([1400.0, 900.0])
@@ -101,6 +118,14 @@ fn main() -> eframe::Result<()> {
             // Avant tout dessin : la base porte 14 205 textes japonais, et
             // aucune des quatre polices d'egui n'a d'idéogramme.
             ygo_ui::polices::installer(&cc.egui_ctx);
+            // La taille du texte des Options — appliquée, enfin (R9).
+            ygo_ui::polices::appliquer_taille_texte(
+                &cc.egui_ctx,
+                ygo_core::config::Config::charger(
+                    ygo_core::paths::Paths::depuis_racine(&racine).app_config(),
+                )
+                .font_scale(),
+            );
             let mut application = Application::nouvelle(racine, cc.egui_ctx.clone());
             if let Some(code) = direct {
                 application.ouvrir_classeur(&code);
