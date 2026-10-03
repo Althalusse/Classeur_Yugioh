@@ -395,6 +395,105 @@ pub fn poser(
     Ok(rapport)
 }
 
+/// Ce que la mise à jour vers Yugipedia ferait — ou a fait — sur toute
+/// l'installation.
+///
+/// C'est ce que montre l'écran des options avant qu'on clique, et ce que la
+/// tâche de fond rend après : les mêmes chiffres, calculés par le même code.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Installation {
+    /// Classeurs examinés.
+    pub classeurs: usize,
+    /// Lignes examinées, tous classeurs confondus.
+    pub lignes: usize,
+    /// Lignes qui recevront (ou ont reçu) l'image de leur tirage.
+    pub a_poser: usize,
+    /// Lignes qui l'ont déjà.
+    pub deja: usize,
+    /// Les classeurs qui ont au moins une ligne à poser — eux seuls auront
+    /// des images à télécharger.
+    pub touches: Vec<String>,
+    /// Images à télécharger ensuite : fichiers distincts absents du disque.
+    ///
+    /// Une estimation honnête, pas une promesse : une image que Yugipedia
+    /// n'a pas finira par la source de repli, mais elle aura été demandée.
+    pub a_telecharger: usize,
+}
+
+/// Analyse — ou met à jour, si `ecrire` — tous les classeurs de
+/// l'installation.
+///
+/// Seule `card_image_url` change, classeur par classeur, chacun dans sa
+/// transaction (cf. [`appliquer`]). Un classeur illisible est journalisé et
+/// sauté : il ne doit pas priver les autres de leurs images.
+///
+/// # Errors
+///
+/// Rend une erreur si `cardinfo.db` est illisible — sans elle, aucun tirage ne
+/// peut être retrouvé.
+pub fn installation(
+    paths: &ygo_core::paths::Paths,
+    reference: &Priorites,
+    ecrire: bool,
+) -> Result<Installation> {
+    let cardinfo = ygo_db::connexion::ouvrir_lecture_seule(paths.cardinfo_db())?;
+    let mut bilan = Installation::default();
+    let mut fichiers: BTreeSet<std::path::PathBuf> = BTreeSet::new();
+
+    for code in paths.classeurs_existants() {
+        let chemin = paths.classeur_db(&code);
+        if !chemin.is_file() {
+            continue;
+        }
+        let mut conn = match Connection::open(&chemin) {
+            Ok(c) => c,
+            Err(e) => {
+                tracing::warn!(classeur = %code, erreur = %e, "classeur illisible");
+                continue;
+            }
+        };
+        let rapport = match analyser(&conn, &cardinfo, reference) {
+            Ok(r) => r,
+            Err(e) => {
+                tracing::warn!(classeur = %code, erreur = %e, "classeur non analysé");
+                continue;
+            }
+        };
+        bilan.classeurs += 1;
+        bilan.lignes += rapport.lues;
+        bilan.deja += rapport.deja;
+        bilan.a_poser += rapport.a_poser.len() - rapport.rendues;
+
+        // Les fichiers à venir : une URL Yugipedia dont le fichier n'est ni
+        // dans `img/small` ni dans le dossier du classeur.
+        let dossier = paths.img().join(&code);
+        for (_, url) in &rapport.a_poser {
+            if !url.contains("yugipedia.com") {
+                continue;
+            }
+            if let Some(nom) = ygo_images::plan::nom_de_fichier(url) {
+                let small = paths.img_small().join(&nom);
+                if !small.exists() && !dossier.join(&nom).exists() {
+                    fichiers.insert(small);
+                }
+            }
+        }
+
+        if rapport.a_poser.is_empty() {
+            continue;
+        }
+        bilan.touches.push(code.clone());
+        if ecrire {
+            if let Err(e) = appliquer(&mut conn, &rapport) {
+                tracing::warn!(classeur = %code, erreur = %e, "images de tirage non écrites");
+                bilan.touches.pop();
+            }
+        }
+    }
+    bilan.a_telecharger = fichiers.len();
+    Ok(bilan)
+}
+
 #[cfg(test)]
 mod tests {
     #![allow(clippy::unwrap_used, clippy::indexing_slicing)]
@@ -456,6 +555,56 @@ mod tests {
             .unwrap()
             .collect::<rusqlite::Result<Vec<_>>>()
             .unwrap()
+    }
+
+    /// Toute l'installation, de l'analyse à l'écriture : l'analyse
+    /// n'écrit rien, l'écriture pose, et rejouée elle ne trouve plus rien.
+    #[test]
+    fn l_installation_entiere_s_analyse_puis_s_ecrit() {
+        let tmp = tempfile::tempdir().unwrap();
+        let paths = ygo_core::paths::Paths::depuis_racine(tmp.path());
+        std::fs::create_dir_all(paths.bdd()).unwrap();
+        {
+            let info = Connection::open(paths.cardinfo_db()).unwrap();
+            info.execute_batch(
+                "CREATE TABLE set_prints (set_code TEXT, rarity TEXT, edition TEXT, print_image_url TEXT)",
+            )
+            .unwrap();
+            for (r, u) in [("Ultra Rare", "UR"), ("Secret Rare", "ScR")] {
+                info.execute(
+                    "INSERT INTO set_prints VALUES ('CH01-EN019', ?1, '1st', ?2)",
+                    [r, &format!("https://ms.yugipedia.com//a/b/FV-{u}-1E.png")],
+                )
+                .unwrap();
+            }
+        }
+        std::fs::create_dir_all(paths.dossier_classeur("CH01")).unwrap();
+        {
+            let cl = Connection::open(paths.classeur_db("CH01")).unwrap();
+            cl.execute_batch(ygo_db::schema::DDL_CLASSEUR).unwrap();
+            let ygo = "https://images.ygoprodeck.com/images/cards/30271097.jpg";
+            for r in ["Ultra Rare", "Secret Rare"] {
+                ligne(&cl, "CH01-EN019", r, 30_271_097, "", ygo);
+            }
+        }
+
+        let vue = installation(&paths, &reference(), false).unwrap();
+        assert_eq!((vue.classeurs, vue.lignes, vue.a_poser), (1, 2, 2));
+        assert_eq!(vue.touches, ["CH01"]);
+        assert_eq!(vue.a_telecharger, 2, "deux fichiers distincts, absents");
+        let cl = Connection::open(paths.classeur_db("CH01")).unwrap();
+        assert!(
+            urls(&cl).iter().all(|u| u.contains("ygoprodeck")),
+            "rien d'écrit"
+        );
+
+        let faite = installation(&paths, &reference(), true).unwrap();
+        assert_eq!(faite.a_poser, 2);
+        assert!(urls(&cl).iter().all(|u| u.contains("yugipedia")));
+
+        let encore = installation(&paths, &reference(), false).unwrap();
+        assert_eq!((encore.a_poser, encore.deja), (0, 2));
+        assert!(encore.touches.is_empty());
     }
 
     #[test]

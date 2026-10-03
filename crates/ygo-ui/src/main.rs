@@ -444,19 +444,35 @@ impl Application {
         if !etat.actif() {
             return;
         }
-        let cumul = etat.cumul();
+        // La base compte en octets, les classeurs en images : on n'additionne
+        // pas les deux. Quand elle se reconstruit, c'est SA progression que la
+        // barre montre ; les images qui tournent en même temps restent nommées.
+        let base = etat
+            .en_cours()
+            .get(ygo_ui::telechargements::CODE_BASE)
+            .copied();
+        let cumul = base.unwrap_or_else(|| etat.cumul());
         let classeurs: Vec<String> = etat.en_cours().keys().cloned().collect();
-        let etape = classeurs
-            .first()
-            .and_then(|code| etat.etape(code))
-            .map_or("Travail", ygo_ui::telechargements::Etape::libelle);
-        let quoi = classeurs.join(", ");
+        // Chaque tâche avec SON étape : depuis que données et images ont
+        // chacune leur fil, « Création » d'un classeur et « Images » d'un
+        // autre tournent ensemble. Une seule étape pour tous aurait menti
+        // sur l'un des deux.
+        let quoi = classeurs
+            .iter()
+            .map(|code| {
+                let etape = etat
+                    .etape(code)
+                    .map_or("Travail", ygo_ui::telechargements::Etape::libelle);
+                format!("{etape} — {code}")
+            })
+            .collect::<Vec<_>>()
+            .join("  ·  ");
 
         // Le rang dans le lot, à gauche de la barre.
         //
-        // Le fil traite une commande à la fois : trois classeurs demandés d'un
-        // coup ne paraissaient qu'un par un, et rien ne disait que deux autres
-        // attendaient. « 1/3 » le dit en quatre caractères.
+        // Trois classeurs demandés d'un coup ne paraissaient qu'un par un, et
+        // rien ne disait que deux autres attendaient. « 1/3 » le dit en quatre
+        // caractères ; le survol nomme ceux qui attendent.
         let lot = etat.lot();
         let attendent: Vec<String> = etat.en_attente().iter().map(|c| (*c).to_owned()).collect();
 
@@ -466,22 +482,20 @@ impl Application {
                 let barre = if cumul.total == 0 {
                     // Total inconnu : une barre animée dit « ça travaille »
                     // sans prétendre savoir où l'on en est.
-                    egui::ProgressBar::new(0.0)
-                        .animate(true)
-                        .text(format!("{etape} — {quoi}"))
+                    egui::ProgressBar::new(0.0).animate(true).text(quoi.clone())
                 } else {
                     #[allow(clippy::cast_precision_loss)]
                     let part = cumul.faites as f32 / cumul.total as f32;
                     // La base compte en octets, les classeurs en images : le
                     // même nombre ne se lit pas de la même façon. « 45 / 162 Mo »
                     // se comprend ; « 47185920 / 169869312 » ne se lit pas.
-                    let (faites, total, unite) = if quoi == ygo_ui::telechargements::CODE_BASE {
+                    let (faites, total, unite) = if base.is_some() {
                         (cumul.faites / 1_048_576, cumul.total / 1_048_576, " Mo")
                     } else {
                         (cumul.faites, cumul.total, "")
                     };
                     egui::ProgressBar::new(part).text(format!(
-                        "{etape} — {quoi}   {faites} / {total}{unite}   ({:.0} %)",
+                        "{quoi}   {faites} / {total}{unite}   ({:.0} %)",
                         part * 100.0
                     ))
                 };
@@ -613,6 +627,9 @@ impl eframe::App for Application {
                 }
                 if options.verification_demandee() {
                     self.images.verifier_version();
+                }
+                if options.images_yugipedia_demandee() {
+                    self.images.images_vers_yugipedia();
                 }
                 let consequences = options.consequences();
                 if options.retour_demande() {

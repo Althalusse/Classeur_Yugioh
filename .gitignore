@@ -29,3 +29,6 @@ first_run.flag
 /*.rar
 /*.7z
 /*.tar.gz
+
+# ── Journal de construction (notes de travail, pas du code) ──────────────────
+/Construction_Projet_*.md

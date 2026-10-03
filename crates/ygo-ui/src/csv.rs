@@ -487,8 +487,9 @@ impl PanneauCsv {
                             retour.creations.clone_from(&absents);
                             retour.message = Some((
                                 format!(
-                                    "Création lancée : {} — relancez l'analyse quand \
-                                     la barre de progression a fini",
+                                    "Création lancée : {} — relancez l'analyse dès \
+                                     qu'ils sont à l'accueil ; leurs images suivent \
+                                     en arrière-plan",
                                     absents.join(", ")
                                 ),
                                 false,

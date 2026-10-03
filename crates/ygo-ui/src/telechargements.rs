@@ -26,27 +26,63 @@
 //! [`egui::Context::request_repaint`] après chaque envoi ; `Context` est
 //! partageable entre fils, c'est prévu pour cet usage.
 //!
+//! # Deux fils : les données d'abord, les images ensuite — 2026-10-03
+//!
+//! Un seul fil faisait tout, dans l'ordre : classeur A créé, **toutes** ses
+//! images, puis seulement le classeur B. Avec Yugipedia à une image par
+//! seconde, un set de trois cents cartes retenait les suivants cinq minutes ;
+//! seize classeurs demandés par un import n'étaient tous là qu'au bout d'une
+//! heure, et l'import attendait avec eux.
+//!
+//! Le travail est désormais coupé en deux fils :
+//!
+//! - **le fil des données** (`ygo-donnees`) : créations de classeurs —
+//!   lignes, couverture, passe artworks —, mise à jour de la base, contrôle de
+//!   version. Chaque tâche y dure quelques secondes ; un classeur apparaît à
+//!   l'accueil sans attendre les images d'aucun autre ;
+//! - **le fil des images** (`ygo-images`) : il reçoit chaque classeur créé
+//!   **après** ses données, et le classeur qu'on ouvre **avant** les autres.
+//!
+//! Les règles des API n'en sont pas affaiblies : quotas, cache et
+//! sérialisation Yugipedia sont tenus **pour tout le processus**
+//! (`ygo_sources::http`), pas par fil. Deux fils qui frappent Yugipedia se
+//! partagent la même seconde ; ils ne la doublent pas.
+//!
+//! La mise à jour de la base remplace `cardinfo.db`, que le fil des images
+//! lit pour préparer chaque passe : il marque une pause le temps qu'elle
+//! s'écrive (cf. `Travaux`).
+//!
 //! # La reprise
 //!
-//! `bdd/downloads_actifs.json` retient les codes dont le téléchargement est en
-//! cours. Le fil le relit à son démarrage et reprend ce qui s'y trouve : une
-//! fermeture pendant un téléchargement ne perd rien. Le journal ne mémorise
-//! pas ce qui a été téléchargé — la reprise rescanne le disque et ne redemande
-//! que ce qui manque encore.
+//! `bdd/downloads_actifs.json` retient les codes dont les images sont en
+//! cours **ou en attente**. Le fil des images le relit à son démarrage et
+//! reprend ce qui s'y trouve : une fermeture pendant un téléchargement ne
+//! perd rien. Le journal ne mémorise pas ce qui a été téléchargé — la reprise
+//! rescanne le disque et ne redemande que ce qui manque encore.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, VecDeque};
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Receiver, Sender};
+use std::sync::Arc;
 
 use eframe::egui;
 use ygo_core::config::Config;
 use ygo_core::paths::Paths;
 use ygo_images::{Journal, JournalDisque, Telechargeur};
 
-/// Ce que l'interface demande.
-enum Commande {
+/// Ce que l'interface demande au fil des images.
+enum CommandeImages {
     /// Compléter les images de ce classeur.
-    Completer(String),
+    Completer {
+        /// Le classeur.
+        code: String,
+        /// Passer devant ce qui attend : c'est le classeur qu'on regarde.
+        ///
+        /// Vrai à l'ouverture d'un classeur, faux pour un classeur qui vient
+        /// d'être créé — lui rejoint la file à son rang.
+        devant: bool,
+    },
     /// Télécharger des aperçus **choisis**, hors de toute passe de classeur.
     ///
     /// L'écran des artworks montre des illustrations que le classeur n'a pas
@@ -64,6 +100,10 @@ enum Commande {
         /// Les images à chercher.
         cibles: Vec<ygo_images::plan::Cible>,
     },
+}
+
+/// Ce que l'interface demande au fil des données.
+enum Commande {
     /// Reconstruire `bdd/cardinfo.db`, puis enregistrer sa version.
     ///
     /// C'est « MAJ BDD ». Elle passe par ce fil et pas par un autre : il a
@@ -80,12 +120,20 @@ enum Commande {
     /// re-contrôles — après une mise à jour, typiquement, où le verdict
     /// affiché est devenu faux.
     VerifierVersion,
-    /// Créer ce classeur, puis compléter ses images.
+    /// Poser l'image Yugipedia de chaque tirage dans tous les classeurs, puis
+    /// confier ceux qui ont changé au fil des images.
     ///
-    /// L'enchaînement est celui du Python : la file d'attente créait le
-    /// classeur **puis** téléchargeait ses images, dans la même tâche. Les
-    /// séparer laisserait une fenêtre où le classeur existe sans une seule
-    /// image.
+    /// C'est le bouton des Options. Sur le fil des données parce qu'il écrit
+    /// dans les classeurs — comme une création — et qu'il doit précéder le
+    /// téléchargement de ce qu'il pose.
+    ImagesYugipedia,
+    /// Créer ce classeur — lignes, couverture, artworks —, puis passer ses
+    /// images au fil des images.
+    ///
+    /// Le Python enchaînait création **et** images dans la même tâche. On ne
+    /// le fait plus : le classeur existe quelques secondes sans ses images —
+    /// les cases montrent l'image d'attente —, mais le suivant n'attend plus
+    /// qu'elles soient toutes descendues (cf. l'en-tête du module).
     Creer {
         /// Le code du set.
         code: String,
@@ -101,6 +149,53 @@ enum Commande {
 /// collision avec un classeur réel, et se lit tel quel dans la bande de
 /// progression.
 pub const CODE_BASE: &str = "Base de données";
+
+/// Le nom sous lequel la mise à jour des images vers Yugipedia s'annonce.
+///
+/// Même principe que [`CODE_BASE`] : un nom qu'aucun set ne peut porter.
+pub const CODE_IMAGES_YUGIPEDIA: &str = "Images Yugipedia";
+
+/// « La base est en travaux » — partagé entre les deux fils.
+///
+/// La mise à jour écrit `cardinfo.db` à côté puis la **renomme** à sa place.
+/// Sous Windows, ce renommage échoue si un autre fil tient le fichier ouvert ;
+/// or le fil des images l'ouvre pour préparer chaque passe (images de repli).
+/// Il ne commence donc aucune passe tant que le drapeau est levé.
+///
+/// Un drapeau et non un verrou : le fil des images n'a rien à protéger
+/// pendant qu'il télécharge, il doit seulement ne pas **ouvrir** la base au
+/// mauvais moment. La passe déjà commencée continue — elle n'y touche plus.
+#[derive(Debug, Clone, Default)]
+struct Travaux(Arc<AtomicBool>);
+
+impl Travaux {
+    /// Lève le drapeau, et le rabaisse quand la garde tombe — y compris si
+    /// la mise à jour panique.
+    fn ouvrir(&self) -> GardeTravaux<'_> {
+        self.0.store(true, Ordering::SeqCst);
+        GardeTravaux(self)
+    }
+
+    fn en_cours(&self) -> bool {
+        self.0.load(Ordering::SeqCst)
+    }
+
+    /// Attend la fin des travaux, en vérifiant toutes les demi-secondes.
+    fn attendre_la_fin(&self) {
+        while self.en_cours() {
+            std::thread::sleep(std::time::Duration::from_millis(500));
+        }
+    }
+}
+
+/// Rabaisse le drapeau des travaux en tombant.
+struct GardeTravaux<'a>(&'a Travaux);
+
+impl Drop for GardeTravaux<'_> {
+    fn drop(&mut self) {
+        self.0 .0.store(false, Ordering::SeqCst);
+    }
+}
 
 /// Où en est la mise à jour de la base.
 ///
@@ -232,6 +327,23 @@ pub enum Evenement {
         /// Lignes écrites.
         lignes: usize,
     },
+    /// Les images de tirage sont posées dans les classeurs.
+    ImagesTirage {
+        /// Lignes qui ont reçu l'image de leur tirage.
+        lignes: usize,
+        /// Classeurs touchés — leurs images suivent.
+        classeurs: usize,
+        /// Fichiers à télécharger, estimés avant de commencer.
+        a_telecharger: usize,
+    },
+    /// Les données du classeur sont prêtes ; ses images attendent leur tour.
+    ///
+    /// Le classeur quitte les tâches en cours mais reste dans la file : la
+    /// bande le compte encore, et le dit « en attente ».
+    ImagesEnAttente {
+        /// Le classeur.
+        code: String,
+    },
     /// La passe n'a pas pu se faire.
     Echec {
         /// Le classeur.
@@ -273,10 +385,12 @@ impl Evenement {
             | Self::ArtworksEnCours { code }
             | Self::Couverture { code }
             | Self::Cree { code, .. }
+            | Self::ImagesEnAttente { code }
             | Self::Echec { code, .. } => code,
             Self::BaseEnCours { .. } | Self::BaseTerminee { .. } | Self::Version { .. } => {
                 CODE_BASE
             }
+            Self::ImagesTirage { .. } => CODE_IMAGES_YUGIPEDIA,
         }
     }
 
@@ -326,6 +440,11 @@ pub struct Etat {
     /// paraissent qu'un par un. Sans cette file, la bande de progression
     /// annonçait « RA05 » pendant que deux autres attendaient en silence.
     attente: std::collections::BTreeSet<String>,
+    /// Classeurs créés dont les images attendent le fil des images.
+    ///
+    /// Distinct de `attente` : un classeur demandé mais **pas encore créé**
+    /// y est aussi, et lui ne doit pas être confié au fil des images.
+    attente_images: std::collections::BTreeSet<String>,
     /// Tâches achevées du lot courant.
     faits: usize,
     /// L'utilisateur a écarté le bandeau — pour cette session seulement.
@@ -345,6 +464,9 @@ pub enum Etape {
     Artworks,
     /// Les images se téléchargent.
     Images,
+    /// Les images de tirage se posent dans les classeurs, avant tout
+    /// téléchargement.
+    Preparation,
     /// La base de référence se reconstruit.
     ///
     /// Elle porte sa phase : c'est la seule tâche assez longue pour que
@@ -360,6 +482,7 @@ impl Etape {
             Self::Creation => "Création",
             Self::Artworks => "Artworks",
             Self::Images => "Images",
+            Self::Preparation => "Préparation",
             Self::Base(phase) => phase.libelle(),
         }
     }
@@ -370,6 +493,7 @@ impl Etat {
     pub fn appliquer(&mut self, evenement: &Evenement) {
         match evenement {
             Evenement::Debut { code, total } => {
+                self.attente_images.remove(code);
                 self.en_cours.insert(
                     code.clone(),
                     Avancement {
@@ -446,6 +570,36 @@ impl Etat {
             Evenement::Cree { code, lignes } => {
                 self.creations.push(code.clone());
                 self.dernier = Some(format!("{code} — classeur créé, {lignes} ligne(s)"));
+            }
+            Evenement::ImagesTirage {
+                lignes,
+                classeurs,
+                a_telecharger,
+            } => {
+                self.en_cours.remove(CODE_IMAGES_YUGIPEDIA);
+                self.etape.remove(CODE_IMAGES_YUGIPEDIA);
+                self.dernier = Some(if *lignes == 0 {
+                    "Images Yugipedia — tous les classeurs sont déjà à jour".to_owned()
+                } else {
+                    format!(
+                        "Images Yugipedia — {lignes} ligne(s) mise(s) à jour dans \
+                         {classeurs} classeur(s) ; ≈ {a_telecharger} image(s) à télécharger"
+                    )
+                });
+            }
+            Evenement::ImagesEnAttente { code } => {
+                // Plus rien ne tourne pour lui, mais il n'est pas fini : il
+                // sort des tâches en cours et reste dans la file d'attente.
+                // Compté dans le lot s'il n'y était pas encore — c'est le cas
+                // des classeurs que la mise à jour vers Yugipedia confie au
+                // fil des images sans être passés par une création.
+                self.attendre(code);
+                self.attente_images.insert(code.clone());
+                self.en_cours.remove(code);
+                self.etape.remove(code);
+                // La passe artworks a pu ajouter des lignes : l'accueil et le
+                // classeur doivent relire.
+                self.creations.push(code.clone());
             }
             Evenement::Echec { code, raison } => {
                 self.terminer(code);
@@ -544,8 +698,15 @@ impl Etat {
         self.attente.insert(code.to_owned());
     }
 
+    /// Ce classeur est-il créé, ses images attendant leur tour ?
+    #[must_use]
+    pub fn images_en_attente(&self, code: &str) -> bool {
+        self.attente_images.contains(code)
+    }
+
     /// Retire un code de la file, et compte une tâche de plus.
     fn terminer(&mut self, code: &str) {
+        self.attente_images.remove(code);
         if self.attente.remove(code) {
             self.faits += 1;
         }
@@ -630,9 +791,12 @@ impl Etat {
     }
 }
 
-/// Le service : un fil de travail, et la file d'événements qui en revient.
+/// Le service : deux fils de travail, et la file d'événements qui en revient.
 pub struct Service {
+    /// Vers le fil des données.
     commandes: Sender<Commande>,
+    /// Vers le fil des images.
+    images: Sender<CommandeImages>,
     evenements: Receiver<Evenement>,
     etat: Etat,
     /// Codes déjà demandés — on ne relance pas une passe à chaque
@@ -659,7 +823,9 @@ impl Service {
     #[must_use]
     pub fn demarrer(racine: PathBuf, ctx: egui::Context) -> Self {
         let (envoi_commandes, reception_commandes) = std::sync::mpsc::channel();
+        let (envoi_images, reception_images) = std::sync::mpsc::channel();
         let (envoi_evenements, reception_evenements) = std::sync::mpsc::channel();
+        let travaux = Travaux::default();
 
         // Le contrôle de version part sur SON fil, pas sur celui des
         // téléchargements.
@@ -685,16 +851,38 @@ impl Service {
                 |_| (),
             );
 
+        let donnees = Fil {
+            racine: racine.clone(),
+            evenements: envoi_evenements.clone(),
+            ctx: ctx.clone(),
+            travaux: travaux.clone(),
+        };
+        let vers_images = envoi_images.clone();
+        std::thread::Builder::new()
+            .name("ygo-donnees".to_owned())
+            .spawn(move || travailler_donnees(&donnees, &reception_commandes, &vers_images))
+            .map_or_else(
+                |e| tracing::error!(erreur = %e, "fil des données non démarré"),
+                |_| (),
+            );
+
+        let images = Fil {
+            racine,
+            evenements: envoi_evenements,
+            ctx,
+            travaux,
+        };
         std::thread::Builder::new()
             .name("ygo-images".to_owned())
-            .spawn(move || travailler(&racine, &reception_commandes, &envoi_evenements, &ctx))
+            .spawn(move || travailler_images(&images, &reception_images))
             .map_or_else(
-                |e| tracing::error!(erreur = %e, "fil de téléchargement non démarré"),
+                |e| tracing::error!(erreur = %e, "fil des images non démarré"),
                 |_| (),
             );
 
         Self {
             commandes: envoi_commandes,
+            images: envoi_images,
             evenements: reception_evenements,
             etat: Etat::default(),
             demandes: std::collections::HashSet::new(),
@@ -741,11 +929,31 @@ impl Service {
         self.etat.ecarter_maj();
     }
 
-    /// Demande de créer un classeur, puis d'en compléter les images.
+    /// Demande de poser l'image Yugipedia de chaque tirage dans tous les
+    /// classeurs ; leurs images suivent sur le fil des images.
+    pub fn images_vers_yugipedia(&mut self) {
+        // Total inconnu : barre animée, étape nommée.
+        self.etat.en_cours.insert(
+            CODE_IMAGES_YUGIPEDIA.to_owned(),
+            Avancement {
+                faites: 0,
+                total: 0,
+            },
+        );
+        self.etat
+            .etape
+            .insert(CODE_IMAGES_YUGIPEDIA.to_owned(), Etape::Preparation);
+        if self.commandes.send(Commande::ImagesYugipedia).is_err() {
+            tracing::warn!("fil des données absent — mise à jour des images ignorée");
+        }
+    }
+
+    /// Demande de créer un classeur ; ses images suivront, sur l'autre fil.
     pub fn creer(&mut self, code: &str, avec_artworks: bool) {
         let code = code.trim().to_uppercase();
         // La création marque aussi le code comme demandé : la passe d'images
-        // qui la suit ne doit pas être relancée à l'ouverture du classeur.
+        // qui la suit ne doit pas être relancée à l'ouverture du classeur —
+        // seulement remontée en tête (cf. `completer`).
         self.demandes.insert(code.clone());
         self.etat.attendre(&code);
         if self
@@ -760,11 +968,6 @@ impl Service {
         }
     }
 
-    /// Demande de compléter les images d'un classeur.
-    ///
-    /// Sans effet si ce classeur a déjà été demandé pendant cette session :
-    /// l'ouverture d'un classeur déclenche l'appel, et l'utilisateur y revient
-    /// souvent.
     /// Demande le téléchargement d'aperçus.
     ///
     /// Contrairement à [`completer`](Self::completer), la demande **n'est pas
@@ -776,22 +979,38 @@ impl Service {
         }
         let code = code.trim().to_uppercase();
         if self
-            .commandes
-            .send(Commande::Apercus { code, cibles })
+            .images
+            .send(CommandeImages::Apercus { code, cibles })
             .is_err()
         {
-            tracing::warn!("fil de téléchargement absent — aperçus ignorés");
+            tracing::warn!("fil des images absent — aperçus ignorés");
         }
     }
 
+    /// Demande de compléter les images d'un classeur qu'on ouvre.
+    ///
+    /// Sans effet si ce classeur a déjà été demandé pendant cette session :
+    /// l'ouverture d'un classeur déclenche l'appel, et l'utilisateur y revient
+    /// souvent. La demande passe **devant** les classeurs en attente : c'est
+    /// celui qu'on regarde.
+    ///
+    /// Un classeur **déjà** demandé — créé un peu plus tôt, typiquement — dont
+    /// les images attendent encore leur tour est remonté en tête lui aussi.
+    /// Pas un classeur encore en création : ses données ne sont pas écrites,
+    /// le fil des images n'aurait rien à lire.
     pub fn completer(&mut self, code: &str) {
         let code = code.trim().to_uppercase();
-        if !self.demandes.insert(code.clone()) {
+        if self.demandes.insert(code.clone()) {
+            self.etat.attendre(&code);
+        } else if !self.etat.images_en_attente(&code) {
             return;
         }
-        self.etat.attendre(&code);
-        if self.commandes.send(Commande::Completer(code)).is_err() {
-            tracing::warn!("fil de téléchargement absent — demande ignorée");
+        if self
+            .images
+            .send(CommandeImages::Completer { code, devant: true })
+            .is_err()
+        {
+            tracing::warn!("fil des images absent — demande ignorée");
         }
     }
 
@@ -983,223 +1202,427 @@ fn executer_maj(
     }
 }
 
-/// La boucle du fil de travail.
-fn travailler(
-    racine: &std::path::Path,
-    commandes: &Receiver<Commande>,
-    evenements: &Sender<Evenement>,
-    ctx: &egui::Context,
-) {
+/// Ce que partagent les deux fils de travail.
+struct Fil {
+    /// La racine de l'installation.
+    racine: PathBuf,
+    /// La file d'événements vers l'interface — commune aux deux fils.
+    evenements: Sender<Evenement>,
+    /// De quoi réveiller l'interface.
+    ctx: egui::Context,
+    /// La base est-elle en travaux ?
+    travaux: Travaux,
+}
+
+impl Fil {
+    /// Envoie un événement, et réveille l'interface pour qu'elle le voie.
+    fn signaler(&self, evenement: Evenement) {
+        let _ = self.evenements.send(evenement);
+        self.ctx.request_repaint();
+    }
+}
+
+/// L'exécution `tokio` et le client HTTP d'un fil.
+///
+/// Chaque fil a les siens : une exécution `current_thread` ne se partage pas
+/// entre fils. Le client non plus n'a pas à l'être — les quotas et le cache
+/// qu'il applique sont ceux du processus, pas les siens.
+fn outillage(fil: &str) -> Option<(tokio::runtime::Runtime, ygo_sources::ClientHttp)> {
     let runtime = match tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
     {
         Ok(r) => r,
         Err(e) => {
-            tracing::error!(erreur = %e, "exécution tokio non démarrée");
-            return;
+            tracing::error!(fil, erreur = %e, "exécution tokio non démarrée");
+            return None;
         }
     };
-    let paths = Paths::depuis_racine(racine);
-    let config = Config::charger(paths.app_config());
-    let source = config.source_image();
-    let journal = JournalDisque::nouveau(paths.downloads_actifs());
-    let raretes = ygo_core::rarity::Priorites::charger(paths.rarity_config());
-
-    let client = match ygo_sources::ClientHttp::new() {
-        Ok(c) => c,
+    match ygo_sources::ClientHttp::new() {
+        Ok(client) => Some((runtime, client)),
         Err(e) => {
-            tracing::error!(erreur = %e, "client HTTP non construit");
-            return;
+            tracing::error!(fil, erreur = %e, "client HTTP non construit");
+            None
         }
-    };
+    }
+}
 
-    let signaler = |e: Evenement| {
-        let _ = evenements.send(e);
-        ctx.request_repaint();
+/// La boucle du fil des données : créations, mise à jour de la base,
+/// contrôles de version.
+///
+/// Chaque classeur créé est confié **ensuite** au fil des images ; ce fil-ci
+/// passe aussitôt à la commande suivante.
+fn travailler_donnees(fil: &Fil, commandes: &Receiver<Commande>, images: &Sender<CommandeImages>) {
+    let Some((runtime, client)) = outillage("données") else {
+        return;
     };
+    let paths = Paths::depuis_racine(&fil.racine);
+    let raretes = ygo_core::rarity::Priorites::charger(paths.rarity_config());
+    let signaler = |e: Evenement| fil.signaler(e);
 
-    // La reprise, avant toute commande : ce qui restait en cours à la
-    // fermeture précédente repart en premier.
-    let mut a_faire: Vec<String> = journal.charger();
-    if !a_faire.is_empty() {
-        tracing::info!(classeurs = ?a_faire, "reprise des téléchargements interrompus");
+    while let Ok(commande) = commandes.recv() {
+        match commande {
+            Commande::Init => {
+                // Le fil des images n'ouvre pas `cardinfo.db` tant que la
+                // garde vit — cf. `Travaux`.
+                let _garde = fil.travaux.ouvrir();
+                executer_maj(&runtime, &paths, &client, &signaler);
+            }
+            Commande::VerifierVersion => {
+                signaler(Evenement::Version {
+                    verdict: runtime.block_on(ygo_app::maj::verifier(&paths, &client)),
+                });
+            }
+            Commande::ImagesYugipedia => {
+                images_vers_yugipedia(&paths, &raretes, images, &signaler);
+            }
+            Commande::Creer {
+                code,
+                avec_artworks,
+            } => {
+                let cree = creer_classeur(
+                    &runtime,
+                    &paths,
+                    &client,
+                    &raretes,
+                    &code,
+                    avec_artworks,
+                    &signaler,
+                );
+                if cree {
+                    // Les données sont prêtes : le classeur passe la main au
+                    // fil des images, et attend son tour sans rien retenir.
+                    signaler(Evenement::ImagesEnAttente { code: code.clone() });
+                    if images
+                        .send(CommandeImages::Completer {
+                            code,
+                            devant: false,
+                        })
+                        .is_err()
+                    {
+                        tracing::warn!("fil des images absent — images non demandées");
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// Pose l'image de chaque tirage partout, puis confie au fil des images les
+/// classeurs qui ont changé.
+///
+/// Aucun réseau ici : tout se lit dans `cardinfo.db`. Le réseau, c'est le fil
+/// des images qui s'en charge, au rythme que Yugipedia autorise.
+fn images_vers_yugipedia(
+    paths: &Paths,
+    raretes: &ygo_core::rarity::Priorites,
+    images: &Sender<CommandeImages>,
+    signaler: &impl Fn(Evenement),
+) {
+    match ygo_app::images_tirage::installation(paths, raretes, true) {
+        Ok(bilan) => {
+            signaler(Evenement::ImagesTirage {
+                lignes: bilan.a_poser,
+                classeurs: bilan.touches.len(),
+                a_telecharger: bilan.a_telecharger,
+            });
+            for code in bilan.touches {
+                signaler(Evenement::ImagesEnAttente { code: code.clone() });
+                if images
+                    .send(CommandeImages::Completer {
+                        code,
+                        devant: false,
+                    })
+                    .is_err()
+                {
+                    tracing::warn!("fil des images absent — images non demandées");
+                    break;
+                }
+            }
+        }
+        Err(e) => signaler(Evenement::Echec {
+            code: CODE_IMAGES_YUGIPEDIA.to_owned(),
+            raison: e.to_string(),
+        }),
+    }
+}
+
+/// Crée un classeur — lignes, couverture, artworks —, sans ses images.
+///
+/// Rend `true` si le classeur a été créé et attend désormais ses images.
+fn creer_classeur(
+    runtime: &tokio::runtime::Runtime,
+    paths: &Paths,
+    client: &ygo_sources::ClientHttp,
+    raretes: &ygo_core::rarity::Priorites,
+    code: &str,
+    avec_artworks: bool,
+    signaler: &impl Fn(Evenement),
+) -> bool {
+    signaler(Evenement::CreationEnCours {
+        code: code.to_owned(),
+    });
+    // `avec_artworks: false` À DESSEIN, même quand l'utilisateur les demande.
+    //
+    // `creation::creer` enchaîne la passe artworks **avant** de rendre la
+    // main : l'événement `Cree` n'arrivait donc qu'après plusieurs minutes de
+    // réseau, et le classeur n'apparaissait à l'accueil qu'à ce moment-là. En
+    // coupant après l'écriture des lignes, la tuile apparaît en quelques
+    // secondes, et les artworks sont une étape visible de plus.
+    match runtime.block_on(ygo_app::creation::creer(
+        paths,
+        client,
+        code,
+        false,
+        &ygo_app::creation::Greffons::default(),
+    )) {
+        Ok(ygo_app::creation::Issue::Cree { lignes, .. }) => {
+            // Annoncé DÈS ICI : les lignes sont écrites, le classeur existe,
+            // l'accueil peut le montrer. Ce qui suit le complète mais ne
+            // conditionne plus son apparition.
+            signaler(Evenement::Cree {
+                code: code.to_owned(),
+                lignes,
+            });
+            // La couverture, avant les artworks : c'est ce que l'accueil
+            // montre, et elle coûte une seule requête.
+            match runtime.block_on(ygo_app::couverture::telecharger(paths, client, code)) {
+                Ok(Some(_)) => signaler(Evenement::Couverture {
+                    code: code.to_owned(),
+                }),
+                Ok(None) => {}
+                Err(e) => tracing::warn!(classeur = %code, erreur = %e, "couverture"),
+            }
+            if avec_artworks {
+                signaler(Evenement::ArtworksEnCours {
+                    code: code.to_owned(),
+                });
+                if let Err(e) = runtime.block_on(passe_artworks(paths, client, code, raretes)) {
+                    tracing::warn!(classeur = %code, erreur = %e, "passe artworks");
+                }
+            }
+            true
+        }
+        Ok(ygo_app::creation::Issue::DejaExistant) => {
+            signaler(Evenement::Echec {
+                code: code.to_owned(),
+                raison: "le classeur existe déjà".to_owned(),
+            });
+            false
+        }
+        Err(e) => {
+            signaler(Evenement::Echec {
+                code: code.to_owned(),
+                raison: e.to_string(),
+            });
+            false
+        }
+    }
+}
+
+/// Une tâche du fil des images.
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum TacheImages {
+    /// Compléter les images d'un classeur.
+    Classeur(String),
+    /// Des aperçus choisis.
+    Apercus {
+        /// Au nom de quel classeur l'avancement s'affiche.
+        code: String,
+        /// Les images à chercher.
+        cibles: Vec<ygo_images::plan::Cible>,
+    },
+}
+
+/// Range une commande dans la file du fil des images.
+///
+/// - les aperçus passent devant : l'utilisateur les attend à l'écran ;
+/// - un classeur qu'on ouvre passe devant, un classeur créé prend son rang ;
+/// - un classeur déjà en file n'y est pas mis deux fois — il est **déplacé**
+///   s'il doit passer devant.
+///
+/// Fonction pure sur la file : c'est elle qu'on éprouve.
+fn ranger(file: &mut VecDeque<TacheImages>, commande: CommandeImages) {
+    match commande {
+        CommandeImages::Apercus { code, cibles } => {
+            file.push_front(TacheImages::Apercus { code, cibles });
+        }
+        CommandeImages::Completer { code, devant } => {
+            let deja = file
+                .iter()
+                .position(|t| matches!(t, TacheImages::Classeur(c) if *c == code));
+            match (deja, devant) {
+                (Some(_), false) => {}
+                (Some(rang), true) => {
+                    if let Some(tache) = file.remove(rang) {
+                        file.push_front(tache);
+                    }
+                }
+                (None, true) => file.push_front(TacheImages::Classeur(code)),
+                (None, false) => file.push_back(TacheImages::Classeur(code)),
+            }
+        }
+    }
+}
+
+/// La boucle du fil des images.
+///
+/// Entre deux tâches, il relit tout ce qui est arrivé : un classeur ouvert
+/// pendant qu'un autre se télécharge passe ainsi en tête **dès la passe
+/// suivante** — jamais au milieu d'une, qui irait sinon se reprendre de
+/// zéro.
+fn travailler_images(fil: &Fil, commandes: &Receiver<CommandeImages>) {
+    let Some((runtime, client)) = outillage("images") else {
+        return;
+    };
+    let paths = Paths::depuis_racine(&fil.racine);
+    let journal = JournalDisque::nouveau(paths.downloads_actifs());
+
+    // La reprise, avant toute commande : ce qui restait en cours — ou en
+    // attente — à la fermeture précédente repart en premier.
+    let mut file: VecDeque<TacheImages> = journal
+        .charger()
+        .into_iter()
+        .map(TacheImages::Classeur)
+        .collect();
+    if !file.is_empty() {
+        tracing::info!(classeurs = ?file, "reprise des téléchargements interrompus");
     }
 
     loop {
-        let code = if let Some(code) = a_faire.pop() {
-            code
-        } else {
+        while let Ok(commande) = commandes.try_recv() {
+            noter(&journal, &commande);
+            ranger(&mut file, commande);
+        }
+        let Some(tache) = file.pop_front() else {
             match commandes.recv() {
-                Ok(Commande::Completer(code)) => code,
-                Ok(Commande::Apercus { code, cibles }) => {
-                    // Les aperçus ne passent pas par le journal de reprise :
-                    // ils ne sont pas un état à rattraper, seulement un
-                    // confort d'affichage. Interrompus, ils se redemandent à
-                    // la réouverture de l'écran.
-                    let telechargeur = Telechargeur::nouveau(&client, &paths.image_par_defaut());
-                    let total = cibles.len();
-                    signaler(Evenement::Debut {
-                        code: code.clone(),
-                        total,
-                    });
-                    let bilan = runtime.block_on(telechargeur.toutes(&cibles, |faites, total| {
-                        signaler(Evenement::Progression {
-                            code: code.clone(),
-                            faites,
-                            total,
-                        });
-                    }));
-                    ygo_app::replis::consigner(&paths, &telechargeur.replis());
-                    signaler(Evenement::Fin {
-                        code,
-                        reussies: bilan.reussies,
-                        echecs: bilan.echecs,
-                    });
+                Ok(commande) => {
+                    noter(&journal, &commande);
+                    ranger(&mut file, commande);
                     continue;
-                }
-                Ok(Commande::Init) => {
-                    executer_maj(&runtime, &paths, &client, &signaler);
-                    continue;
-                }
-                Ok(Commande::VerifierVersion) => {
-                    signaler(Evenement::Version {
-                        verdict: runtime.block_on(ygo_app::maj::verifier(&paths, &client)),
-                    });
-                    continue;
-                }
-                Ok(Commande::Creer {
-                    code,
-                    avec_artworks,
-                }) => {
-                    signaler(Evenement::CreationEnCours { code: code.clone() });
-                    // `avec_artworks: false` À DESSEIN, même quand
-                    // l'utilisateur les demande.
-                    //
-                    // `creation::creer` enchaîne la passe artworks **avant**
-                    // de rendre la main : l'événement `Cree` n'arrivait donc
-                    // qu'après plusieurs minutes de réseau, et le classeur
-                    // n'apparaissait à l'accueil qu'à ce moment-là. En
-                    // coupant après l'écriture des lignes, la tuile apparaît
-                    // en quelques secondes, et les artworks sont une étape
-                    // visible de plus.
-                    match runtime.block_on(ygo_app::creation::creer(
-                        &paths,
-                        &client,
-                        &code,
-                        false,
-                        &ygo_app::creation::Greffons::default(),
-                    )) {
-                        Ok(ygo_app::creation::Issue::Cree { lignes, .. }) => {
-                            // Annoncé DÈS ICI : les lignes sont écrites, le
-                            // classeur existe, l'accueil peut le montrer. Ce
-                            // qui suit — couverture, artworks, images — le
-                            // complète mais ne conditionne plus son
-                            // apparition.
-                            signaler(Evenement::Cree {
-                                code: code.clone(),
-                                lignes,
-                            });
-                            // La couverture, avant les artworks : c'est ce
-                            // que l'accueil montre, et elle coûte une seule
-                            // requête. La voir arriver pendant que le reste
-                            // travaille vaut mieux que l'attendre à la fin.
-                            match runtime
-                                .block_on(ygo_app::couverture::telecharger(&paths, &client, &code))
-                            {
-                                Ok(Some(_)) => {
-                                    signaler(Evenement::Couverture { code: code.clone() })
-                                }
-                                Ok(None) => {}
-                                Err(e) => {
-                                    tracing::warn!(classeur = %code, erreur = %e, "couverture");
-                                }
-                            }
-                            if avec_artworks {
-                                signaler(Evenement::ArtworksEnCours { code: code.clone() });
-                                let bilan = runtime
-                                    .block_on(passe_artworks(&paths, &client, &code, &raretes));
-                                if let Err(e) = bilan {
-                                    tracing::warn!(classeur = %code, erreur = %e, "passe artworks");
-                                }
-                            }
-                        }
-                        Ok(ygo_app::creation::Issue::DejaExistant) => {
-                            signaler(Evenement::Echec {
-                                code: code.clone(),
-                                raison: "le classeur existe déjà".to_owned(),
-                            });
-                            continue;
-                        }
-                        Err(e) => {
-                            signaler(Evenement::Echec {
-                                code,
-                                raison: e.to_string(),
-                            });
-                            continue;
-                        }
-                    }
-                    // On enchaîne sur les images du classeur qui vient de
-                    // naître, sans repasser par l'interface.
-                    code
                 }
                 Err(_) => break, // l'interface est partie
             }
         };
-
-        // La couverture avant les images : elle manque aussi aux classeurs
-        // créés AVANT que la correction du code de langue existe — `LOCH-JP`
-        // en est un. La chercher à chaque ouverture les rattrape, et ne coûte
-        // rien quand elle est déjà là (`telecharger` sort tout de suite).
-        match runtime.block_on(ygo_app::couverture::telecharger(&paths, &client, &code)) {
-            Ok(Some(_)) => signaler(Evenement::Couverture { code: code.clone() }),
-            Ok(None) => {}
-            Err(e) => tracing::warn!(classeur = %code, erreur = %e, "couverture"),
+        // Jamais pendant que la base se réécrit : la passe l'ouvre.
+        fil.travaux.attendre_la_fin();
+        match tache {
+            TacheImages::Apercus { code, cibles } => {
+                apercus(fil, &runtime, &client, &paths, &code, &cibles);
+            }
+            TacheImages::Classeur(code) => {
+                // La source se relit à chaque passe : on a pu la changer dans
+                // les Options depuis le démarrage du fil.
+                let source = Config::charger(paths.app_config()).source_image();
+                images_du_classeur(fil, &runtime, &client, &paths, source, &journal, code);
+            }
         }
-
-        let telechargeur = Telechargeur::nouveau(&client, &paths.image_par_defaut());
-        let (cibles, _deja, _lignes) =
-            match ygo_app::images::a_faire(&paths, &code, source, &telechargeur) {
-                Ok(t) => t,
-                Err(e) => {
-                    signaler(Evenement::Echec {
-                        code: code.clone(),
-                        raison: e.to_string(),
-                    });
-                    continue;
-                }
-            };
-
-        if cibles.is_empty() {
-            signaler(Evenement::Complet { code });
-            continue;
-        }
-
-        // Le journal n'est tenu qu'à partir d'ici : un classeur complet n'a
-        // rien à reprendre, et n'a donc rien à y faire.
-        journal.ajouter(&code);
-        signaler(Evenement::Debut {
-            code: code.clone(),
-            total: cibles.len(),
-        });
-
-        let bilan = runtime.block_on(telechargeur.toutes(&cibles, |faites, total| {
-            let _ = evenements.send(Evenement::Progression {
-                code: code.clone(),
-                faites,
-                total,
-            });
-            ctx.request_repaint();
-        }));
-
-        journal.retirer(&code);
-        ygo_app::replis::consigner(&paths, &telechargeur.replis());
-        signaler(Evenement::Fin {
-            code,
-            reussies: bilan.reussies,
-            echecs: bilan.echecs,
-        });
     }
+}
+
+/// Inscrit un classeur au journal de reprise dès qu'il entre en file.
+///
+/// Un classeur qui attend son tour doit survivre à une fermeture : sinon,
+/// créé puis l'application fermée avant ses images, il n'en aurait aucune
+/// jusqu'à ce qu'on l'ouvre.
+fn noter(journal: &JournalDisque, commande: &CommandeImages) {
+    if let CommandeImages::Completer { code, .. } = commande {
+        journal.ajouter(code);
+    }
+}
+
+/// Des aperçus choisis, hors de toute passe de classeur.
+///
+/// Ils ne passent pas par le journal de reprise : ils ne sont pas un état à
+/// rattraper, seulement un confort d'affichage. Interrompus, ils se
+/// redemandent à la réouverture de l'écran.
+fn apercus(
+    fil: &Fil,
+    runtime: &tokio::runtime::Runtime,
+    client: &ygo_sources::ClientHttp,
+    paths: &Paths,
+    code: &str,
+    cibles: &[ygo_images::plan::Cible],
+) {
+    let telechargeur = Telechargeur::nouveau(client, &paths.image_par_defaut());
+    fil.signaler(Evenement::Debut {
+        code: code.to_owned(),
+        total: cibles.len(),
+    });
+    let bilan = runtime.block_on(telechargeur.toutes(cibles, |faites, total| {
+        fil.signaler(Evenement::Progression {
+            code: code.to_owned(),
+            faites,
+            total,
+        });
+    }));
+    ygo_app::replis::consigner(paths, &telechargeur.replis());
+    fil.signaler(Evenement::Fin {
+        code: code.to_owned(),
+        reussies: bilan.reussies,
+        echecs: bilan.echecs,
+    });
+}
+
+/// Les images d'un classeur : couverture, puis ce qui manque sur le disque.
+fn images_du_classeur(
+    fil: &Fil,
+    runtime: &tokio::runtime::Runtime,
+    client: &ygo_sources::ClientHttp,
+    paths: &Paths,
+    source: ygo_core::config::SourceImage,
+    journal: &JournalDisque,
+    code: String,
+) {
+    // La couverture avant les images : elle manque aussi aux classeurs créés
+    // AVANT que la correction du code de langue existe — `LOCH-JP` en est un.
+    // La chercher à chaque ouverture les rattrape, et ne coûte rien quand
+    // elle est déjà là (`telecharger` sort tout de suite).
+    match runtime.block_on(ygo_app::couverture::telecharger(paths, client, &code)) {
+        Ok(Some(_)) => fil.signaler(Evenement::Couverture { code: code.clone() }),
+        Ok(None) => {}
+        Err(e) => tracing::warn!(classeur = %code, erreur = %e, "couverture"),
+    }
+
+    let telechargeur = Telechargeur::nouveau(client, &paths.image_par_defaut());
+    let cibles = match ygo_app::images::a_faire(paths, &code, source, &telechargeur) {
+        Ok((cibles, _deja, _lignes)) => cibles,
+        Err(e) => {
+            // Classeur supprimé entre-temps, base illisible… : rien à
+            // reprendre au prochain lancement non plus.
+            journal.retirer(&code);
+            fil.signaler(Evenement::Echec {
+                code,
+                raison: e.to_string(),
+            });
+            return;
+        }
+    };
+
+    if cibles.is_empty() {
+        journal.retirer(&code);
+        fil.signaler(Evenement::Complet { code });
+        return;
+    }
+
+    fil.signaler(Evenement::Debut {
+        code: code.clone(),
+        total: cibles.len(),
+    });
+    let bilan = runtime.block_on(telechargeur.toutes(&cibles, |faites, total| {
+        fil.signaler(Evenement::Progression {
+            code: code.clone(),
+            faites,
+            total,
+        });
+    }));
+    journal.retirer(&code);
+    ygo_app::replis::consigner(paths, &telechargeur.replis());
+    fil.signaler(Evenement::Fin {
+        code,
+        reussies: bilan.reussies,
+        echecs: bilan.echecs,
+    });
 }
 
 #[cfg(test)]
@@ -1227,6 +1650,138 @@ mod tests {
             reussies,
             echecs,
         }
+    }
+
+    fn classeurs(file: &VecDeque<TacheImages>) -> Vec<&str> {
+        file.iter()
+            .map(|t| match t {
+                TacheImages::Classeur(c) | TacheImages::Apercus { code: c, .. } => c.as_str(),
+            })
+            .collect()
+    }
+
+    fn completer(code: &str, devant: bool) -> CommandeImages {
+        CommandeImages::Completer {
+            code: code.to_owned(),
+            devant,
+        }
+    }
+
+    /// Les classeurs créés prennent leur rang ; celui qu'on ouvre passe
+    /// devant.
+    #[test]
+    fn un_classeur_ouvert_passe_devant_les_classeurs_crees() {
+        let mut file = VecDeque::new();
+        ranger(&mut file, completer("RA02", false));
+        ranger(&mut file, completer("RA05", false));
+        ranger(&mut file, completer("SDWD", true));
+        assert_eq!(classeurs(&file), ["SDWD", "RA02", "RA05"]);
+    }
+
+    /// Un classeur déjà en file n'y entre pas deux fois : ouvert, il est
+    /// déplacé en tête ; recréé, il garde sa place.
+    #[test]
+    fn un_classeur_deja_en_file_est_deplace_jamais_double() {
+        let mut file = VecDeque::new();
+        ranger(&mut file, completer("RA02", false));
+        ranger(&mut file, completer("RA05", false));
+        ranger(&mut file, completer("LDK2", false));
+
+        ranger(&mut file, completer("RA05", false));
+        assert_eq!(classeurs(&file), ["RA02", "RA05", "LDK2"], "rang gardé");
+
+        ranger(&mut file, completer("LDK2", true));
+        assert_eq!(
+            classeurs(&file),
+            ["LDK2", "RA02", "RA05"],
+            "remonté, pas doublé"
+        );
+    }
+
+    /// Les aperçus passent devant tout : l'utilisateur les attend à l'écran.
+    #[test]
+    fn les_apercus_passent_devant() {
+        let mut file = VecDeque::new();
+        ranger(&mut file, completer("RA02", false));
+        ranger(
+            &mut file,
+            CommandeImages::Apercus {
+                code: "LOCR-JP".to_owned(),
+                cibles: Vec::new(),
+            },
+        );
+        assert_eq!(classeurs(&file), ["LOCR-JP", "RA02"]);
+    }
+
+    /// Créé, un classeur sort des tâches en cours mais reste compté dans la
+    /// file jusqu'à ses images — et seul ce moment-là autorise à le remonter.
+    #[test]
+    fn un_classeur_cree_attend_ses_images_dans_la_file() {
+        let mut etat = Etat::default();
+        etat.attendre("RA02");
+        assert!(!etat.images_en_attente("RA02"), "pas encore créé");
+
+        etat.appliquer(&Evenement::CreationEnCours {
+            code: "RA02".to_owned(),
+        });
+        etat.appliquer(&Evenement::Cree {
+            code: "RA02".to_owned(),
+            lignes: 42,
+        });
+        assert!(!etat.images_en_attente("RA02"), "créé, artworks à venir");
+
+        etat.appliquer(&Evenement::ImagesEnAttente {
+            code: "RA02".to_owned(),
+        });
+        assert!(etat.images_en_attente("RA02"));
+        assert!(etat.en_cours().is_empty(), "plus rien ne tourne pour lui");
+        assert_eq!(etat.en_attente(), ["RA02"], "mais il attend toujours");
+
+        etat.appliquer(&debut("RA02", 42));
+        assert!(!etat.images_en_attente("RA02"), "ses images ont commencé");
+        etat.appliquer(&fin("RA02", 42, 0));
+        assert!(etat.en_attente().is_empty());
+    }
+
+    /// La mise à jour vers Yugipedia : ses classeurs entrent dans le lot,
+    /// en attente d'images, et le bilan se lit en une ligne.
+    #[test]
+    fn les_classeurs_mis_a_jour_vers_yugipedia_attendent_leurs_images() {
+        let mut etat = Etat::default();
+        etat.appliquer(&Evenement::ImagesTirage {
+            lignes: 120,
+            classeurs: 2,
+            a_telecharger: 95,
+        });
+        assert!(etat.dernier().unwrap().contains("120 ligne(s)"));
+        for code in ["RA02", "RA05"] {
+            etat.appliquer(&Evenement::ImagesEnAttente {
+                code: code.to_owned(),
+            });
+        }
+        assert_eq!(etat.en_attente(), ["RA02", "RA05"]);
+        assert_eq!(etat.lot(), Some((1, 2)));
+        assert!(etat.images_en_attente("RA05"));
+
+        etat.appliquer(&Evenement::ImagesTirage {
+            lignes: 0,
+            classeurs: 0,
+            a_telecharger: 0,
+        });
+        assert!(etat.dernier().unwrap().contains("déjà à jour"));
+    }
+
+    /// Le drapeau des travaux retombe avec sa garde.
+    #[test]
+    fn le_drapeau_des_travaux_retombe_avec_sa_garde() {
+        let travaux = Travaux::default();
+        assert!(!travaux.en_cours());
+        {
+            let _garde = travaux.ouvrir();
+            assert!(travaux.clone().en_cours(), "vu depuis l'autre fil");
+        }
+        assert!(!travaux.en_cours());
+        travaux.attendre_la_fin(); // rend la main aussitôt
     }
 
     #[test]

@@ -194,6 +194,14 @@ pub struct EcranOptions {
     verdict: Option<Verdict>,
     /// Un re-contrôle de version a été demandé.
     verification_demandee: bool,
+
+    /// Ce que la mise à jour des images vers Yugipedia ferait — calculé à la
+    /// demande, jamais à chaque image : elle lit tous les classeurs.
+    images_tirage: Option<Result<ygo_app::images_tirage::Installation, String>>,
+    /// La mise à jour des images a été demandée, l'appelant ne l'a pas reprise.
+    images_tirage_demandee: bool,
+    /// Elle est partie : le bouton ne se reclique pas dans cette visite.
+    images_tirage_lancee: bool,
 }
 
 impl std::fmt::Debug for EcranOptions {
@@ -253,7 +261,27 @@ impl EcranOptions {
             maj_demandee: false,
             verdict: None,
             verification_demandee: false,
+            images_tirage: None,
+            images_tirage_demandee: false,
+            images_tirage_lancee: false,
         }
+    }
+
+    /// Reprend la demande de mise à jour des images vers Yugipedia.
+    ///
+    /// Comme la mise à jour de la base, l'écran ne lance rien : la tâche
+    /// écrit dans les classeurs puis télécharge, c'est une tâche de fond.
+    pub fn images_yugipedia_demandee(&mut self) -> bool {
+        std::mem::take(&mut self.images_tirage_demandee)
+    }
+
+    /// Analyse, sans rien écrire, ce que la mise à jour ferait.
+    fn analyser_images_tirage(&mut self) {
+        let reference = Priorites::charger(self.paths.rarity_config());
+        self.images_tirage = Some(
+            ygo_app::images_tirage::installation(&self.paths, &reference, false)
+                .map_err(|e| e.to_string()),
+        );
     }
 
     /// Reprend la demande de re-contrôle de version.
@@ -730,6 +758,76 @@ impl EcranOptions {
     /// Portage de `ecran_options.py` §Maintenance, qui en offre six. Une seule
     /// est portée à ce jour ; les cinq autres existent en `ygo-cli` (`raretes`,
     /// `doublons`, `overframe`) ou n'ont pas d'équivalent.
+    /// Passer les classeurs existants à l'image Yugipedia de chaque tirage.
+    ///
+    /// Les classeurs créés depuis le 2026-09-30 la reçoivent à la création.
+    /// Ceux d'avant gardent l'image YGOPRODeck de l'illustration — la même
+    /// pour toutes les raretés — tant qu'on ne la leur pose pas : c'est ce que
+    /// fait ce bouton, l'équivalent de `ygo-cli images-tirage --corriger`.
+    ///
+    /// Analyse d'abord, sur clic : l'utilisateur voit combien de lignes et
+    /// d'images sont en jeu, et combien de temps le téléchargement prendra au
+    /// rythme imposé par Yugipedia, avant de décider.
+    fn images_des_classeurs(&mut self, ui: &mut egui::Ui) {
+        if self.source != SourceImage::Yugipedia {
+            ui.weak("choisissez Yugipedia dans « Source des images » pour en profiter");
+            return;
+        }
+        if ui
+            .button("🔍 Analyser")
+            .on_hover_text(
+                "Cherche, classeur par classeur, les lignes qui peuvent recevoir \
+                 l'image de leur tirage. N'écrit rien.",
+            )
+            .clicked()
+        {
+            self.analyser_images_tirage();
+            self.images_tirage_lancee = false;
+        }
+        match &self.images_tirage {
+            None => {
+                ui.small(
+                    "l'image de chaque tirage — rareté et édition — dans les classeurs existants",
+                );
+            }
+            Some(Err(e)) => {
+                ui.colored_label(ui.visuals().error_fg_color, e.clone());
+            }
+            Some(Ok(vue)) if vue.a_poser == 0 => {
+                ui.small(format!(
+                    "{} classeur(s) : déjà à jour ({} ligne(s) avec l'image de leur tirage)",
+                    vue.classeurs, vue.deja
+                ));
+            }
+            Some(Ok(vue)) => {
+                let resume = format!(
+                    "{} ligne(s) dans {} classeur(s) · ≈ {} image(s) à télécharger, {}",
+                    vue.a_poser,
+                    vue.touches.len(),
+                    vue.a_telecharger,
+                    duree(vue.a_telecharger)
+                );
+                let clique = ui
+                    .add_enabled(
+                        !self.images_tirage_lancee,
+                        egui::Button::new("⟳ Mettre à jour vers Yugipedia"),
+                    )
+                    .on_hover_text(
+                        "Seule l'adresse de l'image change : ni possession, ni quantité, \
+                         ni état. Les images se téléchargent ensuite en arrière-plan, \
+                         une par seconde comme Yugipedia le demande.",
+                    )
+                    .on_disabled_hover_text("Lancée — suivez la bande de progression.")
+                    .clicked();
+                ui.small(resume);
+                if clique {
+                    self.images_tirage_demandee = true;
+                    self.images_tirage_lancee = true;
+                }
+            }
+        }
+    }
+
     fn maintenance(&mut self, ui: &mut egui::Ui) {
         section(ui, "Maintenance", |ui| {
             ui.small(
@@ -858,6 +956,10 @@ impl EcranOptions {
                         self.n_raretes
                     )
                 });
+            });
+
+            ligne(ui, "Images des classeurs", |ui| {
+                self.images_des_classeurs(ui)
             });
 
             ligne(ui, "Artworks Yugipedia", |ui| {
@@ -1014,6 +1116,20 @@ fn section(ui: &mut egui::Ui, titre: &str, contenu: impl FnOnce(&mut egui::Ui)) 
         });
 }
 
+/// Une durée de téléchargement, au rythme d'une image par seconde environ.
+///
+/// Arrondie à ce qui aide à décider : « quelques secondes », des minutes, des
+/// heures — pas « 3 742 s ».
+fn duree(images: usize) -> String {
+    // 1,1 s par image : le limiteur Yugipedia (cf. `ygo_sources::http`).
+    let secondes = images.saturating_mul(11) / 10;
+    match secondes {
+        0..=59 => "moins d'une minute".to_owned(),
+        60..=3599 => format!("≈ {} min", secondes.div_ceil(60)),
+        _ => format!("≈ {} h {:02}", secondes / 3600, (secondes % 3600) / 60),
+    }
+}
+
 fn ligne(ui: &mut egui::Ui, intitule: &str, contenu: impl FnOnce(&mut egui::Ui)) {
     ui.horizontal(|ui| {
         ui.add_sized([200.0, 20.0], egui::Label::new(intitule));
@@ -1052,6 +1168,15 @@ mod tests {
     #![allow(clippy::unwrap_used, clippy::panic, clippy::indexing_slicing)]
 
     use super::*;
+
+    #[test]
+    fn la_duree_se_dit_a_l_echelle_qui_aide_a_decider() {
+        assert_eq!(duree(0), "moins d'une minute");
+        assert_eq!(duree(50), "moins d'une minute");
+        assert_eq!(duree(100), "≈ 2 min");
+        assert_eq!(duree(3000), "≈ 55 min");
+        assert_eq!(duree(4000), "≈ 1 h 13");
+    }
 
     #[test]
     fn les_consequences_se_fusionnent_sans_rien_perdre() {
