@@ -127,6 +127,9 @@ enum Commande {
     /// dans les classeurs — comme une création — et qu'il doit précéder le
     /// téléchargement de ce qu'il pose.
     ImagesYugipedia,
+    /// Ajouter à tous les classeurs les numéros que la Set list Yugipedia
+    /// connaît et que la base a perdus (cf. `ygo_app::numeros_absents`).
+    NumerosAbsents,
     /// Créer ce classeur — lignes, couverture, artworks —, puis passer ses
     /// images au fil des images.
     ///
@@ -154,6 +157,9 @@ pub const CODE_BASE: &str = "Base de données";
 ///
 /// Même principe que [`CODE_BASE`] : un nom qu'aucun set ne peut porter.
 pub const CODE_IMAGES_YUGIPEDIA: &str = "Images Yugipedia";
+
+/// Le nom sous lequel la recherche des numéros manquants s'annonce.
+pub const CODE_NUMEROS_ABSENTS: &str = "Numéros manquants";
 
 /// « La base est en travaux » — partagé entre les deux fils.
 ///
@@ -336,6 +342,17 @@ pub enum Evenement {
         /// Fichiers à télécharger, estimés avant de commencer.
         a_telecharger: usize,
     },
+    /// Les numéros manquants ont été cherchés dans tous les classeurs.
+    NumerosAbsents {
+        /// Numéros ajoutés.
+        numeros: usize,
+        /// Lignes créées.
+        lignes: usize,
+        /// Classeurs touchés — leurs images suivent.
+        classeurs: usize,
+        /// Numéros dont la carte reste introuvable dans la base.
+        introuvables: usize,
+    },
     /// Les données du classeur sont prêtes ; ses images attendent leur tour.
     ///
     /// Le classeur quitte les tâches en cours mais reste dans la file : la
@@ -391,6 +408,7 @@ impl Evenement {
                 CODE_BASE
             }
             Self::ImagesTirage { .. } => CODE_IMAGES_YUGIPEDIA,
+            Self::NumerosAbsents { .. } => CODE_NUMEROS_ABSENTS,
         }
     }
 
@@ -467,6 +485,8 @@ pub enum Etape {
     /// Les images de tirage se posent dans les classeurs, avant tout
     /// téléchargement.
     Preparation,
+    /// Les classeurs se comparent à leur Set list Yugipedia.
+    Verification,
     /// La base de référence se reconstruit.
     ///
     /// Elle porte sa phase : c'est la seule tâche assez longue pour que
@@ -483,6 +503,7 @@ impl Etape {
             Self::Artworks => "Artworks",
             Self::Images => "Images",
             Self::Preparation => "Préparation",
+            Self::Verification => "Vérification",
             Self::Base(phase) => phase.libelle(),
         }
     }
@@ -586,6 +607,29 @@ impl Etat {
                          {classeurs} classeur(s) ; ≈ {a_telecharger} image(s) à télécharger"
                     )
                 });
+            }
+            Evenement::NumerosAbsents {
+                numeros,
+                lignes,
+                classeurs,
+                introuvables,
+            } => {
+                self.en_cours.remove(CODE_NUMEROS_ABSENTS);
+                self.etape.remove(CODE_NUMEROS_ABSENTS);
+                let mut message = if *numeros == 0 {
+                    "Numéros manquants — aucun à ajouter".to_owned()
+                } else {
+                    format!(
+                        "Numéros manquants — {numeros} numéro(s) ajouté(s) ({lignes} ligne(s)) \
+                         dans {classeurs} classeur(s)"
+                    )
+                };
+                if *introuvables > 0 {
+                    message.push_str(&format!(
+                        " ; {introuvables} introuvable(s) dans la base, laissé(s) de côté"
+                    ));
+                }
+                self.dernier = Some(message);
             }
             Evenement::ImagesEnAttente { code } => {
                 // Plus rien ne tourne pour lui, mais il n'est pas fini : il
@@ -948,6 +992,24 @@ impl Service {
         }
     }
 
+    /// Demande de chercher, dans tous les classeurs, les numéros que la Set
+    /// list Yugipedia connaît et que la base a perdus.
+    pub fn numeros_absents(&mut self) {
+        self.etat.en_cours.insert(
+            CODE_NUMEROS_ABSENTS.to_owned(),
+            Avancement {
+                faites: 0,
+                total: 0,
+            },
+        );
+        self.etat
+            .etape
+            .insert(CODE_NUMEROS_ABSENTS.to_owned(), Etape::Verification);
+        if self.commandes.send(Commande::NumerosAbsents).is_err() {
+            tracing::warn!("fil des données absent — recherche des numéros ignorée");
+        }
+    }
+
     /// Demande de créer un classeur ; ses images suivront, sur l'autre fil.
     pub fn creer(&mut self, code: &str, avec_artworks: bool) {
         let code = code.trim().to_uppercase();
@@ -1276,6 +1338,9 @@ fn travailler_donnees(fil: &Fil, commandes: &Receiver<Commande>, images: &Sender
             Commande::ImagesYugipedia => {
                 images_vers_yugipedia(&paths, &raretes, images, &signaler);
             }
+            Commande::NumerosAbsents => {
+                numeros_absents_partout(&runtime, &paths, &client, &raretes, images, &signaler);
+            }
             Commande::Creer {
                 code,
                 avec_artworks,
@@ -1344,6 +1409,71 @@ fn images_vers_yugipedia(
             code: CODE_IMAGES_YUGIPEDIA.to_owned(),
             raison: e.to_string(),
         }),
+    }
+}
+
+/// Ajoute à chaque classeur les numéros que la base a perdus, puis confie au
+/// fil des images ceux qui ont changé.
+///
+/// Un classeur qui reçoit des numéros repasse par la passe artworks : ses
+/// nouvelles lignes y reçoivent l'image de leur tirage, Overframe compris.
+/// Réseau : la Set list de chaque classeur — en cache trente jours —, et une
+/// requête pour cinquante noms à résoudre, au rythme de Yugipedia.
+fn numeros_absents_partout(
+    runtime: &tokio::runtime::Runtime,
+    paths: &Paths,
+    client: &ygo_sources::ClientHttp,
+    raretes: &ygo_core::rarity::Priorites,
+    images: &Sender<CommandeImages>,
+    signaler: &impl Fn(Evenement),
+) {
+    let (mut numeros, mut lignes, mut introuvables) = (0usize, 0usize, 0usize);
+    let mut touches: Vec<String> = Vec::new();
+    for code in paths.classeurs_existants() {
+        let issue = runtime.block_on(ygo_app::numeros_absents::completer(
+            paths, client, &code, raretes, true,
+        ));
+        let bilan = match issue {
+            Ok(ygo_app::numeros_absents::Issue::Fait(b)) => b,
+            Ok(_) => continue,
+            Err(e) => {
+                tracing::warn!(classeur = %code, erreur = %e, "numéros manquants non vérifiés");
+                continue;
+            }
+        };
+        introuvables += bilan.introuvables.len();
+        // Des images posées sans numéro ajouté : un numéro d'un passage
+        // précédent, dont les tirages en variante attendent la passe.
+        if bilan.ajouts.is_empty() && bilan.images == 0 {
+            continue;
+        }
+        numeros += bilan.ajouts.len();
+        lignes += bilan.lignes();
+        if let Err(e) = runtime.block_on(ygo_app::creation::completer_artworks(
+            paths, client, &code, raretes,
+        )) {
+            tracing::warn!(classeur = %code, erreur = %e, "passe artworks après ajout");
+        }
+        touches.push(code);
+    }
+    signaler(Evenement::NumerosAbsents {
+        numeros,
+        lignes,
+        classeurs: touches.len(),
+        introuvables,
+    });
+    for code in touches {
+        signaler(Evenement::ImagesEnAttente { code: code.clone() });
+        if images
+            .send(CommandeImages::Completer {
+                code,
+                devant: false,
+            })
+            .is_err()
+        {
+            tracing::warn!("fil des images absent — images non demandées");
+            break;
+        }
     }
 }
 
@@ -1769,6 +1899,26 @@ mod tests {
             a_telecharger: 0,
         });
         assert!(etat.dernier().unwrap().contains("déjà à jour"));
+    }
+
+    /// Le bilan des numéros manquants se lit en une ligne, introuvables
+    /// compris.
+    #[test]
+    fn le_bilan_des_numeros_manquants_dit_aussi_les_introuvables() {
+        let mut etat = Etat::default();
+        etat.appliquer(&Evenement::NumerosAbsents {
+            numeros: 1,
+            lignes: 5,
+            classeurs: 1,
+            introuvables: 2,
+        });
+        let dernier = etat.dernier().unwrap();
+        assert!(
+            dernier.contains("1 numéro(s) ajouté(s) (5 ligne(s))"),
+            "{dernier}"
+        );
+        assert!(dernier.contains("2 introuvable(s)"), "{dernier}");
+        assert!(!etat.actif());
     }
 
     /// Le drapeau des travaux retombe avec sa garde.

@@ -130,6 +130,12 @@ async fn executer() -> anyhow::Result<bool> {
         "reprise-images" => {
             cmd_reprise_images(&cible.context("chemin de l'installation attendu")?, reste).await
         }
+        "numeros-absents" => {
+            cmd_numeros_absents(&cible.context("chemin de l'installation attendu")?, reste).await
+        }
+        "simuler-numeros" => {
+            cmd_simuler_numeros(&cible.context("chemin de l'installation attendu")?, reste).await
+        }
         "etats-defaut" => {
             cmd_etats_defaut(&cible.context("chemin de l'installation attendu")?, reste)
         }
@@ -206,6 +212,18 @@ USAGE
         [--classeur CODE]             se limite à un classeur
   ygo-cli reprise-images <installation>  demande à Yugipedia quels fichiers de repli il a désormais
         [--corriger]                  écrit — sans lui, rien n'est modifié
+  ygo-cli numeros-absents <installation>  ajoute les numéros que la Set list Yugipedia
+                                   connaît et que la base a perdus (LOCH-JP013…)
+        [--corriger]                  écrit — sans lui, rien n'est modifié
+        [--classeur CODE]             se limite à un classeur
+  ygo-cli simuler-numeros <installation>  crée des classeurs d'essai À PART et y
+                                   applique numeros-absents + la passe artworks ;
+                                   rapport dans simulation_numeros.md, rien n'est
+                                   touché dans vos classeurs
+        [--nombre N]                  nombre de sets tirés au sort (défaut 50,
+                                      moitié anglais, moitié japonais)
+        [--graine N]                  autre tirage au sort
+        [--codes A,B,C]               ces sets-là plutôt qu'un tirage
   ygo-cli etats-defaut <installation>  pose Mint et l'édition connue sur les possédées qui n'en ont pas
         [--corriger]                  écrit — sans lui, rien n'est modifié
         [--classeur CODE]             se limite à un classeur
@@ -913,6 +931,360 @@ fn cmd_noms_fr(installation: &Path, args: &[String]) -> anyhow::Result<bool> {
 ///
 /// Elle demande à Yugipedia, une requête pour 50 fichiers, lesquels il a
 /// désormais. Sans `--corriger`, elle **n'écrit rien**.
+/// `numeros-absents` — les numéros de la Set list que le classeur ignore,
+/// retrouvés dans la base et ajoutés (cf. `ygo_app::numeros_absents`).
+///
+/// Avec `--corriger`, chaque classeur qui reçoit des numéros repasse aussitôt
+/// par la passe artworks, pour que ses nouvelles lignes aient l'image de leur
+/// tirage. Les images elles-mêmes arrivent à l'ouverture du classeur.
+async fn cmd_numeros_absents(installation: &Path, args: &[String]) -> anyhow::Result<bool> {
+    let corriger = args.iter().any(|a| a == "--corriger");
+    let seul = args
+        .iter()
+        .position(|a| a == "--classeur")
+        .and_then(|i| args.get(i + 1))
+        .map(|c| c.to_uppercase());
+    let paths = Paths::depuis_racine(installation);
+    ygo_sources::cache::activer(&paths.cache_http());
+    let raretes = Priorites::charger(paths.rarity_config());
+    let client = ygo_sources::ClientHttp::new()?;
+    println!("Installation : {}", installation.display());
+    println!(
+        "Mode         : {}",
+        if corriger {
+            "ÉCRITURE"
+        } else {
+            "analyse seule — rien ne sera modifié"
+        }
+    );
+    println!();
+    let (mut numeros, mut lignes, mut introuvables) = (0usize, 0usize, 0usize);
+    for code in paths.classeurs_existants() {
+        if seul.as_deref().is_some_and(|c| c != code) {
+            continue;
+        }
+        let issue =
+            match ygo_app::numeros_absents::completer(&paths, &client, &code, &raretes, corriger)
+                .await
+            {
+                Ok(i) => i,
+                Err(e) => {
+                    println!("{code:10} erreur : {e}");
+                    continue;
+                }
+            };
+        let bilan = match issue {
+            ygo_app::numeros_absents::Issue::Fait(b) => b,
+            ygo_app::numeros_absents::Issue::ClasseurVide => {
+                println!("{code:10} classeur vide");
+                continue;
+            }
+            ygo_app::numeros_absents::Issue::PageIntrouvable => {
+                println!("{code:10} aucune Set Card List sur Yugipedia");
+                continue;
+            }
+        };
+        if bilan.absents == 0 && bilan.images == 0 {
+            println!("{code:10} complet");
+            continue;
+        }
+        println!(
+            "{code:10} {} numéro(s) absent(s) : {} retrouvé(s), {} introuvable(s)",
+            bilan.absents,
+            bilan.ajouts.len(),
+            bilan.introuvables.len()
+        );
+        for a in &bilan.ajouts {
+            println!("    + {} {} ({} ligne(s))", a.numero, a.nom, a.lignes);
+        }
+        for (numero, nom) in &bilan.introuvables {
+            println!("    ? {numero} « {nom} » — absente de la base, rien n'est créé");
+        }
+        numeros += bilan.ajouts.len();
+        lignes += bilan.lignes();
+        introuvables += bilan.introuvables.len();
+        if bilan.images > 0 {
+            println!(
+                "    {} ligne(s) reçoivent l'image Yugipedia de leur tirage",
+                bilan.images
+            );
+        }
+        // Les tirages en variante des numéros ajoutés — maintenant ou lors
+        // d'un passage précédent — passent par la passe artworks.
+        if corriger && (!bilan.ajouts.is_empty() || bilan.images > 0) {
+            match ygo_app::creation::completer_artworks(&paths, &client, &code, &raretes).await {
+                Ok(_) => println!("    passe artworks refaite"),
+                Err(e) => println!("    passe artworks : {e}"),
+            }
+        }
+    }
+    println!();
+    println!(
+        "{numeros} numéro(s) {} ({lignes} ligne(s)), {introuvables} introuvable(s).",
+        if corriger { "ajouté(s)" } else { "à ajouter" }
+    );
+    if !corriger && numeros > 0 {
+        println!("Relancer avec --corriger pour écrire.");
+    }
+    Ok(true)
+}
+
+/// Les sets à simuler : ceux demandés, ou un tirage reproductible.
+///
+/// Le tirage prend des sets d'au moins vingt tirages, moitié anglais
+/// (`RA04`), moitié japonais (`LOCH-JP`), en écartant ceux que l'installation
+/// a déjà. Un générateur congruentiel suffit : il ne sert qu'à mélanger, et
+/// la même graine redonne le même échantillon.
+fn sets_a_simuler(
+    cardinfo: &rusqlite::Connection,
+    deja: &BTreeSet<String>,
+    nombre: usize,
+    graine: u64,
+) -> anyhow::Result<Vec<String>> {
+    let mut par_langue: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
+    let mut requete = cardinfo.prepare(
+        "SELECT sl.prefix, sl.language FROM set_locales sl \
+           JOIN set_prints sp ON sp.set_locale_id = sl.id \
+          WHERE sl.language IN ('en', 'jp') AND sl.prefix LIKE '%-%' \
+          GROUP BY sl.id HAVING COUNT(sp.id) >= 20",
+    )?;
+    let lignes = requete.query_map([], |l| Ok((l.get::<_, String>(0)?, l.get::<_, String>(1)?)))?;
+    for ligne in lignes {
+        let (prefixe, langue) = ligne?;
+        let code = if langue == "jp" {
+            prefixe.to_uppercase()
+        } else {
+            prefixe.split('-').next().unwrap_or_default().to_uppercase()
+        };
+        // Un préfixe sans code de set (`302-`) ne nomme aucun classeur.
+        let valide = !code.is_empty() && !code.ends_with('-') && !code.starts_with('-');
+        if valide && !deja.contains(&code) {
+            par_langue.entry(langue).or_default().insert(code);
+        }
+    }
+    let mut etat = graine
+        .wrapping_mul(6_364_136_223_846_793_005)
+        .wrapping_add(1);
+    let mut tirer = |codes: &BTreeSet<String>, n: usize| -> Vec<String> {
+        let mut v: Vec<String> = codes.iter().cloned().collect();
+        for i in (1..v.len()).rev() {
+            etat = etat
+                .wrapping_mul(6_364_136_223_846_793_005)
+                .wrapping_add(1_442_695_040_888_963_407);
+            let j = usize::try_from((etat >> 33) % (i as u64 + 1)).unwrap_or(0);
+            v.swap(i, j);
+        }
+        v.truncate(n);
+        v
+    };
+    let vide = BTreeSet::new();
+    let moitie = nombre / 2;
+    let mut choisis = tirer(par_langue.get("en").unwrap_or(&vide), nombre - moitie);
+    choisis.extend(tirer(par_langue.get("jp").unwrap_or(&vide), moitie));
+    Ok(choisis)
+}
+
+/// Un message d'erreur ramené à une cellule de tableau lisible.
+fn court(message: &str) -> String {
+    let une_ligne = message.replace(['|', '\n'], " ");
+    if une_ligne.chars().count() > 100 {
+        format!("{}…", une_ligne.chars().take(100).collect::<String>())
+    } else {
+        une_ligne
+    }
+}
+
+/// `simuler-numeros` — la complétion des numéros absents, éprouvée sur des
+/// classeurs créés pour l'occasion, **à part** de ceux de l'utilisateur.
+///
+/// Chaque set est créé comme l'interface le crée (lignes locales, ou
+/// YGOPRODeck à défaut), puis passe par `numeros_absents` et la passe
+/// artworks. Le rapport, `simulation_numeros.md` à la racine de
+/// l'installation, liste chaque ajout avec son mode de rapprochement — c'est
+/// ce qu'on relit pour juger le garde-fou — et chaque numéro laissé de côté.
+///
+/// Les requêtes passent par le même client que l'application : quotas et
+/// cache sont ceux de l'installation, une seconde par requête Yugipedia.
+async fn cmd_simuler_numeros(installation: &Path, args: &[String]) -> anyhow::Result<bool> {
+    use std::fmt::Write as _;
+    let valeur = |cle: &str| {
+        args.iter()
+            .position(|a| a == cle)
+            .and_then(|i| args.get(i + 1))
+            .cloned()
+    };
+    let nombre: usize = valeur("--nombre")
+        .and_then(|n| n.parse().ok())
+        .unwrap_or(50);
+    let graine: u64 = valeur("--graine")
+        .and_then(|n| n.parse().ok())
+        .unwrap_or(20_261_010);
+
+    let reelle = Paths::depuis_racine(installation);
+    ygo_sources::cache::activer(&reelle.cache_http());
+    let raretes = Priorites::charger(reelle.rarity_config());
+
+    // L'installation d'essai : une copie de la base, aucun classeur réel.
+    let racine_essai = installation.join("simulation_numeros_tmp");
+    if racine_essai.exists() {
+        std::fs::remove_dir_all(&racine_essai)?;
+    }
+    let essai = Paths::depuis_racine(&racine_essai);
+    std::fs::create_dir_all(essai.bdd())?;
+    std::fs::copy(reelle.cardinfo_db(), essai.cardinfo_db()).context("copie de cardinfo.db")?;
+    if reelle.rarity_config().is_file() {
+        std::fs::copy(reelle.rarity_config(), essai.rarity_config())?;
+    }
+
+    let codes: Vec<String> = match valeur("--codes") {
+        Some(liste) => liste
+            .split(',')
+            .map(|c| c.trim().to_uppercase())
+            .filter(|c| !c.is_empty())
+            .collect(),
+        None => {
+            let deja: BTreeSet<String> = reelle.classeurs_existants().into_iter().collect();
+            let cardinfo = connexion::ouvrir_lecture_seule(essai.cardinfo_db())?;
+            sets_a_simuler(&cardinfo, &deja, nombre, graine)?
+        }
+    };
+    println!("Installation d'essai : {}", racine_essai.display());
+    println!(
+        "{} set(s) — environ 5 requêtes Yugipedia chacun, une par seconde : ~{} min",
+        codes.len(),
+        (codes.len() * 6).div_ceil(60)
+    );
+    println!();
+
+    let client = ygo_sources::ClientHttp::new()?;
+    let mut rapport = String::new();
+    let mut detail = String::new();
+    let _ = writeln!(rapport, "# Simulation — numéros absents\n");
+    let _ = writeln!(
+        rapport,
+        "| Set | Lignes créées | Absents | Ajoutés | Introuvables | Images posées | Passe : illustrations | Remarque |"
+    );
+    let _ = writeln!(rapport, "|---|---|---|---|---|---|---|---|");
+    let (mut t_ajouts, mut t_introuvables, mut t_password, mut t_fiche) =
+        (0usize, 0usize, 0usize, 0usize);
+
+    for (i, code) in codes.iter().enumerate() {
+        print!("[{}/{}] {code:10} ", i + 1, codes.len());
+        let creation =
+            creation::creer(&essai, &client, code, false, &creation::Greffons::default()).await;
+        let lignes = match creation {
+            Ok(creation::Issue::Cree { lignes, .. }) => lignes,
+            Ok(creation::Issue::DejaExistant) => {
+                println!("déjà là");
+                continue;
+            }
+            Err(e) => {
+                println!("création impossible : {e}");
+                let _ = writeln!(
+                    rapport,
+                    "| {code} | — | | | | | | création impossible : {} |",
+                    court(&e.to_string())
+                );
+                continue;
+            }
+        };
+        let issue =
+            ygo_app::numeros_absents::completer(&essai, &client, code, &raretes, true).await;
+        let bilan = match issue {
+            Ok(ygo_app::numeros_absents::Issue::Fait(b)) => b,
+            Ok(ygo_app::numeros_absents::Issue::PageIntrouvable) => {
+                println!("{lignes} lignes, pas de Set Card List");
+                let _ = writeln!(
+                    rapport,
+                    "| {code} | {lignes} | | | | | | pas de Set Card List |"
+                );
+                continue;
+            }
+            Ok(ygo_app::numeros_absents::Issue::ClasseurVide) => {
+                println!("classeur vide");
+                continue;
+            }
+            Err(e) => {
+                println!("erreur : {e}");
+                let _ = writeln!(
+                    rapport,
+                    "| {code} | {lignes} | | | | | | erreur : {} |",
+                    court(&e.to_string())
+                );
+                continue;
+            }
+        };
+        let passe = creation::completer_artworks(&essai, &client, code, &raretes).await;
+        let (illustrations, remarque) = match &passe {
+            Ok(a) => (a.bilan.illustrations.to_string(), String::new()),
+            Err(e) => (
+                String::from("—"),
+                format!("passe : {}", court(&e.to_string())),
+            ),
+        };
+        println!(
+            "{lignes} lignes, {} absent(s), {} ajouté(s), {} introuvable(s), {} image(s)",
+            bilan.absents,
+            bilan.ajouts.len(),
+            bilan.introuvables.len(),
+            bilan.images
+        );
+        let _ = writeln!(
+            rapport,
+            "| {code} | {lignes} | {} | {} | {} | {} | {illustrations} | {remarque} |",
+            bilan.absents,
+            bilan.ajouts.len(),
+            bilan.introuvables.len(),
+            bilan.images
+        );
+        t_ajouts += bilan.ajouts.len();
+        t_introuvables += bilan.introuvables.len();
+        if bilan.ajouts.is_empty() && bilan.introuvables.is_empty() {
+            continue;
+        }
+        let _ = writeln!(detail, "\n### {code}\n");
+        for a in &bilan.ajouts {
+            match a.via {
+                ygo_app::numeros_absents::Rapprochement::Password => t_password += 1,
+                ygo_app::numeros_absents::Rapprochement::Fiche => t_fiche += 1,
+                ygo_app::numeros_absents::Rapprochement::Nom => {}
+            }
+            let _ = writeln!(
+                detail,
+                "- + `{}` **{}** — Set list : « {} » — via {} — {} ligne(s)",
+                a.numero,
+                a.nom,
+                a.nom_set_list,
+                a.via.libelle(),
+                a.lignes
+            );
+        }
+        for (numero, nom) in &bilan.introuvables {
+            let _ = writeln!(detail, "- ? `{numero}` « {nom} » — introuvable, rien créé");
+        }
+    }
+
+    let _ = writeln!(
+        rapport,
+        "\n**Total** : {t_ajouts} numéro(s) ajouté(s) — dont {t_fiche} par la fiche, \
+         {t_password} par le password — et {t_introuvables} introuvable(s).\n\
+         \nÀ relire en priorité : les ajouts « via password » (le nom diffère de la base).\n"
+    );
+    let _ = writeln!(rapport, "## Détail{detail}");
+    let chemin = installation.join("simulation_numeros.md");
+    std::fs::write(&chemin, &rapport)?;
+    if let Err(e) = std::fs::remove_dir_all(&racine_essai) {
+        println!("(installation d'essai non supprimée : {e})");
+    }
+    println!();
+    println!(
+        "{t_ajouts} ajouté(s) ({t_fiche} par la fiche, {t_password} par le password), \
+         {t_introuvables} introuvable(s)."
+    );
+    println!("Rapport : {}", chemin.display());
+    Ok(true)
+}
+
 async fn cmd_reprise_images(installation: &Path, args: &[String]) -> anyhow::Result<bool> {
     let corriger = args.iter().any(|a| a == "--corriger");
     let paths = Paths::depuis_racine(installation);

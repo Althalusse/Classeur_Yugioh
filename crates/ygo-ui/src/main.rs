@@ -631,6 +631,9 @@ impl eframe::App for Application {
                 if options.images_yugipedia_demandee() {
                     self.images.images_vers_yugipedia();
                 }
+                if options.numeros_absents_demandee() {
+                    self.images.numeros_absents();
+                }
                 let consequences = options.consequences();
                 if options.retour_demande() {
                     self.appliquer(consequences);

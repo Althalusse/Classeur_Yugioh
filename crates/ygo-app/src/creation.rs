@@ -1301,6 +1301,18 @@ pub async fn completer_artworks(
     code: &str,
     reference: &ygo_core::rarity::Priorites,
 ) -> Result<ApresArtworks> {
+    // Les numéros que YGOJSON a perdus, AVANT la passe : une fois créés, ils
+    // reçoivent leurs images de tirage comme les autres (cf.
+    // `numeros_absents`). Leur échec ne coûte pas la passe.
+    match crate::numeros_absents::completer(paths, client, code, reference, true).await {
+        Ok(crate::numeros_absents::Issue::Fait(b)) if !b.ajouts.is_empty() => {
+            tracing::info!(classeur = %code, numeros = b.ajouts.len(), lignes = b.lignes(),
+                "numéros absents de la base ajoutés depuis la Set list");
+        }
+        Ok(_) => {}
+        Err(e) => tracing::warn!(classeur = %code, erreur = %e, "numéros absents non vérifiés"),
+    }
+
     let chemin_db = paths.classeur_db(code);
     let chemin_db = chemin_db.as_path();
     let bilan = {

@@ -853,8 +853,21 @@ pub async fn passe(
     let reference = structure::index_slots(&slots);
     let libelles = structure::libelles(&slots);
 
-    let noms: Vec<String> = inventaire.iter().map(|l| l.name.clone()).collect();
+    // Les fichiers Yugipedia portent le nom de la FICHE, que la Set list
+    // reprend ; la base peut en garder un autre (cf. `noms_set_list`). Les deux
+    // sont cherchés : un fichier n'est rapproché d'une ligne que si son nom
+    // correspond à l'un des deux.
+    let selon_set_list = noms_set_list(&entrees);
+    let mut noms: Vec<String> = inventaire.iter().map(|l| l.name.clone()).collect();
+    for l in &inventaire {
+        if let Some(n) = selon_set_list.get(&l.set_code) {
+            if !noms.contains(n) {
+                noms.push(n.clone());
+            }
+        }
+    }
     let index = artwork::fichiers_pour_set(client, &code_reference, &noms, &langue).await?;
+    let inventaire = rebaptiser(inventaire, &selon_set_list, &index);
     let prefixe = artwork::prefixe_set(&code_reference);
 
     let (fichiers, illustrations) = convertir(&index, &prefixe);
@@ -873,6 +886,55 @@ pub async fn passe(
         revid,
         titre,
     })
+}
+
+/// Le nom que la Set list donne à chaque numéro, numéro en majuscules.
+fn noms_set_list(entrees: &[ygo_sources::yugipedia::EntreeSetList]) -> HashMap<String, String> {
+    let mut noms = HashMap::new();
+    for e in entrees {
+        let nom = e.nom.trim();
+        if !nom.is_empty() {
+            noms.entry(e.numero.trim().to_uppercase())
+                .or_insert_with(|| nom.to_owned());
+        }
+    }
+    noms
+}
+
+/// Donne à une ligne le nom de la Set list quand c'est le seul que les
+/// fichiers Yugipedia connaissent.
+///
+/// # Pourquoi — 2026-10-10
+///
+/// `LOCH-JP013` : la base dit « *Odd-Eyes Pendulum Dragon of the Four
+/// Heavenly Dragons* », la fiche Yugipedia — et donc ses fichiers,
+/// `OddEyesPendulumDragonFourHeavenlyDragons-LOCH-JP-UR.png` — l'autre nom.
+/// Comparés au nom de la base, aucun fichier ne collait : les tirages en
+/// variante gardaient l'image d'origine.
+///
+/// Le renommage n'existe que pour la passe — rien n'est écrit — et seulement
+/// quand le nom de la base ne trouve **aucun** fichier et que celui de la Set
+/// list en trouve : une carte déjà servie ne change jamais de clé.
+fn rebaptiser(
+    inventaire: Vec<LigneInventaire>,
+    selon_set_list: &HashMap<String, String>,
+    index: &ygo_sources::yugipedia::artwork::IndexFichiers,
+) -> Vec<LigneInventaire> {
+    use ygo_sources::yugipedia::artwork::cle_comparaison;
+    let cles: HashSet<&String> = index.keys().map(|(cle, _)| cle).collect();
+    inventaire
+        .into_iter()
+        .map(|mut l| {
+            if !cles.contains(&cle_comparaison(&l.name)) {
+                if let Some(nom) = selon_set_list.get(&l.set_code) {
+                    if cles.contains(&cle_comparaison(nom)) {
+                        l.name.clone_from(nom);
+                    }
+                }
+            }
+            l
+        })
+        .collect()
 }
 
 /// Traduit l'index de `ygo-sources` en ce que le planificateur consomme.
@@ -1034,6 +1096,51 @@ mod tests {
     /// conclut qu'il manque, et l'insère — 567 fois sur `RA02`.
     ///
     /// Avec la clé canonisée, elle le retrouve et n'insère rien.
+    /// `LOCH-JP013` : le nom de la base ne trouve aucun fichier, celui de la
+    /// Set list oui — la ligne prend le second, pour la passe seulement. Une
+    /// ligne que son propre nom sert garde le sien.
+    #[test]
+    fn une_ligne_prend_le_nom_de_la_set_list_quand_seul_lui_a_des_fichiers() {
+        let candidat = |cle: &str| ygo_sources::yugipedia::artwork::Candidat {
+            segment: cle.to_owned(),
+            cle_carte: cle.to_owned(),
+            infos: ygo_sources::yugipedia::artwork::InfosFichier {
+                fichier: format!("{cle}.png"),
+                langue: "JP".to_owned(),
+                rarete_abbr: "UR".to_owned(),
+                edition: String::new(),
+                variante: "EA".to_owned(),
+            },
+            card_url: String::new(),
+            image_id: -1,
+            uuid: String::new(),
+        };
+        let mut index = ygo_sources::yugipedia::artwork::IndexFichiers::new();
+        for cle in [
+            "oddeyespendulumdragonfourheavenlydragons",
+            "gagagagirlcellphonesubtraction",
+        ] {
+            index.insert((cle.to_owned(), "UR".to_owned()), vec![candidat(cle)]);
+        }
+        let selon_set_list = HashMap::from([
+            (
+                "LOCH-JP013".to_owned(),
+                "Odd-Eyes Pendulum Dragon, Four Heavenly Dragons".to_owned(),
+            ),
+            ("LOCH-JP012".to_owned(), "Autre nom".to_owned()),
+        ]);
+        let mut oe = ligne(1, "LOCH-JP013", "Ultra Rare", 1);
+        oe.name = "Odd-Eyes Pendulum Dragon of the Four Heavenly Dragons".to_owned();
+        let mut gg = ligne(2, "LOCH-JP012", "Ultra Rare", 1);
+        gg.name = "Gagaga Girl - Cell Phone Subtraction".to_owned();
+        let r = rebaptiser(vec![oe, gg], &selon_set_list, &index);
+        assert_eq!(r[0].name, "Odd-Eyes Pendulum Dragon, Four Heavenly Dragons");
+        assert_eq!(
+            r[1].name, "Gagaga Girl - Cell Phone Subtraction",
+            "servie par son nom : gardé"
+        );
+    }
+
     #[test]
     fn une_rarete_abregee_ne_cree_plus_de_doublon() {
         let (r, lib) = reference(vec![("RA02-EN001", "PlScR", vec![""])]);

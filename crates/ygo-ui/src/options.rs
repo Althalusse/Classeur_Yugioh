@@ -202,6 +202,10 @@ pub struct EcranOptions {
     images_tirage_demandee: bool,
     /// Elle est partie : le bouton ne se reclique pas dans cette visite.
     images_tirage_lancee: bool,
+    /// La recherche des numéros manquants a été demandée, pas encore reprise.
+    numeros_demandee: bool,
+    /// Elle est partie dans cette visite.
+    numeros_lancee: bool,
 }
 
 impl std::fmt::Debug for EcranOptions {
@@ -264,7 +268,14 @@ impl EcranOptions {
             images_tirage: None,
             images_tirage_demandee: false,
             images_tirage_lancee: false,
+            numeros_demandee: false,
+            numeros_lancee: false,
         }
+    }
+
+    /// Reprend la demande de recherche des numéros manquants.
+    pub fn numeros_absents_demandee(&mut self) -> bool {
+        std::mem::take(&mut self.numeros_demandee)
     }
 
     /// Reprend la demande de mise à jour des images vers Yugipedia.
@@ -849,6 +860,26 @@ impl EcranOptions {
                 ui.small(
                     "refait cardinfo.db à l'identique — cartes manquantes, raretés aberrantes",
                 );
+            });
+            ligne(ui, "Numéros manquants", |ui| {
+                let clique = ui
+                    .add_enabled(
+                        !self.numeros_lancee,
+                        egui::Button::new("🔍 Compléter depuis Yugipedia"),
+                    )
+                    .on_hover_text(
+                        "Compare chaque classeur à sa Set list Yugipedia et ajoute les \
+                         numéros que la base a perdus (ex. LOCH-JP013), si la carte \
+                         existe dans la base. Rien n'est inventé : une carte introuvable \
+                         est signalée et laissée de côté.",
+                    )
+                    .on_disabled_hover_text("Lancée — suivez la bande de progression.")
+                    .clicked();
+                if clique {
+                    self.numeros_demandee = true;
+                    self.numeros_lancee = true;
+                }
+                ui.small("une à deux requêtes Yugipedia par classeur, au rythme d'une par seconde");
             });
         });
     }

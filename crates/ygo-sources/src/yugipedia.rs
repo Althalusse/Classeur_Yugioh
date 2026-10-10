@@ -168,8 +168,29 @@ fn trouver_ascii_insensible(foin: &[u8], aiguille: &[u8], depuis: usize) -> Opti
 pub fn nettoyer(texte: &str) -> String {
     let sans_liens = regex_lien().replace_all(texte, "$1");
     html_escape::decode_html_entities(&sans_liens)
+        .chars()
+        .filter(|c| !invisible(*c))
+        .collect::<String>()
         .trim()
         .to_owned()
+}
+
+/// Un caractère de mise en forme **invisible** : marques de direction,
+/// espaces de largeur nulle, BOM.
+///
+/// # Pourquoi — 2026-10-10
+///
+/// La simulation sur 50 sets en a trouvé dans les Set lists :
+/// « `Sea Archiver\u{200E}\u{200E}` » (`SD33-JP003`), « `Speedroid
+/// Hexasaucer\u{200E}` » (`19PP-JP008`)… Invisibles à l'écran, ils font
+/// échouer toute comparaison de noms — c'est sans doute ainsi que YGOJSON a
+/// perdu ces tirages. Les retirer ici sert toute la chaîne : numéros absents,
+/// passe artworks, variantes.
+fn invisible(c: char) -> bool {
+    matches!(
+        c,
+        '\u{200B}'..='\u{200F}' | '\u{202A}'..='\u{202E}' | '\u{2060}'..='\u{2064}' | '\u{FEFF}'
+    )
 }
 
 /// `\[\[(?:[^\]|]*\|)?([^\]]+)\]\]` — compilée une fois.
@@ -488,6 +509,208 @@ pub async fn fichiers_existants(client: &ClientHttp, noms: &[String]) -> Result<
     Ok(trouves)
 }
 
+/// Réponse d'une lecture de fiches (`redirects` + `revisions`, `formatversion=2`).
+#[derive(Debug, Default, Deserialize)]
+struct ReponseTitres {
+    #[serde(default)]
+    query: Option<QueryTitres>,
+}
+
+#[derive(Debug, Default, Deserialize)]
+struct QueryTitres {
+    #[serde(default)]
+    normalized: Vec<Normalisation>,
+    #[serde(default)]
+    redirects: Vec<Normalisation>,
+    #[serde(default)]
+    pages: Vec<PageTitre>,
+}
+
+#[derive(Debug, Deserialize)]
+struct PageTitre {
+    title: String,
+    #[serde(default)]
+    missing: bool,
+    #[serde(default)]
+    invalid: bool,
+    #[serde(default)]
+    revisions: Vec<RevisionFiche>,
+}
+
+/// Une révision de fiche.
+///
+/// Yugipedia tourne sur un MediaWiki qui **ignore** `rvslots` (« *Unrecognized
+/// parameter* ») et rend le wikitext directement dans `content` — vu le
+/// 2026-10-10 sur la fiche de `LOCH-JP013`. Les versions récentes le rangent
+/// dans `slots.main.content`. Les deux formes sont lues : la première faisait
+/// passer une fiche complète pour une fiche sans password.
+#[derive(Debug, Deserialize)]
+struct RevisionFiche {
+    #[serde(default)]
+    content: Option<String>,
+    #[serde(default)]
+    slots: Option<SlotsFiche>,
+}
+
+impl RevisionFiche {
+    /// Le wikitext, où que la version de MediaWiki l'ait rangé.
+    fn wikitext(&self) -> Option<&str> {
+        self.content.as_deref().or_else(|| {
+            self.slots
+                .as_ref()
+                .and_then(|s| s.main.as_ref())
+                .map(|m| m.content.as_str())
+        })
+    }
+}
+
+#[derive(Debug, Deserialize)]
+struct SlotsFiche {
+    #[serde(default)]
+    main: Option<ContenuFiche>,
+}
+
+#[derive(Debug, Deserialize)]
+struct ContenuFiche {
+    #[serde(default)]
+    content: String,
+}
+
+/// Ce que Yugipedia dit d'une carte : sa fiche, et son password.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Fiche {
+    /// Titre de la fiche, redirections suivies.
+    pub titre: String,
+    /// Le password imprimé sur la carte — l'identifiant YGOPRODeck — s'il est
+    /// renseigné. Absent pour une carte qui n'en porte pas.
+    pub password: Option<i64>,
+}
+
+/// Le password d'une fiche de carte, lu dans son wikitext.
+///
+/// ```text
+/// {{CardTable2
+/// | password    = 75787708
+/// ```
+fn password_du_wikitext(wikitext: &str) -> Option<i64> {
+    wikitext.lines().find_map(|ligne| {
+        let (cle, valeur) = ligne
+            .trim_start_matches(|c: char| c == '|' || c.is_whitespace())
+            .split_once('=')?;
+        if cle.trim() != "password" {
+            return None;
+        }
+        let chiffres: String = valeur
+            .trim()
+            .chars()
+            .take_while(char::is_ascii_digit)
+            .collect();
+        chiffres.parse::<i64>().ok().filter(|p| *p > 0)
+    })
+}
+
+/// La fiche de chaque nom demandé — fonction **pure**.
+///
+/// Le chemin est celui de MediaWiki : normalisation (capitale initiale, `_`),
+/// puis redirection, éventuellement en chaîne. Un nom dont la page finale
+/// n'existe pas n'est pas rendu : on ne devine pas.
+fn fiches_de(reponse: &ReponseTitres, demandes: &[String]) -> HashMap<String, Fiche> {
+    let Some(q) = &reponse.query else {
+        return HashMap::new();
+    };
+    let normalise: HashMap<&str, &str> = q
+        .normalized
+        .iter()
+        .map(|n| (n.from.as_str(), n.to.as_str()))
+        .collect();
+    let redirige: HashMap<&str, &str> = q
+        .redirects
+        .iter()
+        .map(|r| (r.from.as_str(), r.to.as_str()))
+        .collect();
+    let pages: HashMap<&str, &PageTitre> = q
+        .pages
+        .iter()
+        .filter(|p| !p.missing && !p.invalid)
+        .map(|p| (p.title.as_str(), p))
+        .collect();
+    let mut fiches = HashMap::new();
+    for nom in demandes {
+        let mut titre = normalise.get(nom.as_str()).copied().unwrap_or(nom.as_str());
+        // Une chaîne de redirections reste courte ; la borne évite une boucle
+        // sur une réponse aberrante.
+        for _ in 0..5 {
+            match redirige.get(titre) {
+                Some(suivant) => titre = suivant,
+                None => break,
+            }
+        }
+        if let Some(page) = pages.get(titre) {
+            let password = page
+                .revisions
+                .first()
+                .and_then(RevisionFiche::wikitext)
+                .and_then(password_du_wikitext);
+            fiches.insert(
+                nom.clone(),
+                Fiche {
+                    titre: titre.to_owned(),
+                    password,
+                },
+            );
+        }
+    }
+    fiches
+}
+
+/// La fiche Yugipedia de chacun de ces noms de carte : titre et password.
+///
+/// # Pourquoi — 2026-10-10
+///
+/// Une Set Card List peut nommer une carte autrement que la base. `LOCH-JP013`
+/// est écrite « *Odd-Eyes Pendulum Dragon, Four Heavenly Dragons* » — c'est le
+/// titre actuel de sa fiche — quand YGOJSON, et donc `cardinfo.db`, la
+/// connaissent sous « *Odd-Eyes Pendulum Dragon of the Four Heavenly
+/// Dragons* ». Aucun nom ne fait le pont ; le **password** (75787708), si :
+/// il est le même partout, et c'est l'identifiant YGOPRODeck de la base.
+///
+/// Une requête pour cinquante noms (`titles=A|B|…`, contenu des fiches
+/// compris), comme le demande `Yugipedia:API`. Les réponses passent par le
+/// cache de 30 jours : une fiche ne change pas de password.
+///
+/// # Errors
+///
+/// Rend une erreur sur une panne réseau, une réponse illisible ou incomplète.
+pub async fn fiches(client: &ClientHttp, noms: &[String]) -> Result<HashMap<String, Fiche>> {
+    let mut trouvees = HashMap::new();
+    for lot in noms.chunks(TITRES_PAR_REQUETE) {
+        let url = url_api(&[
+            ("action", "query"),
+            ("redirects", "true"),
+            ("prop", "revisions"),
+            ("rvprop", "content"),
+            ("titles", &lot.join("|")),
+        ]);
+        let valeur: serde_json::Value = client.get_json(&url).await?;
+        if let Some(e) = erreur_api(&valeur) {
+            return Err(e);
+        }
+        let reponse: ReponseTitres = serde_json::from_value(valeur)
+            .map_err(|e| SourceError::deserialisation(url.clone(), e))?;
+        // Une page par titre demandé, présente ou `missing` ; aucune, c'est une
+        // réponse qu'on ne comprend pas — pas une absence.
+        let pages = reponse.query.as_ref().map_or(0, |q| q.pages.len());
+        if pages == 0 {
+            return Err(SourceError::Statut {
+                url: url.clone(),
+                statut: 0,
+            });
+        }
+        trouvees.extend(fiches_de(&reponse, lot));
+    }
+    Ok(trouvees)
+}
+
 /// Le nom de fichier d'une adresse d'image Yugipedia, **décodé** :
 /// `…/a/ab/Dark_Magician%27s-X.png` donne `Dark_Magician's-X.png`.
 ///
@@ -628,6 +851,66 @@ LOCR-JP002; [[Deep-Eyes White Dragon|Deep-Eyes]]; Super Rare
 LOCR-JP003; Pot of Greed
 }}
 "#;
+
+    /// Normalisation, puis redirection, puis password lu dans la fiche ; une
+    /// page absente ne rend rien.
+    #[test]
+    fn les_caracteres_invisibles_sont_retires_des_noms() {
+        assert_eq!(nettoyer("Sea Archiver\u{200E}\u{200E}"), "Sea Archiver");
+        assert_eq!(
+            nettoyer("[[Speedroid Hexasaucer]]\u{200E}"),
+            "Speedroid Hexasaucer"
+        );
+        assert_eq!(nettoyer("\u{FEFF}Dark\u{200B} Magician"), "Dark Magician");
+        assert_eq!(
+            nettoyer("Danger! Disturbance! Disorder!"),
+            "Danger! Disturbance! Disorder!"
+        );
+    }
+
+    #[test]
+    fn chaque_nom_rend_sa_fiche_et_son_password() {
+        let reponse: ReponseTitres = serde_json::from_value(serde_json::json!({
+            "query": {
+                "normalized": [{"from": "dark magician", "to": "Dark magician"}],
+                "redirects": [{"from": "Dark magician", "to": "Dark Magician"}],
+                "pages": [
+                    {"pageid": 1164647, "title": "Odd-Eyes Pendulum Dragon, Four Heavenly Dragons",
+                     "revisions": [{"slots": {"main": {"content":
+                        "{{CardTable2\n| ja_name = 四天の龍\n| password       = 75787708\n| attribute = DARK\n}}"}}}]},
+                    {"title": "Dark Magician",
+                     "revisions": [{"contentformat": "text/x-wiki", "contentmodel": "wikitext",
+                                    "content": "{{CardTable2\n| password              = 46986414\n}}"}]},
+                    {"title": "Inexistante", "missing": true}
+                ]
+            }
+        }))
+        .unwrap();
+        let demandes = [
+            "Odd-Eyes Pendulum Dragon, Four Heavenly Dragons".to_owned(),
+            "dark magician".to_owned(),
+            "Inexistante".to_owned(),
+        ];
+        let f = fiches_de(&reponse, &demandes);
+        let oe = f
+            .get("Odd-Eyes Pendulum Dragon, Four Heavenly Dragons")
+            .unwrap();
+        assert_eq!(oe.password, Some(75_787_708));
+        let dm = f.get("dark magician").unwrap();
+        assert_eq!(
+            (dm.titre.as_str(), dm.password),
+            ("Dark Magician", Some(46_986_414))
+        );
+        assert!(!f.contains_key("Inexistante"));
+    }
+
+    #[test]
+    fn un_password_vide_ou_absent_ne_rend_rien() {
+        assert_eq!(password_du_wikitext("| password = \n| x = 1"), None);
+        assert_eq!(password_du_wikitext("| passwords = 12"), None);
+        assert_eq!(password_du_wikitext("rien"), None);
+        assert_eq!(password_du_wikitext("|password=00012345"), Some(12_345));
+    }
 
     #[test]
     fn une_ligne_complete_se_decompose_en_quatre_champs() {

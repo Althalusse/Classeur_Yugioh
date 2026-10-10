@@ -49,6 +49,7 @@ pub mod init;
 pub mod inventaire;
 pub mod maj;
 pub mod noms_fr;
+pub mod numeros_absents;
 pub mod overframe;
 pub mod possession;
 pub mod raretes;
