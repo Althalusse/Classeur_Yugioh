@@ -61,6 +61,7 @@
 
 pub mod cache;
 pub mod error;
+pub mod github;
 pub mod http;
 pub mod version;
 pub mod ygojson;

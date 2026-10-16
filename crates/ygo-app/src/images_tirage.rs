@@ -127,6 +127,8 @@ pub fn choisir(tirages: &[(String, String)], edition_ligne: Option<&str>) -> Cho
 pub struct Index {
     tirages: BTreeMap<(String, String), Vec<(String, String)>>,
     codes_lus: BTreeSet<String>,
+    /// Codes qui ont au moins un tirage dans la base, toutes raretés.
+    codes_connus: BTreeSet<String>,
 }
 
 impl Index {
@@ -159,6 +161,9 @@ impl Index {
                     ))
                 })?
                 .collect::<rusqlite::Result<Vec<_>>>()?;
+            if !lignes.is_empty() {
+                index.codes_connus.insert(code.to_owned());
+            }
             for (rarete, edition, url) in lignes {
                 let Some(canon) = canoniser(&rarete, reference) else {
                     continue;
@@ -171,6 +176,13 @@ impl Index {
             }
         }
         Ok(index)
+    }
+
+    /// La base connaît-elle **un** tirage de ce numéro, quelle qu'en soit la
+    /// rareté ?
+    #[must_use]
+    pub fn connait(&self, set_code: &str) -> bool {
+        self.codes_connus.contains(set_code)
     }
 
     /// Les tirages d'une ligne, s'il y en a.
@@ -312,7 +324,13 @@ pub fn analyser(
             Some(url) if url == ligne.url => rapport.deja += 1,
             Some(url) => rapport.a_poser.push((ligne.rowid, url)),
             None => {
-                if let Some(url) = rendre(ligne) {
+                // Un numéro que la base ignore entièrement — ajouté depuis la
+                // Set list par `numeros_absents` — n'a pas d'image
+                // « d'emprunt » : celle qu'il porte vient de SA fiche, posée
+                // exprès. La rendre à YGOPRODeck défaisait ce travail à
+                // chaque passage — vu le 2026-10-10 sur `19PP-JP008`.
+                let orphelin = !index.connait(&ligne.set_code);
+                if let Some(url) = rendre(ligne).filter(|_| !orphelin) {
                     rapport.rendues += 1;
                     rapport.a_poser.push((ligne.rowid, url));
                 }
@@ -605,6 +623,30 @@ mod tests {
         let encore = installation(&paths, &reference(), false).unwrap();
         assert_eq!((encore.a_poser, encore.deja), (0, 2));
         assert!(encore.touches.is_empty());
+    }
+
+    /// Un numéro que la base ignore entièrement garde l'image Yugipedia que
+    /// `numeros_absents` lui a posée ; un numéro connu, sans tirage pour
+    /// cette rareté, retrouve l'image YGOPRODeck (comportement inchangé).
+    #[test]
+    fn un_numero_inconnu_de_la_base_garde_son_image_yugipedia() {
+        let info = cardinfo(&[("CH01-EN019", "Ultra Rare", "1st", "FV-UR-1E.png")]);
+        let cl = classeur();
+        let posee = "https://ms.yugipedia.com//6/61/OddEyes-LOCH-JP-UR.png";
+        ligne(
+            &cl,
+            "LOCH-JP013",
+            "Ultra Rare",
+            75_787_708,
+            "img-ygo",
+            posee,
+        );
+        let emprunt = "https://ms.yugipedia.com//1/11/FV-CH01-EN-UR-1E.png";
+        ligne(&cl, "CH01-EN019", "Secret Rare", 30_271_097, "", emprunt);
+        let r = analyser(&cl, &info, &reference()).unwrap();
+        assert_eq!(r.rendues, 1, "seule la ligne du numéro connu est rendue");
+        assert_eq!(r.a_poser.len(), 1);
+        assert!(r.a_poser[0].1.contains("ygoprodeck"));
     }
 
     #[test]

@@ -29,6 +29,9 @@
 //! | `affichage_n_raretes_par_artwork` | entier | `0` (toutes) | borné à 0–20 |
 //! | `affichage_une_rarete_par_artwork` | booléen | — | **rétrocompatibilité** : lu si la clé entière est absente (`true` → 1, `false` → 0) |
 //! | `completer_artworks_yugipedia` | booléen | `true` | |
+//! | `maj_appli_verifier` | booléen | `true` | chercher une nouvelle version de l'application au démarrage |
+//! | `maj_appli_pre_versions` | booléen | `false` | proposer aussi les Releases marquées « pre-release » |
+//! | `classeurs_alignes_version` | texte | — | version de l'application qui a réaligné les classeurs sur Yugipedia ; une autre version au démarrage relance le réalignement |
 //! | `inclure_sets_ocg_jp` | booléen | — | **ignorée** : l'inclusion OCG-JP est forcée depuis la V1.0.4 |
 
 use std::path::{Path, PathBuf};
@@ -52,6 +55,9 @@ const CLE_N_RARETES: &str = "affichage_n_raretes_par_artwork";
 /// Ancienne clé booléenne, lue en repli (`preferences._OLD_BOOL_KEY`).
 const CLE_N_RARETES_LEGACY: &str = "affichage_une_rarete_par_artwork";
 const CLE_COMPLETER_ARTWORKS: &str = "completer_artworks_yugipedia";
+const CLE_MAJ_APPLI_VERIFIER: &str = "maj_appli_verifier";
+const CLE_MAJ_APPLI_PRE: &str = "maj_appli_pre_versions";
+const CLE_CLASSEURS_ALIGNES: &str = "classeurs_alignes_version";
 
 /// Plus petite grille acceptée (`preferences._GRILLE_MIN`).
 pub const GRILLE_MIN: u8 = 3;
@@ -490,6 +496,39 @@ impl Config {
             .unwrap_or(true)
     }
 
+    /// Chercher une nouvelle version de l'application au démarrage ?
+    /// Défaut : oui.
+    pub fn maj_appli_verifier(&self) -> bool {
+        self.brut(CLE_MAJ_APPLI_VERIFIER)
+            .as_ref()
+            .and_then(Value::as_bool)
+            .unwrap_or(true)
+    }
+
+    /// Proposer aussi les versions de test (« pre-release » sur GitHub) ?
+    /// Défaut : non.
+    pub fn maj_appli_pre_versions(&self) -> bool {
+        self.brut(CLE_MAJ_APPLI_PRE)
+            .as_ref()
+            .and_then(Value::as_bool)
+            .unwrap_or(false)
+    }
+
+    /// La version de l'application qui a réaligné les classeurs sur Yugipedia
+    /// pour la dernière fois. `None` : jamais, ou avant que la clé existe.
+    ///
+    /// Un correctif de la passe artworks ne profite aux classeurs **déjà
+    /// créés** que si la passe est refaite : l'interface compare cette valeur
+    /// à sa propre version au démarrage (2026-10-11).
+    pub fn classeurs_alignes_version(&self) -> Option<String> {
+        self.brut(CLE_CLASSEURS_ALIGNES)
+            .as_ref()
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .filter(|v| !v.is_empty())
+            .map(str::to_owned)
+    }
+
     // ── Écritures typées ────────────────────────────────────────────────
     //
     // Chacune rend la valeur **effective**, c'est-à-dire ce qui a réellement
@@ -606,6 +645,35 @@ impl Config {
     pub fn definir_completer_artworks_yugipedia(&self, actif: bool) -> Result<bool> {
         self.definir(CLE_COMPLETER_ARTWORKS, Value::from(actif))?;
         Ok(actif)
+    }
+
+    /// Écrit « chercher une nouvelle version au démarrage ».
+    ///
+    /// # Errors
+    ///
+    /// Si `app_config.json` n'a pas pu être écrit.
+    pub fn definir_maj_appli_verifier(&self, actif: bool) -> Result<bool> {
+        self.definir(CLE_MAJ_APPLI_VERIFIER, Value::from(actif))?;
+        Ok(actif)
+    }
+
+    /// Écrit « proposer aussi les versions de test ».
+    ///
+    /// # Errors
+    ///
+    /// Si `app_config.json` n'a pas pu être écrit.
+    pub fn definir_maj_appli_pre_versions(&self, actif: bool) -> Result<bool> {
+        self.definir(CLE_MAJ_APPLI_PRE, Value::from(actif))?;
+        Ok(actif)
+    }
+
+    /// Note la version de l'application qui vient de réaligner les classeurs.
+    ///
+    /// # Errors
+    ///
+    /// Si `app_config.json` n'a pas pu être écrit.
+    pub fn definir_classeurs_alignes_version(&self, version: &str) -> Result<()> {
+        self.definir(CLE_CLASSEURS_ALIGNES, Value::from(version.trim()))
     }
 
     /// Codes-langue actifs pour filtrer `set_locales.language`.
@@ -729,6 +797,19 @@ mod tests {
     /// Le troisième niveau — la règle par classeur — vit dans la table `meta`
     /// et se teste dans `ygo_app::classeur`. Ce qui se vérifie ici, c'est que
     /// les deux premiers s'emboîtent **et se démontent**.
+    #[test]
+    fn la_mise_a_jour_de_l_appli_verifie_par_defaut_sans_versions_de_test() {
+        let tmp = tempfile::tempdir().unwrap();
+        let cfg = Config::charger(tmp.path().join("app_config.json"));
+        assert!(cfg.maj_appli_verifier());
+        assert!(!cfg.maj_appli_pre_versions());
+        cfg.definir_maj_appli_pre_versions(true).unwrap();
+        cfg.definir_maj_appli_verifier(false).unwrap();
+        let relu = Config::charger(tmp.path().join("app_config.json"));
+        assert!(relu.maj_appli_pre_versions());
+        assert!(!relu.maj_appli_verifier());
+    }
+
     #[test]
     fn la_regle_globale_se_pose_et_se_retire() {
         let tmp = tempfile::tempdir().unwrap();

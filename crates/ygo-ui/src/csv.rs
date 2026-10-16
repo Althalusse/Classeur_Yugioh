@@ -636,13 +636,19 @@ impl PanneauCsv {
                 }
                 ui.add_space(6.0);
 
-                let (gardes, ecartes) = ygo_app::export::ecarter_ocg(&paths.classeurs_existants());
-                if !ecartes.is_empty() {
+                let classeurs = paths.classeurs_existants();
+                let ocg: Vec<&String> = classeurs
+                    .iter()
+                    .filter(|c| ygo_core::config::a_suffixe_ocg(c))
+                    .collect();
+                if !ocg.is_empty() {
                     ui.small(format!(
-                        "{} classeur(s) OCG écarté(s) : {} — leur code est natif, \
-                         mais la colonne Langue du format est unique pour tout le fichier.",
-                        ecartes.len(),
-                        ecartes.join(", ")
+                        "Classeurs OCG inclus ({}) : codes natifs, langue de la carte. \
+                         L'application les relit ; Scanflip ne connaît pas l'OCG.",
+                        ocg.iter()
+                            .map(|c| c.as_str())
+                            .collect::<Vec<_>>()
+                            .join(", ")
                     ));
                     ui.add_space(4.0);
                 }
@@ -663,15 +669,15 @@ impl PanneauCsv {
                     // Les rangs se lisent sur la base entière des
                     // classeurs, pas sur les seules cartes possédées :
                     // c'est la même numérotation que l'import.
-                    let resultat = ygo_app::export::bases_de(paths, &gardes)
+                    let resultat = ygo_app::export::bases_de(paths, &classeurs)
                         .and_then(|bases| {
                             let rangs = ygo_app::export::rangs(&bases);
-                            ygo_app::export::possedees_de(paths, &gardes)
+                            ygo_app::export::possedees_de(paths, &classeurs)
                                 .map(|p| ygo_app::export::lignes(&p, langue, &rangs))
                         })
                         .and_then(|lignes| {
                             ygo_app::scanflip::ecrire(&chemin, &lignes)
-                                .map(|()| ygo_app::export::bilan(&lignes, ecartes.clone()))
+                                .map(|()| ygo_app::export::bilan(&lignes))
                         });
                     match resultat {
                         Ok(bilan) => {
@@ -701,9 +707,16 @@ pub fn message_export(bilan: &ygo_app::export::Bilan, chemin: &std::path::Path) 
         bilan.exemplaires,
         chemin.display()
     );
+    if !bilan.ocg.is_empty() {
+        texte.push_str(&format!(
+            " · OCG inclus ({}) : relus par l'application, inconnus de Scanflip",
+            bilan.ocg.join(", ")
+        ));
+    }
     if !bilan.raretes_refusees.is_empty() {
         texte.push_str(&format!(
-            " · ATTENTION : {} hors des règles de Scanflip, ces lignes seront rejetées",
+            " · ATTENTION : {} hors des règles de Scanflip, ces lignes y seront rejetées \
+             (l'application les relit)",
             bilan.raretes_refusees.join(", ")
         ));
     }
@@ -899,7 +912,7 @@ mod tests {
             lignes: 550,
             exemplaires: 554,
             sans_etat: 0,
-            ecartes: Vec::new(),
+            ocg: Vec::new(),
             raretes_refusees: Vec::new(),
         };
         let m = message_export(&propre, chemin);
@@ -911,10 +924,11 @@ mod tests {
             lignes: 10,
             exemplaires: 10,
             sans_etat: 3,
-            ecartes: vec!["LOCR-JP".to_owned()],
+            ocg: vec!["LOCR-JP".to_owned()],
             raretes_refusees: vec!["GMR".to_owned()],
         };
         let m = message_export(&bancal, chemin);
+        assert!(m.contains("OCG inclus (LOCR-JP)"), "{m}");
         assert!(m.contains("ATTENTION"), "{m}");
         assert!(m.contains("GMR"), "elle nomme la rareté fautive : {m}");
         assert!(m.contains("3 ligne(s) sans état"), "{m}");

@@ -92,7 +92,15 @@ pub fn a_faire(
     let lignes = lignes(&conn)?;
 
     let cardinfo = ygo_db::connexion::ouvrir_lecture_seule(paths.cardinfo_db()).ok();
-    let dossier_classeur = paths.img().join(code);
+    // `img/small` pour TOUTES les cartes, identifiant ou non.
+    //
+    // Le Python rangeait les cartes sans identifiant dans `img/<CODE>/` ; or
+    // l'écran classeur ne cherche que dans `img/small` (cf.
+    // `classeur::Carte::fichier_image`). Une carte sans identifiant — les
+    // jetons ajoutés depuis la Set list, `LDK2-ENT01` — se téléchargeait donc
+    // là où personne ne la cherchait, et restait une case vide. Les noms
+    // Yugipedia portent le code du set : ils ne se marchent pas dessus.
+    let dossier_classeur = paths.img_small();
 
     let (cibles, deja) = planifier(
         &lignes,

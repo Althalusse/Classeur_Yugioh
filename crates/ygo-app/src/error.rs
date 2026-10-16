@@ -56,4 +56,9 @@ pub enum AppError {
     /// YGOPRODeck, lui, est facultatif : son absence dégrade sans bloquer.
     #[error("YGOJSON indisponible ou vide — initialisation abandonnée")]
     YgojsonVide,
+
+    /// La mise à jour de l'application n'a pas pu se faire — téléchargement
+    /// incomplet, empreinte qui ne correspond pas, remplacement refusé.
+    #[error("mise à jour de l'application : {0}")]
+    MiseAJour(String),
 }

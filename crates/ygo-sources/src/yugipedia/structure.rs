@@ -111,10 +111,97 @@ fn description(note_minuscule: &str) -> Option<&str> {
     reste.get(..fin)
 }
 
+/// Combien d'illustrations une ligne de Set list annonce pour **chacun** de
+/// ses tirages : `(four unique artworks)` → 4 ; 1 sans annonce.
+///
+/// # Pourquoi — 2026-10-16
+///
+/// `LCKC-EN001` Blue-Eyes White Dragon est imprimé en **quatre**
+/// illustrations sous un seul numéro et une seule rareté, `LCKC-EN046`
+/// Crush Card Virus en **deux**. La Set list ne leur donne qu'une ligne,
+/// annotée `(four unique artworks)` et `(two unique artworks)` ; la galerie
+/// du set en montre quatre et deux. Lue comme une variante unique, cette
+/// ligne ne demandait qu'un tirage : le classeur n'en avait qu'un.
+///
+/// # La règle
+///
+/// Seul un **cardinal** compte — en lettres (`two` à `twelve`) ou en
+/// chiffres —, suivi au besoin d'`unique`, `different` ou `distinct`, puis
+/// d'`artworks` **au pluriel**. Un ordinal ne compte pas : `(6th artwork)` et
+/// `(2nd, 5th and 6th artwork)` désignent **une** illustration — la sixième
+/// de la carte —, pas six.
+///
+/// ```
+/// use ygo_sources::yugipedia::structure::nombre_d_illustrations;
+/// use ygo_sources::yugipedia::EntreeSetList;
+/// let entree = |note: &str| EntreeSetList {
+///     numero: "LCKC-EN001".into(),
+///     nom: "Blue-Eyes White Dragon".into(),
+///     raretes: vec!["Ultra Rare".into()],
+///     extended_art: false,
+///     note: note.into(),
+/// };
+/// assert_eq!(nombre_d_illustrations(&entree("description::(four unique artworks)")), 4);
+/// assert_eq!(nombre_d_illustrations(&entree("description::(6th artwork)")), 1);
+/// ```
+#[must_use]
+pub fn nombre_d_illustrations(entree: &EntreeSetList) -> usize {
+    const ADJECTIFS: [&str; 3] = ["unique", "different", "distinct"];
+    let note = entree.note.to_lowercase();
+    let Some(texte) = description(&note) else {
+        return 1;
+    };
+    let mots: Vec<&str> = texte
+        .split(|c: char| !c.is_ascii_alphanumeric())
+        .filter(|m| !m.is_empty())
+        .collect();
+    for (i, mot) in mots.iter().enumerate() {
+        if *mot != "artworks" {
+            continue;
+        }
+        // On remonte les adjectifs jusqu'au nombre qui les précède.
+        let mut j = i;
+        while let Some(precedent) = j.checked_sub(1).and_then(|k| mots.get(k)) {
+            if !ADJECTIFS.contains(precedent) {
+                break;
+            }
+            j -= 1;
+        }
+        if let Some(n) = j
+            .checked_sub(1)
+            .and_then(|k| mots.get(k))
+            .and_then(|m| cardinal(m))
+        {
+            return n;
+        }
+    }
+    1
+}
+
+/// `four` → 4, `3` → 3 ; `None` pour ce qui n'est pas un cardinal de 2 à 26
+/// — au-delà, ce n'est plus une galerie, c'est une coquille.
+fn cardinal(mot: &str) -> Option<usize> {
+    const EN_LETTRES: [&str; 11] = [
+        "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve",
+    ];
+    let n = match EN_LETTRES.iter().position(|m| *m == mot) {
+        Some(i) => i + 2,
+        None if mot.bytes().all(|b| b.is_ascii_digit()) => mot.parse().ok()?,
+        None => return None,
+    };
+    (2..=26).contains(&n).then_some(n)
+}
+
 /// Développe les entrées d'une Set list en slots.
 ///
 /// Portage de la seconde moitié de `charger_structure` — celle qui ne touche
 /// pas au réseau. Une entrée sans numéro est ignorée ; une rareté vide aussi.
+///
+/// Une entrée qui annonce **plusieurs illustrations** pour un même tirage
+/// ([`nombre_d_illustrations`], `LCKC-EN001`) donne autant de slots par
+/// rareté : chaque illustration est une carte à part, que le classeur doit
+/// montrer et compter à part. Une entrée sans variante n'est jamais
+/// démultipliée — sans annotation d'illustration, rien ne dit laquelle.
 pub fn slots(entrees: &[EntreeSetList]) -> Vec<Slot> {
     let mut sortie = Vec::new();
     for entree in entrees {
@@ -123,17 +210,24 @@ pub fn slots(entrees: &[EntreeSetList]) -> Vec<Slot> {
             continue;
         }
         let variante = variante_depuis_entree(entree);
+        let illustrations = if variante.is_empty() {
+            1
+        } else {
+            nombre_d_illustrations(entree)
+        };
         for rarete in &entree.raretes {
             let rarete = rarete.trim();
             if rarete.is_empty() {
                 continue;
             }
-            sortie.push(Slot {
-                numero: numero.clone(),
-                nom: entree.nom.clone(),
-                rarete: rarete.to_owned(),
-                variante: variante.to_owned(),
-            });
+            for _ in 0..illustrations {
+                sortie.push(Slot {
+                    numero: numero.clone(),
+                    nom: entree.nom.clone(),
+                    rarete: rarete.to_owned(),
+                    variante: variante.to_owned(),
+                });
+            }
         }
     }
     sortie
@@ -221,6 +315,96 @@ pub fn choisir_page<'a>(titres: &'a [String], langue: &str) -> Option<&'a str> {
         }
     }
     titres.first().map(String::as_str)
+}
+
+/// Les pages « Set Card Lists » d'un **paquet bonus** : celui que Konami
+/// vend avec un booster OCG, sous le même préfixe, numéroté à part
+/// (`CORI-JPS10`, `ROTD-JPS01`). « +1 Bonus Pack » de Rise of the Duelist à
+/// Alliance Insight (2020–2025), « +1 Expansion Pack » depuis Immortal Phoenix.
+pub const PAGES_COMPLEMENTAIRES: [&str; 2] = [" +1 Bonus Pack", " +1 Expansion Pack"];
+
+/// Le titre est-il celui d'un paquet bonus de `nom_set` ?
+#[must_use]
+pub fn est_page_complementaire(titre: &str, nom_set: &str) -> bool {
+    PAGES_COMPLEMENTAIRES
+        .iter()
+        .any(|s| titre.starts_with(&format!("Set Card Lists:{nom_set}{s} (")))
+}
+
+/// La page **du set lui-même**, jamais celle de son paquet bonus.
+///
+/// `prefixsearch` sur « Set Card Lists:Chaos Origins » rend aussi « Chaos
+/// Origins +1 Expansion Pack (OCG-JP) » : [`choisir_page`] pouvait la
+/// prendre. Le titre exact d'abord, région par région ; à défaut, la règle
+/// de [`choisir_page`] sur les seules pages qui ne sont pas un paquet bonus.
+///
+/// ```
+/// use ygo_sources::yugipedia::structure::choisir_page_du_set;
+/// let titres = vec![
+///     "Set Card Lists:Chaos Origins +1 Expansion Pack (OCG-JP)".to_owned(),
+///     "Set Card Lists:Chaos Origins (OCG-JP)".to_owned(),
+/// ];
+/// assert_eq!(
+///     choisir_page_du_set(&titres, "Chaos Origins", "JP"),
+///     Some("Set Card Lists:Chaos Origins (OCG-JP)")
+/// );
+/// ```
+#[must_use]
+pub fn choisir_page_du_set<'a>(
+    titres: &'a [String],
+    nom_set: &str,
+    langue: &str,
+) -> Option<&'a str> {
+    for region in regions_candidates(langue) {
+        let exact = format!("Set Card Lists:{nom_set} ({region})");
+        if let Some(t) = titres.iter().find(|t| **t == exact) {
+            return Some(t.as_str());
+        }
+    }
+    let principales: Vec<&'a String> = titres
+        .iter()
+        .filter(|t| !est_page_complementaire(t, nom_set))
+        .collect();
+    for region in regions_candidates(langue) {
+        let marqueur = format!("({region})");
+        if let Some(t) = principales.iter().find(|t| t.contains(&marqueur)) {
+            return Some(t.as_str());
+        }
+    }
+    principales.first().map(|t| t.as_str())
+}
+
+/// Les pages des paquets bonus de `nom_set`, dans la région de la page
+/// principale retenue — seulement celles que `titres` contient : aucune
+/// requête n'est faite pour une page qui n'existe pas.
+///
+/// ```
+/// use ygo_sources::yugipedia::structure::pages_complementaires;
+/// let titres = vec![
+///     "Set Card Lists:Chaos Origins (OCG-JP)".to_owned(),
+///     "Set Card Lists:Chaos Origins +1 Expansion Pack (OCG-JP)".to_owned(),
+///     "Set Card Lists:Chaos Origins +1 Expansion Pack (OCG-KR)".to_owned(),
+/// ];
+/// assert_eq!(
+///     pages_complementaires(&titres, "Chaos Origins", "Set Card Lists:Chaos Origins (OCG-JP)"),
+///     vec!["Set Card Lists:Chaos Origins +1 Expansion Pack (OCG-JP)".to_owned()]
+/// );
+/// ```
+#[must_use]
+pub fn pages_complementaires(
+    titres: &[String],
+    nom_set: &str,
+    page_principale: &str,
+) -> Vec<String> {
+    let Some((_, region)) = page_principale.rsplit_once('(') else {
+        return Vec::new();
+    };
+    let region = region.trim_end_matches(')');
+    PAGES_COMPLEMENTAIRES
+        .iter()
+        .map(|s| format!("Set Card Lists:{nom_set}{s} ({region})"))
+        .filter(|t| titres.contains(t))
+        .collect()
 }
 
 #[cfg(test)]
@@ -351,6 +535,76 @@ mod tests {
         )]);
         assert_eq!(slots.len(), 2, "la rareté vide est écartée");
         assert_eq!(slots[0].numero, "LOCR-JP001", "numéro en majuscules");
+    }
+
+    /// Les annonces de `LCKC` (2026-10-16), et ce qui n'en est pas une.
+    #[test]
+    fn les_illustrations_d_un_meme_tirage_se_comptent() {
+        let compte = |note: &str| {
+            nombre_d_illustrations(&entree("LCKC-EN001", &["Ultra Rare"], false, note))
+        };
+        assert_eq!(compte("description::(four unique artworks)"), 4);
+        assert_eq!(compte("description::(two unique artworks)"), 2);
+        assert_eq!(compte("description::(Three Different Artworks)"), 3);
+        assert_eq!(compte("description::(2 artworks)"), 2);
+        // Un ordinal désigne UNE illustration de la carte, pas un nombre.
+        assert_eq!(compte("description::(6th artwork)"), 1);
+        assert_eq!(compte("description::(2nd, 5th and 6th artwork)"), 1);
+        assert_eq!(compte("description::(alternate art)"), 1);
+        assert_eq!(compte("description::(new artworks)"), 1);
+        assert_eq!(compte("description::(one artworks)"), 1, "un seul : rien");
+        assert_eq!(compte("description::(99 artworks)"), 1, "une coquille");
+        assert_eq!(compte("four unique artworks"), 1, "sans description");
+        assert_eq!(compte(""), 1);
+    }
+
+    #[test]
+    fn un_tirage_en_quatre_illustrations_donne_quatre_slots() {
+        let s = slots(&[
+            entree(
+                "LCKC-EN001",
+                &["Ultra Rare"],
+                false,
+                "description::(four unique artworks)",
+            ),
+            entree("LCKC-EN002", &["Ultra Rare"], false, ""),
+            entree(
+                "LCKC-EN046",
+                &["Ultra Rare", "Secret Rare"],
+                false,
+                "description::(two unique artworks)",
+            ),
+        ]);
+        let index = index_slots(&s);
+        let variantes = |numero: &str, rarete: &str| {
+            index
+                .get(&(numero.to_owned(), rarete.to_owned()))
+                .cloned()
+                .unwrap_or_default()
+        };
+        assert_eq!(variantes("LCKC-EN001", "ultrarare"), ["AA"; 4]);
+        assert_eq!(variantes("LCKC-EN002", "ultrarare"), [""]);
+        assert_eq!(variantes("LCKC-EN046", "ultrarare"), ["AA"; 2]);
+        assert_eq!(
+            variantes("LCKC-EN046", "secretrare"),
+            ["AA"; 2],
+            "chaque rareté du tirage"
+        );
+        assert_eq!(s.len(), 4 + 1 + 2 + 2);
+    }
+
+    #[test]
+    fn une_entree_sans_variante_n_est_jamais_demultipliee() {
+        // « password » écarte la variante : sans annotation d'illustration,
+        // rien ne dit laquelle chaque tirage montrerait.
+        let s = slots(&[entree(
+            "A-EN001",
+            &["Ultra Rare"],
+            false,
+            "description::(two unique artworks, alternate password)",
+        )]);
+        assert_eq!(s.len(), 1);
+        assert_eq!(s[0].variante, "");
     }
 
     #[test]

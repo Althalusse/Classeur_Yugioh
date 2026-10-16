@@ -24,12 +24,17 @@
 //! # La convention de nommage
 //!
 //! ```text
-//! <NomCarteSansEspaces>-<PREFIXE_SET>-<LANGUE>-<RARETE>-<EDITION>[-<VARIANTE>].png
+//! <NomCarteSansEspaces>-<PREFIXE_SET>-<LANGUE>-<RARETE>-<EDITION>[-<VARIANTE>][-<RANG>].png
 //!
 //! VanquishSoulRazen-RA05-EN-UR-1E.png        une illustration du tirage
 //! VanquishSoulRazen-RA05-EN-UR-1E-AA.png     la seconde, dite « AA »
 //! RedEyesDarkDragoon-RA05-EN-UR-1E-EA.png    « EA », extended art
+//! BlueEyesWhiteDragon-LCKC-EN-UR-1E-B.png    2e illustration d'UN tirage
+//! BlueEyesWhiteDragon-LDK2-EN-C-1E-3.png     3e illustration d'UN tirage
 //! ```
+//!
+//! Le `<RANG>` final — lettre ou chiffre — sépare les illustrations d'un
+//! tirage imprimé en plusieurs (cf. [`illustration`]).
 //!
 //! # Le piège : le suffixe ne dit pas « ceci est une variante »
 //!
@@ -82,7 +87,7 @@ pub const CONTEXTES: [&str; 5] = ["OP", "DT", "VG", "PR", "PROMO"];
 ///
 /// Ne sert **qu'au classement** des candidats : une abréviation inconnue ne
 /// filtre jamais un résultat.
-pub const ABBR_RARETE: [(&str, &str); 34] = [
+pub const ABBR_RARETE: [(&str, &str); 36] = [
     ("common", "C"),
     ("short print", "SP"),
     ("super short print", "SSP"),
@@ -112,6 +117,13 @@ pub const ABBR_RARETE: [(&str, &str); 34] = [
     ("mosaic rare", "MSR"),
     ("shatterfoil rare", "SHR"),
     ("extra secret rare", "EScR"),
+    // Absente jusqu'au 2026-10-11 : les Overframe Grand Master Rare
+    // (`LOCH-JP`, `LOCR-JP`) prenaient faute de mieux le fichier « OP », une
+    // autre photo. Yugipedia écrit `…-LOCH-JP-GMR.png`.
+    ("grand master rare", "GMR"),
+    // Absente jusqu'au 2026-10-15 : la « Normal Rare » OCG (`CORI-JP026`
+    // Gray Layer), que Yugipedia écrit `…-CORI-JP-NR.png`.
+    ("normal rare", "NR"),
     ("duel terminal normal parallel rare", "DNPR"),
     ("duel terminal rare parallel rare", "DRPR"),
     ("duel terminal super parallel rare", "DSPR"),
@@ -326,6 +338,55 @@ fn suffixe_variante(jeton: &str) -> Option<(&'static str, &str)> {
 /// recherche est ici insensible à la casse **ASCII** sur la chaîne d'origine —
 /// même résultat sur tout nom de fichier réel, sans le décalage possible.
 pub fn decouper_fichier(nom_fichier: &str, prefixe_set: &str) -> Option<(String, InfosFichier)> {
+    decouper(nom_fichier, prefixe_set).map(|(segment, infos, _)| (segment, infos))
+}
+
+/// Rang d'illustration d'un fichier, quand Yugipedia imprime **plusieurs
+/// illustrations sous un même tirage** : 1 pour la première, 2 pour la
+/// deuxième…
+///
+/// # Pourquoi — 2026-10-16
+///
+/// `LCKC-EN001` Blue-Eyes White Dragon : un numéro, une rareté, **quatre**
+/// illustrations — la Set list l'annote `(four unique artworks)`. Yugipedia
+/// les distingue par un **dernier jeton** : aucun pour la première, puis `B`,
+/// `C`, `D` (`BlueEyesWhiteDragon-LCKC-EN-UR-1E-B.png`). Sur d'autres sets
+/// c'est un chiffre : les trois Dragons Blancs du deck de Kaiba,
+/// `LDK2-ENK01`, s'appellent `…-LDK2-EN-C-1E.png`, `…-1E-2.png`, `…-1E-3.png`.
+///
+/// Ce jeton n'est ni une rareté, ni une édition, ni une variante :
+/// [`decouper_fichier`] le laisse tomber, et les quatre fichiers lui
+/// paraissent identiques. Ce rang est ce qui les sépare.
+///
+/// # La règle
+///
+/// Le jeton n'est lu qu'en **dernière position** et **après la rareté** :
+/// `X-SET-EN-C.png` est une Common, pas une troisième illustration. Une
+/// lettre seule vaut son rang dans l'alphabet (`A` → 1, `B` → 2…), un ou
+/// deux chiffres valent leur nombre. Tout autre fichier vaut 1.
+///
+/// # Ce que le rang ne prouve pas
+///
+/// Une lettre ne désigne pas toujours une illustration :
+/// `Polymerization-LDK2-EN-C-1E-J.png` et `…-K.png` sont les Polymerization
+/// des decks de Joey et de Kaiba. Le rang ne sert donc que là où la Set
+/// list annonce **plusieurs** tirages d'un même numéro et d'une même rareté,
+/// et seulement jusqu'à leur nombre (cf. `ygo_app::artworks::planifier`).
+///
+/// ```
+/// use ygo_sources::yugipedia::artwork::illustration;
+/// assert_eq!(illustration("BlueEyesWhiteDragon-LCKC-EN-UR-1E.png", "LCKC"), 1);
+/// assert_eq!(illustration("BlueEyesWhiteDragon-LCKC-EN-UR-1E-C.png", "LCKC"), 3);
+/// assert_eq!(illustration("BlueEyesWhiteDragon-LDK2-EN-C-1E-2.png", "LDK2"), 2);
+/// assert_eq!(illustration("Carte-SET-EN-C.png", "SET"), 1, "une Common");
+/// ```
+#[must_use]
+pub fn illustration(nom_fichier: &str, prefixe_set: &str) -> u32 {
+    decouper(nom_fichier, prefixe_set).map_or(1, |(_, _, rang)| rang)
+}
+
+/// Le découpage complet : segment de nom, infos, et rang d'illustration.
+fn decouper(nom_fichier: &str, prefixe_set: &str) -> Option<(String, InfosFichier, u32)> {
     let base = sans_extension(nom_fichier);
     let marqueur = format!("-{prefixe_set}-");
     let idx = position_ascii_insensible(base.as_bytes(), marqueur.as_bytes())?;
@@ -349,7 +410,10 @@ pub fn decouper_fichier(nom_fichier: &str, prefixe_set: &str) -> Option<(String,
     };
 
     let (mut variante, mut edition, mut rarete) = (String::new(), String::new(), String::new());
-    for jeton in reste {
+    // Position du jeton retenu comme rareté : le rang d'illustration ne se
+    // lit qu'après elle.
+    let mut position_rarete: Option<usize> = None;
+    for (position, jeton) in reste.iter().enumerate() {
         let majuscule = jeton.to_ascii_uppercase();
         if let Some((famille, chiffres)) = suffixe_variante(jeton) {
             variante = format!("{famille}{chiffres}");
@@ -365,8 +429,13 @@ pub fn decouper_fichier(nom_fichier: &str, prefixe_set: &str) -> Option<(String,
         if rarete.is_empty() {
             // Le jeton d'origine, casse comprise : `PScR` et `StR` en dépendent.
             rarete = (*jeton).to_owned();
+            position_rarete = Some(position);
         }
     }
+    let rang = match (reste.split_last(), position_rarete) {
+        (Some((dernier, avant)), Some(p)) if p < avant.len() => rang_illustration(dernier),
+        _ => None,
+    };
 
     Some((
         base.get(..idx)?.to_owned(),
@@ -377,7 +446,42 @@ pub fn decouper_fichier(nom_fichier: &str, prefixe_set: &str) -> Option<(String,
             edition,
             variante,
         },
+        rang.unwrap_or(1),
     ))
+}
+
+/// Le nom de fichier porte-t-il un jeton de contexte (`OP`, `DT`, `PR`…) ?
+///
+/// Un tel fichier montre le tirage dans un autre usage — carte proxy,
+/// Duel Terminal, promotion — : à choix égal, on lui préfère l'autre.
+///
+/// ```
+/// use ygo_sources::yugipedia::artwork::porte_un_contexte;
+/// assert!(porte_un_contexte("X-LOCR-JP-OP-ScR.png"));
+/// assert!(!porte_un_contexte("X-LOCR-JP-ScR.png"));
+/// ```
+#[must_use]
+pub fn porte_un_contexte(nom_fichier: &str) -> bool {
+    let tige = nom_fichier.rsplit_once('.').map_or(nom_fichier, |(t, _)| t);
+    tige.split('-')
+        .skip(1)
+        .any(|j| CONTEXTES.contains(&j.to_ascii_uppercase().as_str()))
+}
+
+/// `B` → 2, `3` → 3 ; `None` pour tout jeton qui n'est ni une lettre seule
+/// ni un nombre d'un ou deux chiffres non nul.
+fn rang_illustration(jeton: &str) -> Option<u32> {
+    match jeton.as_bytes() {
+        [lettre] if lettre.is_ascii_alphabetic() => {
+            Some(u32::from(lettre.to_ascii_uppercase() - b'A') + 1)
+        }
+        chiffres
+            if (1..=2).contains(&chiffres.len()) && chiffres.iter().all(u8::is_ascii_digit) =>
+        {
+            jeton.parse::<u32>().ok().filter(|n| *n >= 1)
+        }
+        _ => None,
+    }
 }
 
 fn position_ascii_insensible(foin: &[u8], aiguille: &[u8]) -> Option<usize> {
@@ -1268,6 +1372,45 @@ mod tests {
         assert_eq!(infos.variante, "AA2");
         let (_, infos) = decouper_fichier("Carte-RA05-EN-UR-1E-ALT.png", "RA05").unwrap();
         assert_eq!(infos.variante, "ALT");
+    }
+
+    /// Les illustrations multiples d'un même tirage (`LCKC-EN001`,
+    /// `LDK2-ENK01`) : une lettre ou un chiffre en dernier jeton, après la
+    /// rareté. Noms relevés sur Yugipedia le 2026-10-16.
+    #[test]
+    fn le_rang_d_illustration_se_lit_en_dernier_apres_la_rarete() {
+        for (fichier, prefixe, rang) in [
+            ("BlueEyesWhiteDragon-LCKC-EN-UR-1E.png", "LCKC", 1),
+            ("BlueEyesWhiteDragon-LCKC-EN-UR-1E-B.png", "LCKC", 2),
+            ("BlueEyesWhiteDragon-LCKC-EN-UR-UE-C.png", "LCKC", 3),
+            ("BlueEyesWhiteDragon-LCKC-EN-UR-1E-D.png", "LCKC", 4),
+            ("BlueEyesWhiteDragon-LDK2-EN-C-UE-2.png", "LDK2", 2),
+            ("BlueEyesWhiteDragon-LDK2-EN-C-1E-3.png", "LDK2", 3),
+            // La rareté d'abord : une Common n'est pas une troisième
+            // illustration, sauf quand un `C` la suit.
+            ("Carte-SET-EN-C.png", "SET", 1),
+            ("Carte-SET-EN-C-1E.png", "SET", 1),
+            ("Carte-SET-EN-C-1E-C.png", "SET", 3),
+            // Variantes, éditions et contextes ne sont pas des rangs.
+            ("Carte-RA05-EN-UR-1E-AA2.png", "RA05", 1),
+            ("Carte-LOCR-JP-UR-EA.png", "LOCR", 1),
+            ("Carte-LOCR-JP-OP.png", "LOCR", 1),
+            // Un fichier d'un autre set : rien à lire.
+            ("Carte-RA02-EN-UR-1E-B.png", "RA05", 1),
+        ] {
+            assert_eq!(illustration(fichier, prefixe), rang, "{fichier}");
+        }
+        // Le découpage, lui, est inchangé : `B` n'est ni rareté ni variante.
+        let (_, infos) =
+            decouper_fichier("BlueEyesWhiteDragon-LCKC-EN-UR-1E-B.png", "LCKC").unwrap();
+        assert_eq!(
+            (
+                infos.rarete_abbr.as_str(),
+                infos.edition.as_str(),
+                infos.variante.as_str()
+            ),
+            ("UR", "1E", "")
+        );
     }
 
     #[test]

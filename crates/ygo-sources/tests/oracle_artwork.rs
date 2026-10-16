@@ -270,9 +270,17 @@ fn les_fonctions_pures_suivent_le_python() {
     // Les 43 raretés du référentiel de l'utilisateur, plus six cas de casse.
     assert!(f.raretes.len() >= 49);
     for cas in &f.raretes {
+        // Divergence assumée du 2026-10-11 : le Python ignore `GMR`, et ses
+        // Overframe Grand Master Rare prenaient un fichier d'une autre photo
+        // (cf. `ABBR_RARETE`).
+        let attendu = if cas.entree.trim().eq_ignore_ascii_case("grand master rare") {
+            "GMR"
+        } else {
+            cas.abbr.as_str()
+        };
         assert_eq!(
             abbr_rarete(&cas.entree),
-            cas.abbr,
+            attendu,
             "abbr de {:?}",
             cas.entree
         );

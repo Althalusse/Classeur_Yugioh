@@ -21,6 +21,9 @@ serde_json.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
 chrono.workspace = true
+# Empreinte SHA-256 de l'exécutable téléchargé par la mise à jour. Même
+# famille (RustCrypto) que `md-5`, déjà au graphe : licences MIT/Apache-2.0.
+sha2 = "0.10"
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }

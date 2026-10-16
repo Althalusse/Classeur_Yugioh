@@ -42,7 +42,7 @@
 //! algorithme que l'affichage, sans quoi la création et la consultation
 //! ordonneraient les cartes différemment.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
 use rusqlite::Connection;
@@ -341,27 +341,48 @@ pub fn choisir_locale(conn: &Connection, code_set: &str, set_uuid: &str) -> Resu
 // Construction
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// Retrouve le set et son nom anglais depuis un préfixe de classeur.
+/// Retrouve **les** sets d'un préfixe de classeur, le principal en tête.
 ///
 /// Un classeur OCG porte un préfixe **complet** (`LOCR-JP`) qui correspond
 /// directement à `prefix` ; un classeur TCG porte un préfixe nu (`RA05`) qui
 /// doit accepter `RA05-EN`, `RA05-EU`… d'où les deux conditions.
-fn resoudre_set(conn: &Connection, code_set: &str) -> Result<(String, String)> {
-    let resultat = conn.query_row(
-        "SELECT DISTINCT s.uuid, s.name_en
-         FROM sets s JOIN set_locales sl ON sl.set_uuid = s.uuid
-         WHERE sl.prefix = ?1 OR sl.prefix LIKE ?1 || '-%'
-         LIMIT 1",
-        [code_set],
-        |l| Ok((l.get::<_, String>(0)?, l.get::<_, Option<String>>(1)?)),
-    );
-    match resultat {
-        Ok((uuid, nom)) => Ok((uuid, nom.unwrap_or_default())),
-        Err(rusqlite::Error::QueryReturnedNoRows) => Err(AppError::SetAbsentDeLaBase(format!(
+///
+/// # Plusieurs sets, un préfixe — 2026-10-15
+///
+/// La base range sous **le même préfixe** des produits distincts : le
+/// booster et son « +1 Bonus Pack » (`ROTD-JP` … `ALIN-JP`, dont le
+/// `…-JPS01`), les vagues d'une boîte métal (`CT05-EN`), les volumes d'un
+/// Tournament Pack (`24TP-JP`), les « 2-Pack Set » et « Vendor Edition »
+/// OCG… 348 préfixes en tout. Le Python en prenait **un**, au hasard de
+/// l'ordre des lignes (`LIMIT 1`) : les cartes des autres manquaient au
+/// classeur.
+///
+/// Tous sont rendus. Le principal — celui dont le nom sert à trouver la Set
+/// list Yugipedia — est celui qui a **le plus de tirages** sous ce préfixe,
+/// puis le plus ancien : le booster plutôt que son paquet bonus, la boîte
+/// complète plutôt qu'une de ses vagues.
+fn resoudre_sets(conn: &Connection, code_set: &str) -> Result<Vec<(String, String)>> {
+    let mut requete = conn.prepare(
+        "SELECT s.uuid, COALESCE(s.name_en, ''),
+                COUNT(sp.id) AS tirages, MIN(COALESCE(sl.release_date, '9999')) AS sortie
+           FROM sets s
+           JOIN set_locales sl ON sl.set_uuid = s.uuid
+           LEFT JOIN set_prints sp ON sp.set_locale_id = sl.id
+          WHERE sl.prefix = ?1 OR sl.prefix LIKE ?1 || '-%'
+          GROUP BY s.uuid
+          ORDER BY tirages DESC, sortie, s.name_en, s.uuid",
+    )?;
+    let sets = requete
+        .query_map([code_set], |l| {
+            Ok((l.get::<_, String>(0)?, l.get::<_, String>(1)?))
+        })?
+        .collect::<rusqlite::Result<Vec<_>>>()?;
+    if sets.is_empty() {
+        return Err(AppError::SetAbsentDeLaBase(format!(
             "set « {code_set} » absent de cardinfo.db"
-        ))),
-        Err(e) => Err(e.into()),
+        )));
     }
+    Ok(sets)
 }
 
 /// Colonnes communes aux deux requêtes d'énumération.
@@ -403,10 +424,60 @@ const COLONNES: &str = "
 /// Elle a donc sauté, avec un `MIN(set_code)` pour rester déterministe si
 /// plusieurs codes anglais coexistaient.
 pub fn construire_lignes_locales(conn: &Connection, code_set: &str) -> Result<Vec<LigneClasseur>> {
-    let (set_uuid, set_name_en) = resoudre_set(conn, code_set)?;
-    let choix = choisir_locale(conn, code_set, &set_uuid)?;
+    let sets = resoudre_sets(conn, code_set)?;
+    let mut lignes: Vec<LigneClasseur> = Vec::new();
+    let mut vues: HashSet<(String, String, String, i64)> = HashSet::new();
+    let mut premiere_erreur: Option<AppError> = None;
+    // Le nom du principal pour toutes les lignes : c'est le nom du classeur,
+    // celui qui mène à sa Set list (cf. `resoudre_sets`).
+    let nom_principal = sets.first().map(|(_, n)| n.clone()).unwrap_or_default();
+    for (i, (set_uuid, _)) in sets.iter().enumerate() {
+        let tirages = match lignes_d_un_set(conn, code_set, set_uuid, &nom_principal) {
+            Ok(t) => t,
+            // Le principal doit se lire ; un set annexe sans locale utile —
+            // le paquet bonus japonais d'un classeur TCG — est seulement sauté.
+            Err(e) if i == 0 => {
+                premiere_erreur = Some(e);
+                continue;
+            }
+            Err(_) => continue,
+        };
+        for ligne in tirages {
+            // Un même tirage peut figurer dans deux sets (la boîte et sa
+            // vague) : une seule ligne.
+            let cle = (
+                ligne.set_code.clone(),
+                ligne.rarity.clone(),
+                ligne.card_image_uuid.clone(),
+                ligne.extended_art,
+            );
+            if vues.insert(cle) {
+                lignes.push(ligne);
+            }
+        }
+    }
+    if lignes.is_empty() {
+        return Err(premiere_erreur.unwrap_or_else(|| {
+            AppError::SetAbsentDeLaBase(format!(
+                "set « {code_set} » connu, mais aucune carte trouvée"
+            ))
+        }));
+    }
+    trier_et_numeroter(&mut lignes);
+    Ok(lignes)
+}
 
-    let mut lignes = match (choix.mode, choix.locale_anglaise) {
+/// Les lignes d'UN set, dans la locale que [`choisir_locale`] retient.
+fn lignes_d_un_set(
+    conn: &Connection,
+    code_set: &str,
+    set_uuid: &str,
+    set_name_en: &str,
+) -> Result<Vec<LigneClasseur>> {
+    let set_name_en = set_name_en.to_owned();
+    let choix = choisir_locale(conn, code_set, set_uuid)?;
+
+    let lignes = match (choix.mode, choix.locale_anglaise) {
         (ModeEnumeration::Francaise, Some(locale_en)) => {
             let sql = format!(
                 "SELECT {}
@@ -454,13 +525,6 @@ pub fn construire_lignes_locales(conn: &Connection, code_set: &str) -> Result<Ve
             lire(conn, &sql, &[&choix.locale_enumeree], &set_name_en)?
         }
     };
-
-    if lignes.is_empty() {
-        return Err(AppError::SetAbsentDeLaBase(format!(
-            "set « {code_set} » connu, mais aucune carte trouvée"
-        )));
-    }
-    trier_et_numeroter(&mut lignes);
     Ok(lignes)
 }
 
@@ -1269,6 +1333,9 @@ pub struct ApresArtworks {
     pub bilan: crate::artworks::Bilan,
     /// Lignes retirées par le rattrapage des fausses raretés.
     pub fantomes_retires: usize,
+    /// Lignes sans image à elles qui ont reçu le fichier Yugipedia de leur
+    /// rareté (cf. `artworks::poser_images_de_repli`).
+    pub replis: usize,
 }
 
 /// La passe artworks d'un classeur, **suivie** du rattrapage des fantômes.
@@ -1315,10 +1382,10 @@ pub async fn completer_artworks(
 
     let chemin_db = paths.classeur_db(code);
     let chemin_db = chemin_db.as_path();
-    let bilan = {
+    let (bilan, replis) = {
         let conn = ygo_db::connexion::ouvrir(chemin_db)?;
         match crate::artworks::passe(&conn, client, "", reference).await? {
-            crate::artworks::Issue::Fait { bilan, .. } => bilan,
+            crate::artworks::Issue::Fait { bilan, replis, .. } => (bilan, replis),
             crate::artworks::Issue::ClasseurVide => {
                 return Err(AppError::Creation(
                     "classeur vide au moment de la passe artworks".to_owned(),
@@ -1343,6 +1410,7 @@ pub async fn completer_artworks(
     Ok(ApresArtworks {
         bilan,
         fantomes_retires,
+        replis,
     })
 }
 
@@ -1676,6 +1744,70 @@ mod tests {
         assert_eq!(lignes[0].set_code, "L26D-ENM01", "M avant X");
         assert_eq!(lignes[1].set_code, "L26D-ENX01");
         assert_eq!((lignes[0].sort_order, lignes[1].sort_order), (0, 1));
+    }
+
+    /// Le booster et son « +1 Bonus Pack » partagent `ROTD-JP` : le
+    /// classeur a les deux — la `…-JPS01` du paquet bonus comprise —, le
+    /// tirage commun une seule fois, et le nom du booster, qui a le plus de
+    /// tirages.
+    #[test]
+    fn un_prefixe_partage_rassemble_tous_ses_sets() {
+        let conn = base();
+        Constructeur::set(&conn, "B", "Rise of the Duelist +1 Bonus Pack")
+            .locale("B", "jp", "ROTD-JP")
+            .carte("C1", "Gaia", "")
+            .carte("C9", "Bonus Card", "")
+            .image("I1", "C1", 100)
+            .image("I9", "C9", 900)
+            .tirage("C1", "I1", "ROTD-JP001", "Secret Rare", 0)
+            .tirage("C9", "I9", "ROTD-JPS01", "Prismatic Secret Rare", 0);
+        Constructeur::set(&conn, "M", "Rise of the Duelist")
+            .locale("M", "jp", "ROTD-JP")
+            .carte("C2", "Curse", "")
+            .image("I2", "C2", 200)
+            .tirage("C1", "I1", "ROTD-JP001", "Secret Rare", 0)
+            .tirage("C2", "I2", "ROTD-JP002", "Common", 0)
+            .tirage("C1", "I1", "ROTD-JP001", "Super Rare", 0);
+
+        let lignes = construire_lignes_locales(&conn, "ROTD-JP").unwrap();
+        let codes: Vec<(&str, &str)> = lignes
+            .iter()
+            .map(|l| (l.set_code.as_str(), l.rarity.as_str()))
+            .collect();
+        assert_eq!(lignes.len(), 4, "{codes:?}");
+        assert!(codes.contains(&("ROTD-JPS01", "Prismatic Secret Rare")));
+        assert_eq!(
+            codes
+                .iter()
+                .filter(|c| **c == ("ROTD-JP001", "Secret Rare"))
+                .count(),
+            1,
+            "le tirage des deux sets n'apparaît qu'une fois"
+        );
+        assert!(
+            lignes.iter().all(|l| l.set_name == "Rise of the Duelist"),
+            "le nom du set principal pour tout le classeur"
+        );
+    }
+
+    /// Un set annexe sans locale utile pour le classeur (le paquet bonus
+    /// japonais d'un classeur TCG) est sauté, sans faire échouer la création.
+    #[test]
+    fn un_set_annexe_sans_locale_utile_est_saute() {
+        let conn = base();
+        Constructeur::set(&conn, "M", "Rise of the Duelist")
+            .locale("M", "en", "ROTD-EN")
+            .carte("C1", "Gaia", "")
+            .image("I1", "C1", 100)
+            .tirage("C1", "I1", "ROTD-EN001", "Secret Rare", 0)
+            .tirage("C1", "I1", "ROTD-EN001", "Ultra Rare", 0);
+        Constructeur::set(&conn, "B", "Rise of the Duelist +1 Bonus Pack")
+            .locale("B", "jp", "ROTD-JP")
+            .tirage("C1", "I1", "ROTD-JPS01", "Secret Rare", 0);
+
+        let lignes = construire_lignes_locales(&conn, "ROTD").unwrap();
+        assert_eq!(lignes.len(), 2);
+        assert!(lignes.iter().all(|l| l.set_code.starts_with("ROTD-EN")));
     }
 
     #[test]

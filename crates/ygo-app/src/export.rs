@@ -24,15 +24,21 @@
 //! deux : l'export les rend dans la langue demandée pour le fichier. C'est
 //! la perte que l'import signale déjà à l'entrée, et elle est symétrique.
 //!
-//! # Les classeurs OCG sont écartés
+//! # Les classeurs OCG sont exportés — 2026-10-11
 //!
-//! Un tirage japonais garde son code natif — `LOCR-JP001` n'a jamais existé
-//! en `-FR`. Mais la colonne `Langue` du format, elle, est unique pour tout
-//! le fichier : les 154 cartes `LOCR-JP` de l'installation réelle
-//! ressortaient étiquetées « Français (France) ». Un code juste sous un
-//! libellé faux vaut moins qu'une ligne absente, d'autant que rien ne dit
-//! que Scanflip sache lire l'OCG. Les classeurs à suffixe OCG sont donc
-//! **écartés**, et [`Bilan`] dit lesquels.
+//! Ils étaient écartés : la colonne `Langue` était la même pour tout le
+//! fichier, et les 154 cartes `LOCR-JP` de l'installation réelle
+//! ressortaient étiquetées « Français (France) ». Mais l'export n'est pas
+//! qu'un envoi vers Scanflip : c'est aussi **la sauvegarde** de la collection,
+//! celle qu'on ouvre dans un tableur. Un export qui oublie les cartes
+//! japonaises n'en est pas une — et l'import de l'application, qui les relit
+//! très bien, ne les retrouvait jamais après un aller-retour.
+//!
+//! La langue s'écrit donc **par ligne** : une carte OCG garde son code natif
+//! (`LOCR-JP001`) et reçoit le libellé de sa langue ([`libelle_ocg`]), les
+//! autres celui du fichier. Scanflip ne connaissant pas l'OCG, [`Bilan::ocg`]
+//! nomme les classeurs concernés pour que l'utilisateur le sache avant
+//! d'envoyer le fichier.
 //!
 //! # L'état inconnu reste vide
 //!
@@ -149,20 +155,40 @@ pub fn traduire_code(code: &str, langue: Langue) -> String {
     format!("{prefixe}{}{suffixe}", langue.code())
 }
 
-/// Sépare les classeurs exportables de ceux que l'OCG écarte.
+/// Le libellé de langue d'un tirage **OCG**, d'après le suffixe de son code.
 ///
-/// Rend `(exportables, ecartes)`, chacun dans l'ordre reçu.
+/// Scanflip n'a pas de libellé pour l'OCG : ceux-ci sont écrits dans son
+/// style (« langue (région) », en français) pour qu'un tableur les lise
+/// d'un coup d'œil. `None` pour un code TCG.
 ///
 /// ```
-/// use ygo_app::export::ecarter_ocg;
-/// let tout = ["RA05".to_owned(), "LOCR-JP".to_owned(), "SDLI".to_owned()];
-/// let (gardes, ecartes) = ecarter_ocg(&tout);
-/// assert_eq!(gardes, ["RA05".to_owned(), "SDLI".to_owned()]);
-/// assert_eq!(ecartes, ["LOCR-JP".to_owned()]);
+/// use ygo_app::export::libelle_ocg;
+/// assert_eq!(libelle_ocg("LOCR-JP001"), Some("Japonais (Japon)"));
+/// assert_eq!(libelle_ocg("CROS-KR001"), Some("Coréen (Corée)"));
+/// assert_eq!(libelle_ocg("RA02-EN001"), None);
 /// ```
 #[must_use]
-pub fn ecarter_ocg(classeurs: &[String]) -> (Vec<String>, Vec<String>) {
-    classeurs.iter().cloned().partition(|c| !a_suffixe_ocg(c))
+pub fn libelle_ocg(code: &str) -> Option<&'static str> {
+    if !a_suffixe_ocg(code) {
+        return None;
+    }
+    let suffixe: String = code
+        .rsplit_once('-')
+        .map(|(_, s)| s)
+        .unwrap_or("")
+        .chars()
+        .take_while(char::is_ascii_alphabetic)
+        .map(|c| c.to_ascii_uppercase())
+        .collect();
+    Some(match suffixe.as_str() {
+        "JP" => "Japonais (Japon)",
+        "JA" => "Japonais (Asie)",
+        "KR" | "KO" => "Coréen (Corée)",
+        "AE" => "Anglais (Asie)",
+        "SC" => "Chinois simplifié (Chine)",
+        "TC" => "Chinois traditionnel (Asie)",
+        _ => "OCG",
+    })
 }
 
 /// Ce qu'un export contient, et ce qu'il a laissé de côté.
@@ -175,8 +201,9 @@ pub struct Bilan {
     /// Lignes dont l'état n'est pas renseigné — elles sortent avec leurs
     /// trois colonnes d'édition vides.
     pub sans_etat: usize,
-    /// Classeurs écartés parce qu'OCG.
-    pub ecartes: Vec<String>,
+    /// Classeurs OCG présents dans le fichier — l'application les relit,
+    /// Scanflip ne les connaît pas.
+    pub ocg: Vec<String>,
     /// Lignes dont le code de rareté n'est pas dans les règles de Scanflip
     /// — elles seront **rejetées** par son import.
     pub raretes_refusees: Vec<String>,
@@ -184,7 +211,14 @@ pub struct Bilan {
 
 /// Compte ce qu'un jeu de lignes contient.
 #[must_use]
-pub fn bilan(lignes: &[Sortie], ecartes: Vec<String>) -> Bilan {
+pub fn bilan(lignes: &[Sortie]) -> Bilan {
+    let mut ocg: Vec<String> = lignes
+        .iter()
+        .filter(|l| a_suffixe_ocg(&l.code))
+        .map(|l| l.extension.clone())
+        .collect();
+    ocg.sort_unstable();
+    ocg.dedup();
     Bilan {
         lignes: lignes.len(),
         exemplaires: lignes.iter().map(|l| l.quantite).sum(),
@@ -192,7 +226,7 @@ pub fn bilan(lignes: &[Sortie], ecartes: Vec<String>) -> Bilan {
             .iter()
             .filter(|l| l.qualite.trim().is_empty())
             .count(),
-        ecartes,
+        ocg,
         // Une rareté hors des règles de Scanflip n'est pas une erreur de
         // notre part — `GMR` est une vraie rareté OCG. Mais la ligne sera
         // perdue en silence à l'arrivée, et mieux vaut le savoir avant
@@ -289,7 +323,11 @@ pub fn lignes(
                 _ => p.name.clone(),
             };
             Sortie {
-                langue: langue.libelle().to_owned(),
+                // Par ligne : une carte japonaise reste japonaise, quelle que
+                // soit la langue du fichier (cf. tête de module).
+                langue: libelle_ocg(&p.set_code)
+                    .unwrap_or_else(|| langue.libelle())
+                    .to_owned(),
                 extension: p.classeur.clone(),
                 code: traduire_code(&p.set_code, langue),
                 nom,
@@ -733,28 +771,62 @@ mod tests {
         assert_eq!(rapport.fusions_avec_perte().count(), 0, "rien ne se perd");
     }
 
-    /// Les classeurs OCG sont écartés, les autres passent.
+    /// Une carte OCG sort avec son code natif et le libellé de **sa**
+    /// langue, à côté des cartes TCG du fichier ; le bilan nomme son
+    /// classeur.
     #[test]
-    fn les_classeurs_ocg_sont_ecartes_de_l_export() {
-        let tout: Vec<String> = ["RA05", "LOCR-JP", "SDLI", "LOCH-JP", "CROS-KR"]
-            .iter()
-            .map(|s| (*s).to_owned())
-            .collect();
-        let (gardes, ecartes) = ecarter_ocg(&tout);
-        assert_eq!(gardes, vec!["RA05".to_owned(), "SDLI".to_owned()]);
-        assert_eq!(
-            ecartes,
-            vec![
-                "LOCR-JP".to_owned(),
-                "LOCH-JP".to_owned(),
-                "CROS-KR".to_owned()
-            ]
+    fn les_classeurs_ocg_sont_exportes_avec_leur_langue() {
+        let mut jp = possedee(1, "LOCR-JP001", "Ultra Rare", 1);
+        jp.classeur = "LOCR-JP".into();
+        let tcg = possedee(2, "RA05-EN001", "Ultra Rare", 2);
+        let mut base = base_des(std::slice::from_ref(&tcg));
+        base.insert(
+            "LOCR-JP".into(),
+            vec![import::LigneBase {
+                rowid: 1,
+                set_code: "LOCR-JP001".into(),
+                rarity: "Ultra Rare".into(),
+                card_image_id: Some(1),
+                name: "Rescue Cat".into(),
+                name_fr: None,
+            }],
         );
-        // Un classeur TCG dont le nom contient « JP » sans en être le
-        // suffixe n'est pas écarté.
-        let (gardes, ecartes) = ecarter_ocg(&["JPEG".to_owned()]);
-        assert_eq!(gardes, vec!["JPEG".to_owned()]);
-        assert!(ecartes.is_empty());
+        let sortie = lignes(&[jp, tcg], Langue::Francais, &rangs(&base));
+        assert_eq!(sortie[0].code, "LOCR-JP001", "code natif");
+        assert_eq!(sortie[0].langue, "Japonais (Japon)");
+        assert_eq!(sortie[0].extension, "LOCR-JP");
+        assert_eq!(sortie[1].code, "RA05-FR001");
+        assert_eq!(sortie[1].langue, "Français (France)");
+        let b = bilan(&sortie);
+        assert_eq!(b.ocg, vec!["LOCR-JP".to_owned()]);
+        // Un classeur dont le nom contient « JP » sans en être le suffixe
+        // n'est pas OCG.
+        assert_eq!(libelle_ocg("JPEG-EN001"), None);
+    }
+
+    /// Exportée puis relue par l'import, une carte OCG retrouve sa ligne.
+    #[test]
+    fn une_carte_ocg_fait_l_aller_retour() {
+        let mut jp = possedee(7, "LOCH-JP013", "Grand Master Rare", 9);
+        jp.classeur = "LOCH-JP".into();
+        let base = HashMap::from([(
+            "LOCH-JP".to_owned(),
+            vec![import::LigneBase {
+                rowid: 7,
+                set_code: "LOCH-JP013".into(),
+                rarity: "Grand Master Rare".into(),
+                card_image_id: Some(9),
+                name: "Rescue Cat".into(),
+                name_fr: None,
+            }],
+        )]);
+        let sortie = lignes(&[jp], Langue::Francais, &rangs(&base));
+        let octets = scanflip::ecrire_octets(&sortie).unwrap();
+        let lecture = scanflip::lire_octets(&octets).unwrap();
+        let rapport = import::planifier(&lecture.lignes, &base);
+        assert!(rapport.refusees.is_empty(), "{:?}", rapport.refusees);
+        assert_eq!(rapport.ecritures.len(), 1);
+        assert_eq!(rapport.ecritures[0].rowid, 7);
     }
 
     /// Le bilan compte les lignes sans état — c'est ce que l'export doit
@@ -770,11 +842,11 @@ mod tests {
 
         let ensemble = [avec, sans, espaces];
         let lignes = lignes(&ensemble, Langue::Francais, &rangs(&base_des(&ensemble)));
-        let b = bilan(&lignes, vec!["LOCR-JP".to_owned()]);
+        let b = bilan(&lignes);
         assert_eq!(b.lignes, 3);
         assert_eq!(b.exemplaires, 4, "2 + 1 + 1");
         assert_eq!(b.sans_etat, 2, "la vide et celle qui n'a que des espaces");
-        assert_eq!(b.ecartes, vec!["LOCR-JP".to_owned()]);
+        assert!(b.ocg.is_empty());
     }
 
     /// Une ligne sans état sort avec ses **trois** colonnes d'édition
@@ -805,7 +877,7 @@ mod tests {
         let ensemble = [ocg, tcg];
         let lignes = lignes(&ensemble, Langue::Francais, &rangs(&base_des(&ensemble)));
         assert_eq!(lignes[0].rarete, "GMR", "elle sort telle quelle");
-        let b = bilan(&lignes, Vec::new());
+        let b = bilan(&lignes);
         assert_eq!(b.raretes_refusees, vec!["GMR".to_owned()]);
         assert_eq!(b.lignes, 2, "la ligne n'est pas retirée pour autant");
     }

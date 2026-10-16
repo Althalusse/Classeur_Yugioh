@@ -584,6 +584,108 @@ pub struct Fiche {
     /// Le password imprimé sur la carte — l'identifiant YGOPRODeck — s'il est
     /// renseigné. Absent pour une carte qui n'en porte pas.
     pub password: Option<i64>,
+    /// Ce que la fiche dit de la carte elle-même, quand elle porte un
+    /// `{{CardTable2}}` lisible (cf. [`carte_du_wikitext`]).
+    pub carte: Option<CarteFiche>,
+}
+
+/// La carte telle que sa fiche Yugipedia la décrit — de quoi remplir une
+/// ligne de classeur quand la base ne la connaît pas encore (2026-10-15 :
+/// les cartes sorties après le gel de YGOJSON, `CORI-JP015`…).
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct CarteFiche {
+    /// Nom français officiel (`fr_name`), s'il existe.
+    pub nom_fr: Option<String>,
+    /// `monster`, `spell` ou `trap` — l'écriture de la base.
+    pub type_carte: String,
+    /// Attribut (`DARK`…) — monstres seulement.
+    pub attribut: Option<String>,
+    /// Type de monstre (`Spellcaster`), ou propriété d'une magie ou d'un
+    /// piège (`Quick-Play`).
+    pub race: Option<String>,
+    /// Niveau, rang, ou valeur Lien (nombre de flèches).
+    pub niveau: Option<i64>,
+    /// Attaque — `None` pour `?`.
+    pub atk: Option<i64>,
+    /// Défense — `None` pour `?` et pour un monstre Lien.
+    pub def: Option<i64>,
+}
+
+/// La carte décrite par le `{{CardTable2}}` d'une fiche — fonction **pure**.
+///
+/// `None` si le modèle n'y est pas, ou s'il ne dit ni le type de la carte ni
+/// son attribut : une ligne ne se fabrique pas sur une fiche qu'on ne
+/// comprend pas.
+///
+/// ```
+/// use ygo_sources::yugipedia::carte_du_wikitext;
+/// let w = "{{CardTable2\n| fr_name = Aleister le Réminiscent\n| attribute = DARK\n\
+///          | types = Spellcaster / Effect\n| level = 4\n| atk = 1800\n| def = 1000\n}}";
+/// let c = carte_du_wikitext(w).unwrap();
+/// assert_eq!(c.type_carte, "monster");
+/// assert_eq!(c.nom_fr.as_deref(), Some("Aleister le Réminiscent"));
+/// assert_eq!((c.niveau, c.atk, c.def), (Some(4), Some(1800), Some(1000)));
+/// assert_eq!(c.race.as_deref(), Some("Spellcaster"));
+/// ```
+#[must_use]
+pub fn carte_du_wikitext(wikitext: &str) -> Option<CarteFiche> {
+    let debut = wikitext.find("{{CardTable2")?;
+    let mut champs: HashMap<String, String> = HashMap::new();
+    for ligne in wikitext.get(debut..)?.lines().skip(1) {
+        let ligne = ligne.trim();
+        if ligne.starts_with("}}") {
+            break;
+        }
+        let Some(reste) = ligne.strip_prefix('|') else {
+            continue;
+        };
+        if let Some((cle, valeur)) = reste.split_once('=') {
+            champs
+                .entry(cle.trim().to_owned())
+                .or_insert_with(|| valeur.trim().to_owned());
+        }
+    }
+    let valeur = |cle: &str| {
+        champs
+            .get(cle)
+            .map(|v| v.trim())
+            .filter(|v| !v.is_empty())
+            .map(str::to_owned)
+    };
+    let nombre = |cle: &str| -> Option<i64> {
+        let v = valeur(cle)?;
+        let chiffres: String = v.chars().take_while(char::is_ascii_digit).collect();
+        chiffres.parse().ok()
+    };
+    let attribut = valeur("attribute");
+    let type_carte = match valeur("card_type").map(|t| t.to_ascii_lowercase()) {
+        Some(t) if t.starts_with("spell") => "spell",
+        Some(t) if t.starts_with("trap") => "trap",
+        _ if attribut.is_some() => "monster",
+        _ => return None,
+    };
+    let race = if type_carte == "monster" {
+        valeur("types").and_then(|t| t.split('/').next().map(|s| s.trim().to_owned()))
+    } else {
+        valeur("property")
+    }
+    .filter(|r| !r.is_empty());
+    let fleches = valeur("link_arrows")
+        .map(|f| f.split(',').filter(|x| !x.trim().is_empty()).count())
+        .and_then(|n| i64::try_from(n).ok());
+    Some(CarteFiche {
+        nom_fr: valeur("fr_name"),
+        type_carte: type_carte.to_owned(),
+        attribut,
+        race,
+        niveau: nombre("level").or_else(|| nombre("rank")).or(fleches),
+        atk: nombre("atk"),
+        def: if fleches.is_some() {
+            None
+        } else {
+            nombre("def")
+        },
+    })
 }
 
 /// Le password d'une fiche de carte, lu dans son wikitext.
@@ -646,16 +748,13 @@ fn fiches_de(reponse: &ReponseTitres, demandes: &[String]) -> HashMap<String, Fi
             }
         }
         if let Some(page) = pages.get(titre) {
-            let password = page
-                .revisions
-                .first()
-                .and_then(RevisionFiche::wikitext)
-                .and_then(password_du_wikitext);
+            let wikitext = page.revisions.first().and_then(RevisionFiche::wikitext);
             fiches.insert(
                 nom.clone(),
                 Fiche {
                     titre: titre.to_owned(),
-                    password,
+                    password: wikitext.and_then(password_du_wikitext),
+                    carte: wikitext.and_then(carte_du_wikitext),
                 },
             );
         }

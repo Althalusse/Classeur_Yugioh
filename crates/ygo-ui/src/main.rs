@@ -87,7 +87,13 @@ fn main() -> eframe::Result<()> {
     let _journal = match ygo_core::log::installer(paths.logs()) {
         Ok(garde) => {
             ygo_core::log::entete_session(env!("CARGO_PKG_VERSION"));
-            tracing::info!(installation = %racine.display(), "interface démarrée");
+            tracing::info!(
+                installation = %racine.display(),
+                // La marque de version : lue par la mise à jour pour vérifier
+                // qu'un exécutable téléchargé est bien de la version annoncée.
+                marque = ygo_app::maj_appli::MARQUE,
+                "interface démarrée"
+            );
             Some(garde)
         }
         Err(e) => {
@@ -97,6 +103,12 @@ fn main() -> eframe::Result<()> {
             None
         }
     };
+
+    // Ce qu'une mise à jour précédente a laissé : l'ancien exécutable, mis de
+    // côté pendant qu'il tournait encore (cf. `ygo_app::maj_appli`).
+    if let Ok(exe) = std::env::current_exe() {
+        ygo_app::maj_appli::nettoyer(&exe);
+    }
 
     // La mémoire des requêtes, avant le premier accès réseau : ce que les
     // sources ont déjà répondu ne leur est pas redemandé (cf.
@@ -135,6 +147,20 @@ fn main() -> eframe::Result<()> {
     )
 }
 
+/// Les classeurs doivent-ils être réalignés sur Yugipedia à ce démarrage ?
+///
+/// Oui au premier démarrage de chaque nouvelle version, s'il y a des
+/// classeurs : un correctif de la passe artworks ne profite aux classeurs déjà
+/// créés que si elle est refaite (2026-10-11 — Overframe affichant
+/// l'illustration normale chez un utilisateur passé de l'alpha.1 à la 2.0.1
+/// sans recréer ses classeurs). Le fil des données note la version une fois
+/// le travail fait sans échec ; un Yugipedia injoignable le fait reprendre
+/// au démarrage suivant.
+fn realignement_du(paths: &ygo_core::paths::Paths) -> bool {
+    let deja = ygo_core::config::Config::charger(paths.app_config()).classeurs_alignes_version();
+    deja.as_deref() != Some(env!("CARGO_PKG_VERSION")) && !paths.classeurs_existants().is_empty()
+}
+
 /// L'écran affiché.
 enum Ecran {
     Accueil,
@@ -156,6 +182,8 @@ struct Application {
     images: Service,
     /// Ce qui a empêché d'ouvrir le dernier classeur demandé.
     erreur: Option<String>,
+    /// La fenêtre des nouveautés de la version proposée est ouverte.
+    notes_appli: bool,
     /// Le classeur à rouvrir au retour des options, s'il y en avait un.
     ///
     /// Changer la langue ou l'ordre de tri change ce que l'écran classeur
@@ -179,11 +207,16 @@ impl Application {
         } else {
             Ecran::Accueil
         };
+        let mut images = images;
+        if matches!(ecran, Ecran::Accueil) && realignement_du(accueil.paths()) {
+            images.realigner_apres_mise_a_jour();
+        }
         Self {
             accueil,
             ecran,
             images,
             erreur: None,
+            notes_appli: false,
             retour_vers: None,
         }
     }
@@ -426,6 +459,191 @@ impl Application {
         }
     }
 
+    /// Le bandeau de mise à jour **de l'application**.
+    ///
+    /// Rien ne se télécharge sans clic. Quatre gestes : voir les nouveautés,
+    /// mettre à jour, plus tard (pour la session), ignorer cette version (pour
+    /// de bon — la suivante sera proposée). Une Release sans exécutable ni
+    /// empreinte n'offre que sa page GitHub.
+    fn bandeau_appli(&mut self, ui: &mut egui::Ui) {
+        use ygo_ui::telechargements::EtatAppli;
+        let etat = self.images.etat();
+        if !etat.appli_a_montrer() {
+            return;
+        }
+        let appli = etat.appli().clone();
+        let mut installer = false;
+        let mut plus_tard = false;
+        let mut ignorer = false;
+        let mut redemarrer = false;
+        let mut voir_notes = false;
+        egui::Panel::top("bandeau-appli").show(ui, |ui| {
+            ui.add_space(6.0);
+            ui.horizontal(|ui| {
+                let accent = ui.visuals().selection.bg_fill;
+                match &appli {
+                    EtatAppli::Disponible(d) => {
+                        ui.colored_label(
+                            accent,
+                            egui::RichText::new(format!(
+                                "⬆ Nouvelle version {}{}",
+                                d.version,
+                                if d.pre_version {
+                                    " (version de test)"
+                                } else {
+                                    ""
+                                }
+                            ))
+                            .strong(),
+                        );
+                        ui.label(format!("— vous avez la {}", env!("CARGO_PKG_VERSION")));
+                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                            if ui.button("Ignorer cette version").clicked() {
+                                ignorer = true;
+                            }
+                            if ui
+                                .button("Plus tard")
+                                .on_hover_text("Le bandeau reviendra au prochain démarrage")
+                                .clicked()
+                            {
+                                plus_tard = true;
+                            }
+                            if d.installable() {
+                                if ui
+                                    .button("⬇ Mettre à jour")
+                                    .on_hover_text(
+                                        "Télécharge la nouvelle version, vérifie son empreinte, \
+                                         sauvegarde vos classeurs, puis la met en place. \
+                                         Vos classeurs, images et réglages ne sont pas touchés.",
+                                    )
+                                    .clicked()
+                                {
+                                    installer = true;
+                                }
+                            } else {
+                                ui.hyperlink_to("Voir sur GitHub", &d.page).on_hover_text(
+                                    "Cette Release ne joint pas ygo-ui.exe avec une \
+                                     empreinte vérifiable : à télécharger depuis sa page",
+                                );
+                            }
+                            if ui.button("Nouveautés").clicked() {
+                                voir_notes = true;
+                            }
+                        });
+                    }
+                    EtatAppli::Telechargement {
+                        dispo,
+                        recus,
+                        total,
+                    } => {
+                        #[allow(clippy::cast_precision_loss)]
+                        let part = if *total > 0 {
+                            *recus as f32 / *total as f32
+                        } else {
+                            0.0
+                        };
+                        ui.label(format!("Mise à jour vers la {}", dispo.version));
+                        ui.add_sized(
+                            [360.0, 20.0],
+                            egui::ProgressBar::new(part).text(format!(
+                                "{:.1} / {:.1} Mo",
+                                *recus as f64 / 1_048_576.0,
+                                *total as f64 / 1_048_576.0
+                            )),
+                        );
+                    }
+                    EtatAppli::Installee(d) => {
+                        ui.colored_label(
+                            accent,
+                            egui::RichText::new(format!("✔ Version {} installée", d.version))
+                                .strong(),
+                        );
+                        ui.label("— elle démarrera au prochain lancement");
+                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                            if ui.button("⟳ Redémarrer maintenant").clicked() {
+                                redemarrer = true;
+                            }
+                        });
+                    }
+                    EtatAppli::Echec { dispo, raison } => {
+                        ui.colored_label(
+                            ui.visuals().error_fg_color,
+                            format!(
+                                "Mise à jour vers la {} impossible : {raison}",
+                                dispo.version
+                            ),
+                        );
+                        ui.label("— la version actuelle est intacte");
+                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                            if ui.button("✖").clicked() {
+                                plus_tard = true;
+                            }
+                            if ui.button("Réessayer").clicked() {
+                                installer = true;
+                            }
+                            ui.hyperlink_to("Voir sur GitHub", &dispo.page);
+                        });
+                    }
+                    EtatAppli::Inconnu | EtatAppli::AJour => {}
+                }
+            });
+            ui.add_space(6.0);
+        });
+
+        if voir_notes {
+            self.notes_appli = true;
+        }
+        if installer {
+            self.images.installer_appli();
+        }
+        if plus_tard {
+            self.images.ecarter_appli();
+        }
+        if ignorer {
+            self.images.ignorer_appli();
+        }
+        if redemarrer {
+            match ygo_ui::telechargements::relancer() {
+                Ok(()) => ui.ctx().send_viewport_cmd(egui::ViewportCommand::Close),
+                Err(e) => self.erreur = Some(format!("redémarrage impossible : {e}")),
+            }
+        }
+        self.fenetre_notes(ui.ctx(), &appli);
+    }
+
+    /// Les nouveautés de la version proposée, telles que la Release les décrit.
+    fn fenetre_notes(&mut self, ctx: &egui::Context, appli: &ygo_ui::telechargements::EtatAppli) {
+        use ygo_ui::telechargements::EtatAppli;
+        if !self.notes_appli {
+            return;
+        }
+        let (EtatAppli::Disponible(d)
+        | EtatAppli::Installee(d)
+        | EtatAppli::Telechargement { dispo: d, .. }
+        | EtatAppli::Echec { dispo: d, .. }) = appli
+        else {
+            self.notes_appli = false;
+            return;
+        };
+        let mut ouverte = true;
+        egui::Window::new(format!("Nouveautés — {}", d.titre))
+            .open(&mut ouverte)
+            .default_size([560.0, 420.0])
+            .collapsible(false)
+            .show(ctx, |ui| {
+                egui::ScrollArea::vertical().show(ui, |ui| {
+                    if d.notes.trim().is_empty() {
+                        ui.weak("Cette version ne décrit pas ses nouveautés.");
+                    } else {
+                        ui.label(d.notes.as_str());
+                    }
+                });
+                ui.separator();
+                ui.hyperlink_to("Page de la version sur GitHub", &d.page);
+            });
+        self.notes_appli = ouverte;
+    }
+
     /// La bande de progression, au-dessus des écrans.
     ///
     /// # Ce que la première version faisait mal
@@ -547,6 +765,7 @@ impl eframe::App for Application {
         // déjà son propre avancement, et « mise à jour disponible » y serait
         // une évidence bruyante — il n'y a pas de base du tout.
         if !matches!(self.ecran, Ecran::Initialisation(_)) {
+            self.bandeau_appli(ui);
             self.bandeau_maj(ui);
             self.bande_images(ui);
         }
@@ -633,6 +852,12 @@ impl eframe::App for Application {
                 }
                 if options.numeros_absents_demandee() {
                     self.images.numeros_absents();
+                }
+                if options.controle_demande() {
+                    self.images.controle_complet();
+                }
+                if options.verification_appli_demandee() {
+                    self.images.verifier_appli();
                 }
                 let consequences = options.consequences();
                 if options.retour_demande() {

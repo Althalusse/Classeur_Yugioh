@@ -199,6 +199,8 @@ pub struct Bilan {
     pub comptages: Comptages,
     /// La version enregistrée — `None` si le contrôle de version a échoué.
     pub version: Option<String>,
+    /// Les numéros manquants rattrapés dans les classeurs existants.
+    pub numeros: crate::numeros_absents::Partout,
 }
 
 /// Reconstruit la base, puis enregistre la version obtenue.
@@ -207,7 +209,9 @@ pub struct Bilan {
 ///
 /// 1. [`init::initialiser`] — archive, parsing, écriture, vérification ;
 /// 2. `checkDBVer.php` — la version que l'on vient d'obtenir ;
-/// 3. `bdd/last_update.txt` — pour que l'étape 2 du prochain démarrage sache.
+/// 3. `bdd/last_update.txt` — pour que l'étape 2 du prochain démarrage sache ;
+/// 4. les classeurs existants : images de repli, noms FR, puis numéros
+///    manquants rattrapés depuis leur Set list (cf. [`crate::numeros_absents`]).
 ///
 /// La progression est celle de [`crate::init`] : ce module n'en ajoute pas.
 /// L'étape 3 dure quelques millisecondes, elle n'a rien à annoncer.
@@ -259,13 +263,31 @@ pub async fn mettre_a_jour(
         ),
         Err(e) => tracing::warn!(erreur = %e, "noms FR non rafraîchis"),
     }
+    // Les numéros que la base n'a pas, rattrapés dans chaque classeur depuis
+    // sa Set list (cf. `numeros_absents::partout`). Après les noms FR : les
+    // lignes ajoutées en reçoivent un si la base en a un.
+    let raretes = ygo_core::rarity::Priorites::charger(paths.rarity_config());
+    let numeros = crate::numeros_absents::partout(paths, client, &raretes).await;
+    tracing::info!(
+        numeros = numeros.numeros,
+        lignes = numeros.lignes,
+        classeurs = numeros.touches.len(),
+        introuvables = numeros.introuvables,
+        illustrations = numeros.illustrations,
+        echecs = numeros.echecs,
+        "classeurs réalignés sur Yugipedia d'après la mise à jour"
+    );
     tracing::info!(
         version = version.as_deref().unwrap_or("inconnue"),
         cartes = comptages.cartes,
         tirages = comptages.tirages,
         "MAJ BDD — terminée"
     );
-    Ok(Bilan { comptages, version })
+    Ok(Bilan {
+        comptages,
+        version,
+        numeros,
+    })
 }
 
 /// Écrit `bdd/last_update.txt` d'après le serveur. Silencieux en cas d'échec.

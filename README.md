@@ -31,7 +31,9 @@ Version actuelle : **2.0.0-alpha.1**.
 - **L'inventaire** — toute la collection, tous classeurs confondus : tri,
   filtres, sélection multiple, actions en masse, détail par exemplaire.
 - **Import / export Scanflip** — aller-retour CSV sans perte d'état ni
-  d'édition.
+  d'édition. L'export est aussi une sauvegarde complète, lisible dans un
+  tableur : les cartes japonaises (OCG) y figurent avec leur code et leur
+  langue, et l'application les relit — Scanflip, lui, ne connaît pas l'OCG.
 - **Noms français officiels** — jamais inventés : une carte sans nom français
   officiel garde son nom anglais.
 - **Statistiques**, **corbeille** (un classeur supprimé se restaure), **fiche
@@ -51,6 +53,19 @@ Au premier démarrage, l'application construit sa base de référence : **enviro
 l'exécutable — le dossier se déplace et se sauvegarde tel quel.
 
 Ligne de commande (diagnostic, réparations, import/export) : `ygo-cli.exe --help`.
+
+### Mises à jour
+
+L'application vérifie au démarrage s'il existe une version plus récente sur la
+page [Releases](../../releases) — une seule requête à GitHub. Si c'est le cas,
+un bandeau propose de la voir et de l'installer : **rien ne se télécharge sans
+votre accord**. Le nouvel exécutable est vérifié — empreinte SHA-256 calculée
+par GitHub, et numéro de version inscrit dans le fichier, qui doit être celui
+annoncé —, vos classeurs sont sauvegardés, puis l'application redémarre. Vos
+classeurs, images et réglages ne sont pas touchés.
+
+Les versions de test (« pre-release ») ne sont proposées que si vous l'avez
+choisi dans Options › Application.
 
 ## D'où viennent les données — et comment on les respecte
 

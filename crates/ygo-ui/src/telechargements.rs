@@ -128,8 +128,20 @@ enum Commande {
     /// téléchargement de ce qu'il pose.
     ImagesYugipedia,
     /// Ajouter à tous les classeurs les numéros que la Set list Yugipedia
-    /// connaît et que la base a perdus (cf. `ygo_app::numeros_absents`).
-    NumerosAbsents,
+    /// connaît et que la base a perdus, et refaire la passe artworks de ceux
+    /// qui en ont besoin (cf. `ygo_app::numeros_absents::partout`).
+    ///
+    /// `noter_version` : lancé au premier démarrage d'une nouvelle version.
+    /// La version est alors notée dans `app_config.json` — mais seulement si
+    /// aucun classeur n'a échoué, pour que le prochain démarrage reprenne
+    /// ce qu'un Yugipedia injoignable a empêché.
+    NumerosAbsents {
+        /// Noter la version de l'application une fois le travail fait.
+        noter_version: bool,
+    },
+    /// Le contrôle complet des classeurs : sauvegarde, puis tous les
+    /// garde-fous à la suite (cf. `ygo_app::controle`).
+    Controle,
     /// Créer ce classeur — lignes, couverture, artworks —, puis passer ses
     /// images au fil des images.
     ///
@@ -158,8 +170,64 @@ pub const CODE_BASE: &str = "Base de données";
 /// Même principe que [`CODE_BASE`] : un nom qu'aucun set ne peut porter.
 pub const CODE_IMAGES_YUGIPEDIA: &str = "Images Yugipedia";
 
+/// Le nom sous lequel la mise à jour de l'application s'annonce.
+pub const CODE_APPLI: &str = "Application";
+
+/// Ce que le fil de la mise à jour de l'application rapporte.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum EvenementAppli {
+    /// Le contrôle a conclu.
+    Verdict(ygo_app::maj_appli::Verdict),
+    /// Le contrôle n'a pas pu se faire — hors ligne, GitHub indisponible.
+    ControleImpossible(String),
+    /// Le nouvel exécutable descend.
+    Telechargement {
+        /// Octets reçus.
+        recus: u64,
+        /// Octets attendus.
+        total: u64,
+    },
+    /// Installé : il reste à redémarrer.
+    Installee,
+    /// La mise à jour a échoué ; l'exécutable actuel est intact.
+    Echec(String),
+}
+
+/// Où en est la mise à jour de l'application, du point de vue de l'écran.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub enum EtatAppli {
+    /// Pas encore de réponse — ou contrôle désactivé.
+    #[default]
+    Inconnu,
+    /// Rien de plus récent.
+    AJour,
+    /// Une version est proposée.
+    Disponible(ygo_app::maj_appli::Disponible),
+    /// Elle se télécharge.
+    Telechargement {
+        /// La version.
+        dispo: ygo_app::maj_appli::Disponible,
+        /// Octets reçus.
+        recus: u64,
+        /// Octets attendus.
+        total: u64,
+    },
+    /// Installée, en attente de redémarrage.
+    Installee(ygo_app::maj_appli::Disponible),
+    /// Échouée.
+    Echec {
+        /// La version visée.
+        dispo: ygo_app::maj_appli::Disponible,
+        /// Ce qui s'est passé.
+        raison: String,
+    },
+}
+
 /// Le nom sous lequel la recherche des numéros manquants s'annonce.
-pub const CODE_NUMEROS_ABSENTS: &str = "Numéros manquants";
+pub const CODE_NUMEROS_ABSENTS: &str = "Classeurs ↔ Yugipedia";
+
+/// Le nom sous lequel le contrôle complet s'annonce.
+pub const CODE_CONTROLE: &str = "Contrôle complet";
 
 /// « La base est en travaux » — partagé entre les deux fils.
 ///
@@ -352,7 +420,19 @@ pub enum Evenement {
         classeurs: usize,
         /// Numéros dont la carte reste introuvable dans la base.
         introuvables: usize,
+        /// Lignes qui ont reçu leur image : Overframe, et cartes sans image (repli).
+        illustrations: usize,
+        /// Lignes créées par les passes refaites : les illustrations qui
+        /// manquaient à un tirage imprimé en plusieurs (`LCKC-EN001`).
+        artworks: usize,
     },
+    /// Le contrôle complet est terminé.
+    Controle {
+        /// Le bilan, ou pourquoi rien n'a été fait (sauvegarde impossible).
+        bilan: Result<ygo_app::controle::Bilan, String>,
+    },
+    /// Où en est la mise à jour de l'application.
+    Appli(EvenementAppli),
     /// Les données du classeur sont prêtes ; ses images attendent leur tour.
     ///
     /// Le classeur quitte les tâches en cours mais reste dans la file : la
@@ -408,7 +488,9 @@ impl Evenement {
                 CODE_BASE
             }
             Self::ImagesTirage { .. } => CODE_IMAGES_YUGIPEDIA,
+            Self::Appli(_) => CODE_APPLI,
             Self::NumerosAbsents { .. } => CODE_NUMEROS_ABSENTS,
+            Self::Controle { .. } => CODE_CONTROLE,
         }
     }
 
@@ -458,6 +540,14 @@ pub struct Etat {
     /// paraissent qu'un par un. Sans cette file, la bande de progression
     /// annonçait « RA05 » pendant que deux autres attendaient en silence.
     attente: std::collections::BTreeSet<String>,
+    /// La mise à jour de l'application.
+    appli: EtatAppli,
+    /// Le bandeau de mise à jour de l'application a été écarté pour la
+    /// session (« Plus tard »).
+    appli_ecartee: bool,
+    /// Le dernier contrôle a été demandé à la main : sa conclusion « à jour »
+    /// mérite d'être dite.
+    appli_controle_manuel: bool,
     /// Classeurs créés dont les images attendent le fil des images.
     ///
     /// Distinct de `attente` : un classeur demandé mais **pas encore créé**
@@ -613,17 +703,28 @@ impl Etat {
                 lignes,
                 classeurs,
                 introuvables,
+                illustrations,
+                artworks,
             } => {
                 self.en_cours.remove(CODE_NUMEROS_ABSENTS);
                 self.etape.remove(CODE_NUMEROS_ABSENTS);
-                let mut message = if *numeros == 0 {
-                    "Numéros manquants — aucun à ajouter".to_owned()
-                } else {
-                    format!(
+                let mut message = match (*numeros, *illustrations, *artworks) {
+                    (0, 0, 0) => "Classeurs vérifiés sur Yugipedia — rien à rattraper".to_owned(),
+                    (0, _, _) => format!(
+                        "Classeurs réalignés sur Yugipedia — {illustrations} image(s) \
+                         corrigée(s) dans {classeurs} classeur(s)"
+                    ),
+                    _ => format!(
                         "Numéros manquants — {numeros} numéro(s) ajouté(s) ({lignes} ligne(s)) \
                          dans {classeurs} classeur(s)"
-                    )
+                    ),
                 };
+                if *numeros > 0 && *illustrations > 0 {
+                    message.push_str(&format!(" ; {illustrations} image(s) corrigée(s)"));
+                }
+                if *artworks > 0 {
+                    message.push_str(&format!(" ; {artworks} artwork(s) ajouté(s)"));
+                }
                 if *introuvables > 0 {
                     message.push_str(&format!(
                         " ; {introuvables} introuvable(s) dans la base, laissé(s) de côté"
@@ -631,6 +732,12 @@ impl Etat {
                 }
                 self.dernier = Some(message);
             }
+            Evenement::Controle { bilan } => {
+                self.en_cours.remove(CODE_CONTROLE);
+                self.etape.remove(CODE_CONTROLE);
+                self.dernier = Some(message_controle(bilan));
+            }
+            Evenement::Appli(e) => self.appliquer_appli(e),
             Evenement::ImagesEnAttente { code } => {
                 // Plus rien ne tourne pour lui, mais il n'est pas fini : il
                 // sort des tâches en cours et reste dans la file d'attente.
@@ -692,6 +799,102 @@ impl Etat {
                     ),
                 });
             }
+        }
+    }
+
+    /// Applique un événement de la mise à jour de l'application.
+    fn appliquer_appli(&mut self, evenement: &EvenementAppli) {
+        use ygo_app::maj_appli::Verdict;
+        match evenement {
+            EvenementAppli::Verdict(verdict) => {
+                let manuel = std::mem::take(&mut self.appli_controle_manuel);
+                match verdict {
+                    Verdict::Disponible(d) => {
+                        self.appli = EtatAppli::Disponible(d.clone());
+                        if manuel {
+                            self.appli_ecartee = false;
+                        }
+                    }
+                    // Ignorée : rien à montrer — sauf si on l'a redemandé à la
+                    // main, où la taire serait mentir.
+                    Verdict::Ignoree(d) if manuel => {
+                        self.appli_ecartee = false;
+                        self.appli = EtatAppli::Disponible(d.clone());
+                    }
+                    Verdict::Ignoree(_) => self.appli = EtatAppli::AJour,
+                    Verdict::AJour => {
+                        self.appli = EtatAppli::AJour;
+                        if manuel {
+                            self.dernier = Some(format!(
+                                "Application à jour — version {}",
+                                env!("CARGO_PKG_VERSION")
+                            ));
+                        }
+                    }
+                }
+            }
+            EvenementAppli::ControleImpossible(raison) => {
+                if std::mem::take(&mut self.appli_controle_manuel) {
+                    self.dernier = Some(format!("Recherche de mise à jour impossible — {raison}"));
+                }
+            }
+            EvenementAppli::Telechargement { recus, total } => {
+                if let Some(dispo) = self.appli_dispo().cloned() {
+                    self.appli = EtatAppli::Telechargement {
+                        dispo,
+                        recus: *recus,
+                        total: *total,
+                    };
+                }
+            }
+            EvenementAppli::Installee => {
+                if let Some(dispo) = self.appli_dispo().cloned() {
+                    self.appli = EtatAppli::Installee(dispo);
+                }
+            }
+            EvenementAppli::Echec(raison) => {
+                if let Some(dispo) = self.appli_dispo().cloned() {
+                    self.appli = EtatAppli::Echec {
+                        dispo,
+                        raison: raison.clone(),
+                    };
+                }
+            }
+        }
+    }
+
+    /// La version en jeu, quelle que soit l'étape.
+    fn appli_dispo(&self) -> Option<&ygo_app::maj_appli::Disponible> {
+        match &self.appli {
+            EtatAppli::Disponible(d) | EtatAppli::Installee(d) => Some(d),
+            EtatAppli::Telechargement { dispo, .. } | EtatAppli::Echec { dispo, .. } => Some(dispo),
+            EtatAppli::Inconnu | EtatAppli::AJour => None,
+        }
+    }
+
+    /// Où en est la mise à jour de l'application.
+    #[must_use]
+    pub fn appli(&self) -> &EtatAppli {
+        &self.appli
+    }
+
+    /// Faut-il montrer le bandeau de mise à jour de l'application ?
+    #[must_use]
+    pub fn appli_a_montrer(&self) -> bool {
+        match self.appli {
+            EtatAppli::Disponible(_) => !self.appli_ecartee,
+            EtatAppli::Telechargement { .. }
+            | EtatAppli::Installee(_)
+            | EtatAppli::Echec { .. } => true,
+            EtatAppli::Inconnu | EtatAppli::AJour => false,
+        }
+    }
+
+    /// « Plus tard » : le bandeau se tait jusqu'au prochain démarrage.
+    pub fn ecarter_appli(&mut self) {
+        self.appli_ecartee = true;
+        if let EtatAppli::Echec { dispo, .. } = &self.appli {
+            self.appli = EtatAppli::Disponible(dispo.clone());
         }
     }
 
@@ -842,6 +1045,13 @@ pub struct Service {
     /// Vers le fil des images.
     images: Sender<CommandeImages>,
     evenements: Receiver<Evenement>,
+    /// De quoi lancer les fils de la mise à jour de l'application, qui
+    /// naissent à la demande.
+    racine: PathBuf,
+    envoi: Sender<Evenement>,
+    ctx: egui::Context,
+    /// Un téléchargement de l'application est en route.
+    appli_en_cours: bool,
     etat: Etat,
     /// Codes déjà demandés — on ne relance pas une passe à chaque
     /// aller-retour sur le même classeur.
@@ -895,6 +1105,9 @@ impl Service {
                 |_| (),
             );
 
+        let envoi_appli = envoi_evenements.clone();
+        let ctx_appli = ctx.clone();
+        let racine_appli = racine.clone();
         let donnees = Fil {
             racine: racine.clone(),
             evenements: envoi_evenements.clone(),
@@ -924,14 +1137,93 @@ impl Service {
                 |_| (),
             );
 
-        Self {
+        let mut service = Self {
             commandes: envoi_commandes,
             images: envoi_images,
             evenements: reception_evenements,
+            racine: racine_appli,
+            envoi: envoi_appli,
+            ctx: ctx_appli,
+            appli_en_cours: false,
             etat: Etat::default(),
             demandes: std::collections::HashSet::new(),
             base_demandee: false,
+        };
+        // La mise à jour de l'application : un contrôle par lancement, si
+        // l'utilisateur ne l'a pas désactivé.
+        let config = Config::charger(Paths::depuis_racine(&service.racine).app_config());
+        if config.maj_appli_verifier() {
+            service.lancer_controle_appli();
         }
+        service
+    }
+
+    /// Lance le contrôle de version de l'application sur un fil à lui.
+    fn lancer_controle_appli(&mut self) {
+        let racine = self.racine.clone();
+        let envoi = self.envoi.clone();
+        let ctx = self.ctx.clone();
+        std::thread::Builder::new()
+            .name("ygo-maj-appli".to_owned())
+            .spawn(move || controler_appli(&racine, &envoi, &ctx))
+            .map_or_else(
+                |e| tracing::error!(erreur = %e, "contrôle de mise à jour non démarré"),
+                |_| (),
+            );
+    }
+
+    /// Recherche de mise à jour demandée à la main, depuis les Options.
+    pub fn verifier_appli(&mut self) {
+        self.etat.appli_controle_manuel = true;
+        self.lancer_controle_appli();
+    }
+
+    /// Lance le téléchargement et l'installation de la version proposée.
+    ///
+    /// Sans effet s'il n'y a rien de proposé, ou si c'est déjà en route.
+    pub fn installer_appli(&mut self) {
+        let (EtatAppli::Disponible(dispo) | EtatAppli::Echec { dispo, .. }) =
+            self.etat.appli.clone()
+        else {
+            return;
+        };
+        if self.appli_en_cours || !dispo.installable() {
+            return;
+        }
+        self.appli_en_cours = true;
+        self.etat.appli = EtatAppli::Telechargement {
+            dispo: dispo.clone(),
+            recus: 0,
+            total: dispo.exe.as_ref().map_or(0, |(_, t)| *t),
+        };
+        let racine = self.racine.clone();
+        let envoi = self.envoi.clone();
+        let ctx = self.ctx.clone();
+        std::thread::Builder::new()
+            .name("ygo-maj-appli".to_owned())
+            .spawn(move || installer_appli(&racine, &dispo, &envoi, &ctx))
+            .map_or_else(
+                |e| tracing::error!(erreur = %e, "mise à jour de l'application non démarrée"),
+                |_| (),
+            );
+    }
+
+    /// « Ignorer cette version » : retenu sur le disque, la suivante sera
+    /// proposée.
+    pub fn ignorer_appli(&mut self) {
+        let EtatAppli::Disponible(dispo) = &self.etat.appli else {
+            return;
+        };
+        let paths = Paths::depuis_racine(&self.racine);
+        if let Err(e) = ygo_app::maj_appli::ignorer(&paths, &dispo.version) {
+            tracing::warn!(erreur = %e, "version ignorée non retenue");
+        }
+        self.etat.appli = EtatAppli::AJour;
+    }
+
+    /// « Plus tard ».
+    pub fn ecarter_appli(&mut self) {
+        self.etat.ecarter_appli();
     }
 
     /// Demande la reconstruction de `bdd/cardinfo.db` — « MAJ BDD ».
@@ -995,6 +1287,34 @@ impl Service {
     /// Demande de chercher, dans tous les classeurs, les numéros que la Set
     /// list Yugipedia connaît et que la base a perdus.
     pub fn numeros_absents(&mut self) {
+        self.realigner(false);
+    }
+
+    /// Demande le contrôle complet des classeurs.
+    pub fn controle_complet(&mut self) {
+        self.etat.en_cours.insert(
+            CODE_CONTROLE.to_owned(),
+            Avancement {
+                faites: 0,
+                total: 0,
+            },
+        );
+        self.etat
+            .etape
+            .insert(CODE_CONTROLE.to_owned(), Etape::Verification);
+        if self.commandes.send(Commande::Controle).is_err() {
+            tracing::warn!("fil des données absent — contrôle complet ignoré");
+        }
+    }
+
+    /// Le réalignement des classeurs au premier démarrage d'une nouvelle
+    /// version : un correctif de la passe artworks profite ainsi aux
+    /// classeurs déjà créés (2026-10-11).
+    pub fn realigner_apres_mise_a_jour(&mut self) {
+        self.realigner(true);
+    }
+
+    fn realigner(&mut self, noter_version: bool) {
         self.etat.en_cours.insert(
             CODE_NUMEROS_ABSENTS.to_owned(),
             Avancement {
@@ -1005,7 +1325,11 @@ impl Service {
         self.etat
             .etape
             .insert(CODE_NUMEROS_ABSENTS.to_owned(), Etape::Verification);
-        if self.commandes.send(Commande::NumerosAbsents).is_err() {
+        if self
+            .commandes
+            .send(Commande::NumerosAbsents { noter_version })
+            .is_err()
+        {
             tracing::warn!("fil des données absent — recherche des numéros ignorée");
         }
     }
@@ -1085,6 +1409,10 @@ impl Service {
         while let Ok(e) = self.evenements.try_recv() {
             if e.code() == CODE_BASE && e.termine() {
                 self.base_demandee = false;
+            }
+            // Un échec rend la main : l'utilisateur peut réessayer.
+            if matches!(e, Evenement::Appli(EvenementAppli::Echec(_))) {
+                self.appli_en_cours = false;
             }
             self.etat.appliquer(&e);
             recus.push(e);
@@ -1174,6 +1502,127 @@ fn controler_version(
     ctx.request_repaint();
 }
 
+/// Le contrôle de version de l'application : une requête à GitHub, un
+/// événement, et le fil meurt.
+fn controler_appli(racine: &std::path::Path, envoi: &Sender<Evenement>, ctx: &egui::Context) {
+    let signaler = |e: EvenementAppli| {
+        let _ = envoi.send(Evenement::Appli(e));
+        ctx.request_repaint();
+    };
+    let Some((runtime, client)) = outillage("maj-appli") else {
+        return;
+    };
+    let paths = Paths::depuis_racine(racine);
+    let avec_pre = Config::charger(paths.app_config()).maj_appli_pre_versions();
+    match runtime.block_on(ygo_app::maj_appli::verifier(
+        &paths,
+        &client,
+        env!("CARGO_PKG_VERSION"),
+        avec_pre,
+    )) {
+        Ok(verdict) => {
+            tracing::info!(?verdict, "mise à jour de l'application : contrôle");
+            signaler(EvenementAppli::Verdict(verdict));
+        }
+        Err(e) => {
+            tracing::info!(erreur = %e, "mise à jour de l'application : contrôle impossible");
+            signaler(EvenementAppli::ControleImpossible(e.to_string()));
+        }
+    }
+}
+
+/// Télécharge, vérifie, sauvegarde, installe. L'exécutable actuel n'est
+/// touché qu'une fois le nouveau vérifié.
+fn installer_appli(
+    racine: &std::path::Path,
+    dispo: &ygo_app::maj_appli::Disponible,
+    envoi: &Sender<Evenement>,
+    ctx: &egui::Context,
+) {
+    let signaler = |e: EvenementAppli| {
+        let _ = envoi.send(Evenement::Appli(e));
+        ctx.request_repaint();
+    };
+    let Some((runtime, client)) = outillage("maj-appli") else {
+        signaler(EvenementAppli::Echec("démarrage impossible".to_owned()));
+        return;
+    };
+    let exe = match std::env::current_exe() {
+        Ok(e) => e,
+        Err(e) => {
+            signaler(EvenementAppli::Echec(format!(
+                "exécutable introuvable : {e}"
+            )));
+            return;
+        }
+    };
+    let paths = Paths::depuis_racine(racine);
+    let mut dernier_signal = 0u64;
+    let telecharge = runtime.block_on(ygo_app::maj_appli::telecharger(
+        &client,
+        dispo,
+        &exe,
+        |recus, total| {
+            // Un événement par demi-mégaoctet : assez pour une barre fluide,
+            // sans inonder la file.
+            if recus - dernier_signal >= 512 * 1024 || recus >= total {
+                dernier_signal = recus;
+                signaler(EvenementAppli::Telechargement { recus, total });
+            }
+        },
+    ));
+    let nouveau = match telecharge {
+        Ok(n) => n,
+        Err(e) => {
+            tracing::warn!(erreur = %e, "mise à jour de l'application : téléchargement");
+            signaler(EvenementAppli::Echec(e.to_string()));
+            return;
+        }
+    };
+    match ygo_app::maj_appli::sauvegarder(&paths, env!("CARGO_PKG_VERSION")) {
+        Ok(c) => {
+            tracing::info!(sauvegarde = %c.display(), "classeurs sauvegardés avant mise à jour")
+        }
+        Err(e) => {
+            // Sans sauvegarde, on n'installe pas : la prudence l'emporte.
+            let _ = std::fs::remove_file(&nouveau);
+            signaler(EvenementAppli::Echec(format!(
+                "sauvegarde impossible : {e}"
+            )));
+            return;
+        }
+    }
+    match ygo_app::maj_appli::installer(&exe, &nouveau) {
+        Ok(()) => {
+            tracing::info!(version = %dispo.version, "nouvelle version installée — redémarrage attendu");
+            signaler(EvenementAppli::Installee);
+        }
+        Err(e) => {
+            let _ = std::fs::remove_file(&nouveau);
+            signaler(EvenementAppli::Echec(e.to_string()));
+        }
+    }
+}
+
+/// Relance l'application — après une mise à jour installée. L'appelant ferme
+/// ensuite la fenêtre.
+///
+/// # Errors
+///
+/// Rend une erreur si l'exécutable ne peut pas être lancé.
+pub fn relancer() -> std::io::Result<()> {
+    let exe = std::env::current_exe()?;
+    let mut commande = std::process::Command::new(exe);
+    commande.args(std::env::args_os().skip(1));
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        // CREATE_NO_WINDOW : jamais de console, même un instant.
+        commande.creation_flags(0x0800_0000);
+    }
+    commande.spawn().map(|_| ())
+}
+
 /// Exécute « MAJ BDD », en convertissant sa progression en événements.
 ///
 /// # Pourquoi une pompe, et pas un simple `block_on`
@@ -1188,6 +1637,7 @@ fn executer_maj(
     runtime: &tokio::runtime::Runtime,
     paths: &Paths,
     client: &ygo_sources::ClientHttp,
+    images: &Sender<CommandeImages>,
     signaler: &impl Fn(Evenement),
 ) {
     signaler(Evenement::BaseEnCours {
@@ -1239,6 +1689,24 @@ fn executer_maj(
                 tirages: bilan.comptages.tirages,
                 version: bilan.version,
             });
+            // Les numéros manquants que la mise à jour a rattrapés : le
+            // bilan se lit dans la bande, les images suivent sur l'autre fil.
+            let numeros = bilan.numeros;
+            if numeros.numeros > 0
+                || numeros.introuvables > 0
+                || numeros.illustrations > 0
+                || numeros.artworks > 0
+            {
+                signaler(Evenement::NumerosAbsents {
+                    numeros: numeros.numeros,
+                    lignes: numeros.lignes,
+                    classeurs: numeros.touches.len(),
+                    introuvables: numeros.introuvables,
+                    illustrations: numeros.illustrations,
+                    artworks: numeros.artworks,
+                });
+            }
+            confier_images(numeros.touches, images, signaler);
             // Le nouveau verdict, SANS redemander au serveur.
             //
             // `maj` vient d'interroger `checkDBVer.php` pour écrire
@@ -1328,7 +1796,7 @@ fn travailler_donnees(fil: &Fil, commandes: &Receiver<Commande>, images: &Sender
                 // Le fil des images n'ouvre pas `cardinfo.db` tant que la
                 // garde vit — cf. `Travaux`.
                 let _garde = fil.travaux.ouvrir();
-                executer_maj(&runtime, &paths, &client, &signaler);
+                executer_maj(&runtime, &paths, &client, images, &signaler);
             }
             Commande::VerifierVersion => {
                 signaler(Evenement::Version {
@@ -1338,8 +1806,28 @@ fn travailler_donnees(fil: &Fil, commandes: &Receiver<Commande>, images: &Sender
             Commande::ImagesYugipedia => {
                 images_vers_yugipedia(&paths, &raretes, images, &signaler);
             }
-            Commande::NumerosAbsents => {
-                numeros_absents_partout(&runtime, &paths, &client, &raretes, images, &signaler);
+            Commande::Controle => {
+                let bilan = runtime
+                    .block_on(ygo_app::controle::complet(&paths, &client, &raretes))
+                    .map_err(|e| e.to_string());
+                let touches = bilan
+                    .as_ref()
+                    .map(|b| b.touches.clone())
+                    .unwrap_or_default();
+                signaler(Evenement::Controle { bilan });
+                confier_images(touches, images, &signaler);
+            }
+            Commande::NumerosAbsents { noter_version } => {
+                let echecs =
+                    numeros_absents_partout(&runtime, &paths, &client, &raretes, images, &signaler);
+                if noter_version && echecs == 0 {
+                    let config = ygo_core::config::Config::charger(paths.app_config());
+                    if let Err(e) =
+                        config.definir_classeurs_alignes_version(env!("CARGO_PKG_VERSION"))
+                    {
+                        tracing::warn!(erreur = %e, "version du réalignement non notée");
+                    }
+                }
             }
             Commande::Creer {
                 code,
@@ -1412,13 +1900,11 @@ fn images_vers_yugipedia(
     }
 }
 
-/// Ajoute à chaque classeur les numéros que la base a perdus, puis confie au
-/// fil des images ceux qui ont changé.
+/// Ajoute à chaque classeur les numéros que la base a perdus, refait la passe
+/// artworks de ceux qui en ont besoin, puis confie au fil des images ceux qui
+/// ont changé (cf. `ygo_app::numeros_absents::partout`).
 ///
-/// Un classeur qui reçoit des numéros repasse par la passe artworks : ses
-/// nouvelles lignes y reçoivent l'image de leur tirage, Overframe compris.
-/// Réseau : la Set list de chaque classeur — en cache trente jours —, et une
-/// requête pour cinquante noms à résoudre, au rythme de Yugipedia.
+/// Rend le nombre de classeurs en échec.
 fn numeros_absents_partout(
     runtime: &tokio::runtime::Runtime,
     paths: &Paths,
@@ -1426,43 +1912,86 @@ fn numeros_absents_partout(
     raretes: &ygo_core::rarity::Priorites,
     images: &Sender<CommandeImages>,
     signaler: &impl Fn(Evenement),
-) {
-    let (mut numeros, mut lignes, mut introuvables) = (0usize, 0usize, 0usize);
-    let mut touches: Vec<String> = Vec::new();
-    for code in paths.classeurs_existants() {
-        let issue = runtime.block_on(ygo_app::numeros_absents::completer(
-            paths, client, &code, raretes, true,
-        ));
-        let bilan = match issue {
-            Ok(ygo_app::numeros_absents::Issue::Fait(b)) => b,
-            Ok(_) => continue,
-            Err(e) => {
-                tracing::warn!(classeur = %code, erreur = %e, "numéros manquants non vérifiés");
-                continue;
-            }
-        };
-        introuvables += bilan.introuvables.len();
-        // Des images posées sans numéro ajouté : un numéro d'un passage
-        // précédent, dont les tirages en variante attendent la passe.
-        if bilan.ajouts.is_empty() && bilan.images == 0 {
-            continue;
-        }
-        numeros += bilan.ajouts.len();
-        lignes += bilan.lignes();
-        if let Err(e) = runtime.block_on(ygo_app::creation::completer_artworks(
-            paths, client, &code, raretes,
-        )) {
-            tracing::warn!(classeur = %code, erreur = %e, "passe artworks après ajout");
-        }
-        touches.push(code);
-    }
+) -> usize {
+    let bilan = runtime.block_on(ygo_app::numeros_absents::partout(paths, client, raretes));
     signaler(Evenement::NumerosAbsents {
-        numeros,
-        lignes,
-        classeurs: touches.len(),
-        introuvables,
+        numeros: bilan.numeros,
+        lignes: bilan.lignes,
+        classeurs: bilan.touches.len(),
+        introuvables: bilan.introuvables,
+        illustrations: bilan.illustrations,
+        artworks: bilan.artworks,
     });
-    for code in touches {
+    confier_images(bilan.touches, images, signaler);
+    bilan.echecs
+}
+
+/// Le bilan du contrôle complet, dit en une phrase pour la bande.
+///
+/// Fonction pure : ce qui a été corrigé, puis ce qui n'a pas pu l'être, et
+/// où se trouve la sauvegarde — c'est elle qui permet de revenir en arrière.
+#[must_use]
+pub fn message_controle(bilan: &Result<ygo_app::controle::Bilan, String>) -> String {
+    let b = match bilan {
+        Ok(b) => b,
+        Err(e) => return format!("Contrôle complet — non lancé, sauvegarde impossible : {e}"),
+    };
+    let mut parties: Vec<String> = Vec::new();
+    for (n, quoi) in [
+        (b.doublons, "doublon(s) retiré(s)"),
+        (b.raretes, "rareté(s) canonisée(s)"),
+        (b.noms_fr, "nom(s) FR posé(s)"),
+        (b.numeros, "numéro(s) ajouté(s)"),
+        (
+            b.illustrations,
+            "image(s) corrigée(s) (Overframe, cartes sans image)",
+        ),
+        (b.images_tirage, "image(s) de tirage posée(s)"),
+        (b.replis, "image(s) reprise(s)"),
+    ] {
+        if n > 0 {
+            parties.push(format!("{n} {quoi}"));
+        }
+    }
+    let mut texte = if parties.is_empty() {
+        format!(
+            "Contrôle complet — {} classeur(s), tout est conforme",
+            b.classeurs
+        )
+    } else {
+        format!(
+            "Contrôle complet — {} classeur(s) : {}",
+            b.classeurs,
+            parties.join(", ")
+        )
+    };
+    if b.doublons_bloques > 0 {
+        texte.push_str(&format!(
+            " · {} doublon(s) gardé(s) car possédé(s)",
+            b.doublons_bloques
+        ));
+    }
+    if b.introuvables > 0 {
+        texte.push_str(&format!(
+            " · {} numéro(s) inconnu(s) de la base, laissé(s) de côté",
+            b.introuvables
+        ));
+    }
+    if !b.echecs.is_empty() {
+        texte.push_str(&format!(" · À REVOIR : {}", b.echecs.join(" ; ")));
+    }
+    texte.push_str(&format!(" · sauvegarde : {}", b.sauvegarde.display()));
+    texte
+}
+
+/// Confie au fil des images des classeurs dont les données viennent de
+/// changer : ils attendent leur tour, après ceux déjà en file.
+fn confier_images(
+    codes: Vec<String>,
+    images: &Sender<CommandeImages>,
+    signaler: &impl Fn(Evenement),
+) {
+    for code in codes {
         signaler(Evenement::ImagesEnAttente { code: code.clone() });
         if images
             .send(CommandeImages::Completer {
@@ -1911,6 +2440,8 @@ mod tests {
             lignes: 5,
             classeurs: 1,
             introuvables: 2,
+            illustrations: 0,
+            artworks: 0,
         });
         let dernier = etat.dernier().unwrap();
         assert!(
@@ -1919,6 +2450,150 @@ mod tests {
         );
         assert!(dernier.contains("2 introuvable(s)"), "{dernier}");
         assert!(!etat.actif());
+    }
+
+    /// Le réalignement de `LCKC` et `LDK2` (2026-10-16) : des images
+    /// corrigées, et des artworks ajoutés — les deux se lisent.
+    #[test]
+    fn le_bilan_du_realignement_dit_les_artworks_ajoutes() {
+        let mut etat = Etat::default();
+        etat.appliquer(&Evenement::NumerosAbsents {
+            numeros: 0,
+            lignes: 0,
+            classeurs: 2,
+            introuvables: 0,
+            illustrations: 6,
+            artworks: 4,
+        });
+        let dernier = etat.dernier().unwrap();
+        assert!(
+            dernier.contains("6 image(s) corrigée(s) dans 2 classeur(s)"),
+            "{dernier}"
+        );
+        assert!(dernier.contains("4 artwork(s) ajouté(s)"), "{dernier}");
+    }
+
+    /// Le bilan du contrôle dit ce qui a été corrigé, ce qui reste à revoir,
+    /// et où est la sauvegarde ; rien à corriger se dit aussi.
+    #[test]
+    fn le_bilan_du_controle_se_lit_en_une_ligne() {
+        let propre = ygo_app::controle::Bilan {
+            classeurs: 16,
+            sauvegarde: std::path::PathBuf::from("backups/avant_controle_x"),
+            ..ygo_app::controle::Bilan::default()
+        };
+        let m = message_controle(&Ok(propre));
+        assert!(m.contains("16 classeur(s), tout est conforme"), "{m}");
+        assert!(m.contains("avant_controle_x"), "{m}");
+
+        let corrige = ygo_app::controle::Bilan {
+            classeurs: 16,
+            doublons: 6,
+            illustrations: 36,
+            doublons_bloques: 1,
+            echecs: vec!["Yugipedia : 2 classeur(s) non vérifié(s)".to_owned()],
+            ..ygo_app::controle::Bilan::default()
+        };
+        let m = message_controle(&Ok(corrige));
+        assert!(m.contains("6 doublon(s) retiré(s)"), "{m}");
+        assert!(m.contains("36 image(s) corrigée(s)"), "{m}");
+        assert!(m.contains("1 doublon(s) gardé(s)"), "{m}");
+        assert!(m.contains("À REVOIR"), "{m}");
+        assert!(!m.contains("rareté(s)"), "un zéro ne se dit pas : {m}");
+
+        let m = message_controle(&Err("disque plein".to_owned()));
+        assert!(m.contains("non lancé"), "{m}");
+
+        let mut etat = Etat::default();
+        etat.appliquer(&Evenement::Controle {
+            bilan: Err("disque plein".to_owned()),
+        });
+        assert!(!etat.actif());
+    }
+
+    fn dispo(version: &str) -> ygo_app::maj_appli::Disponible {
+        ygo_app::maj_appli::Disponible {
+            version: version.to_owned(),
+            tag: format!("v{version}"),
+            titre: format!("v{version}"),
+            notes: String::new(),
+            page: String::new(),
+            pre_version: false,
+            exe: Some(("https://exemple/ygo-ui.exe".to_owned(), 100)),
+            empreinte: Some(ygo_app::maj_appli::Empreinte::Publiee("0".repeat(64))),
+        }
+    }
+
+    /// Le parcours complet du bandeau : proposé, téléchargé, installé.
+    #[test]
+    fn le_bandeau_de_l_application_suit_la_mise_a_jour() {
+        use ygo_app::maj_appli::Verdict;
+        let mut etat = Etat::default();
+        assert!(
+            !etat.appli_a_montrer(),
+            "rien tant que GitHub n'a pas répondu"
+        );
+
+        etat.appliquer(&Evenement::Appli(EvenementAppli::Verdict(
+            Verdict::Disponible(dispo("2.0.0")),
+        )));
+        assert!(etat.appli_a_montrer());
+
+        etat.appliquer(&Evenement::Appli(EvenementAppli::Telechargement {
+            recus: 50,
+            total: 100,
+        }));
+        assert!(matches!(
+            etat.appli(),
+            EtatAppli::Telechargement { recus: 50, .. }
+        ));
+
+        etat.appliquer(&Evenement::Appli(EvenementAppli::Installee));
+        assert!(matches!(etat.appli(), EtatAppli::Installee(d) if d.version == "2.0.0"));
+        assert!(etat.appli_a_montrer());
+    }
+
+    /// « Plus tard » tait le bandeau ; un échec se lit, puis se referme sur
+    /// la proposition — réessayable, mais tue pour la session.
+    #[test]
+    fn plus_tard_et_echec() {
+        use ygo_app::maj_appli::Verdict;
+        let mut etat = Etat::default();
+        etat.appliquer(&Evenement::Appli(EvenementAppli::Verdict(
+            Verdict::Disponible(dispo("2.0.0")),
+        )));
+        etat.ecarter_appli();
+        assert!(!etat.appli_a_montrer());
+
+        etat.appliquer(&Evenement::Appli(EvenementAppli::Echec(
+            "empreinte".to_owned(),
+        )));
+        assert!(etat.appli_a_montrer(), "un échec se montre toujours");
+        etat.ecarter_appli();
+        assert!(!etat.appli_a_montrer());
+        assert!(matches!(etat.appli(), EtatAppli::Disponible(_)));
+    }
+
+    /// Une version ignorée se tait au démarrage, mais pas quand on cherche à
+    /// la main ; « à jour » ne se dit qu'à la main.
+    #[test]
+    fn une_version_ignoree_ne_reparait_que_sur_demande() {
+        use ygo_app::maj_appli::Verdict;
+        let mut etat = Etat::default();
+        etat.appliquer(&Evenement::Appli(EvenementAppli::Verdict(
+            Verdict::Ignoree(dispo("2.0.0")),
+        )));
+        assert!(!etat.appli_a_montrer());
+
+        etat.appli_controle_manuel = true;
+        etat.appliquer(&Evenement::Appli(EvenementAppli::Verdict(
+            Verdict::Ignoree(dispo("2.0.0")),
+        )));
+        assert!(etat.appli_a_montrer());
+
+        etat.appli_controle_manuel = true;
+        etat.appliquer(&Evenement::Appli(EvenementAppli::Verdict(Verdict::AJour)));
+        assert!(etat.dernier().unwrap().contains("à jour"));
     }
 
     /// Le drapeau des travaux retombe avec sa garde.

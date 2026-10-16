@@ -143,7 +143,7 @@ pub async fn lire_set_list(
     };
     let langue = artwork::langue_set_code(&code);
     let titres = yugipedia::resoudre_pages(client, &nom_set, None).await?;
-    let Some(titre) = structure::choisir_page(&titres, &langue) else {
+    let Some(titre) = structure::choisir_page_du_set(&titres, &nom_set, &langue) else {
         return Ok(None);
     };
     let Some(wikitext) = artwork::wikitext_page(client, titre).await? else {

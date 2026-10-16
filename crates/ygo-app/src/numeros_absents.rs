@@ -86,6 +86,10 @@ pub enum Rapprochement {
     Fiche,
     /// Seul le password de la fiche correspond.
     Password,
+    /// La base ne connaît pas la carte : la ligne est faite de sa **fiche
+    /// Yugipedia** — nom, nom français, type, attribut, niveau, ATK/DEF
+    /// (2026-10-15 : les cartes sorties après le gel de YGOJSON).
+    HorsBase,
 }
 
 impl Rapprochement {
@@ -96,6 +100,7 @@ impl Rapprochement {
             Self::Nom => "nom",
             Self::Fiche => "fiche",
             Self::Password => "password",
+            Self::HorsBase => "fiche (hors base)",
         }
     }
 }
@@ -112,6 +117,13 @@ pub struct Bilan {
     /// Lignes en cadre normal qui ont reçu l'image Yugipedia de leur tirage
     /// (numéros ajoutés, maintenant ou lors d'un passage précédent).
     pub images: usize,
+    /// Lignes dont les cases vides (nom français, statistiques) ont été
+    /// remplies d'après leur fiche Yugipedia (cf. [`completer_ligne`]).
+    pub enrichies: usize,
+    /// Tirages imprimés en plusieurs illustrations qui attendent une passe
+    /// artworks : lignes manquantes, ou illustrations non posées
+    /// ([`crate::artworks::illustrations_a_reprendre`], 2026-10-16).
+    pub illustrations_a_reprendre: usize,
 }
 
 impl Bilan {
@@ -314,6 +326,51 @@ fn lignes_de(
     Ok(Some((nom_en, lignes)))
 }
 
+/// Les lignes d'un numéro dont la base ignore la carte, faites de sa fiche
+/// Yugipedia — fonction **pure**.
+///
+/// Sans `card_uuid` (la base n'a rien à lier) ni image : la ligne naît comme
+/// un numéro « orphelin », et reçoit le fichier Yugipedia de son tirage par
+/// le même chemin (`images_normales`, puis le repli de la passe artworks).
+/// `None` si la fiche ne décrit pas la carte — rien n'est alors inventé.
+#[must_use]
+pub fn lignes_depuis_fiche(
+    fiche: &Fiche,
+    absent: &Absent,
+    set_name: &str,
+    raretes: &Priorites,
+) -> Option<Vec<LigneClasseur>> {
+    let carte = fiche.carte.as_ref()?;
+    Some(
+        absent
+            .tirages
+            .iter()
+            .map(|(rarete, ext)| LigneClasseur {
+                card_uuid: String::new(),
+                card_image_uuid: String::new(),
+                card_image_id: None,
+                name: fiche.titre.clone(),
+                name_fr: carte.nom_fr.clone().unwrap_or_default(),
+                set_code: absent.numero.clone(),
+                rarity: ygo_core::rarity::canon::canoniser(rarete, raretes)
+                    .map_or_else(|| rarete.clone(), |c| c.libelle),
+                rarity_code: String::new(),
+                set_name: set_name.to_owned(),
+                card_image_url: String::new(),
+                card_image_small: String::new(),
+                sort_order: 0,
+                card_type: carte.type_carte.clone(),
+                atk: carte.atk,
+                def_val: carte.def,
+                level: carte.niveau,
+                attribute: Some(carte.attribut.clone().unwrap_or_default()),
+                race: carte.race.clone().unwrap_or_default(),
+                extended_art: *ext,
+            })
+            .collect(),
+    )
+}
+
 /// La table `cards` a-t-elle cette colonne ?
 fn colonne_existe(conn: &Connection, colonne: &str) -> Result<bool> {
     Ok(conn
@@ -471,7 +528,11 @@ pub fn decider(
         let construit = match trouvee {
             Some((u, via)) => lignes_de(cardinfo, &u, a, set_name, raretes)?
                 .map(|(nom, lignes)| (nom, lignes, via)),
-            None => None,
+            // Le repli : la carte n'est pas dans la base, sa fiche la décrit.
+            None => fiches.get(&a.nom).and_then(|f| {
+                lignes_depuis_fiche(f, a, set_name, raretes)
+                    .map(|lignes| (f.titre.clone(), lignes, Rapprochement::HorsBase))
+            }),
         };
         match construit {
             Some((nom, lignes, via)) => {
@@ -531,16 +592,37 @@ pub async fn completer(
     let langue = artwork::langue_set_code(&code_reference);
 
     let titres = yugipedia::resoudre_pages(client, &set_name, None).await?;
-    let Some(titre) = structure::choisir_page(&titres, &langue) else {
+    let Some(titre) = structure::choisir_page_du_set(&titres, &set_name, &langue) else {
         return Ok(Issue::PageIntrouvable);
     };
-    let (entrees, _) = yugipedia::lire_set_list(client, titre).await?;
+    let (mut entrees, _) = yugipedia::lire_set_list(client, titre).await?;
+    // Le paquet bonus vendu avec le booster, sous le même préfixe et sur sa
+    // propre page (`CORI-JPS10` Melffy Mommy, 2026-10-15). Une page en échec
+    // ne prive pas le classeur de la principale.
+    for page in structure::pages_complementaires(&titres, &set_name, titre) {
+        match yugipedia::lire_set_list(client, &page).await {
+            Ok((bonus, _)) => entrees.extend(bonus),
+            Err(e) => tracing::warn!(classeur = %code, page = %page, erreur = %e,
+                "paquet bonus non lu"),
+        }
+    }
 
     let manquants = absents(&entrees, &presents, &prefixe_numero(&code_reference));
     let mut bilan = Bilan {
         absents: manquants.len(),
+        // Lu sur l'inventaire d'avant l'écriture : les numéros ajoutés ici
+        // n'en font pas partie, la passe qui suit leur ajout s'en occupe.
+        illustrations_a_reprendre: crate::artworks::illustrations_a_reprendre(
+            &inventaire,
+            &entrees,
+            raretes,
+        ),
         ..Bilan::default()
     };
+    if bilan.illustrations_a_reprendre > 0 {
+        tracing::info!(classeur = %code, tirages = bilan.illustrations_a_reprendre,
+            "illustrations multiples à reprendre : lignes manquantes ou non illustrées");
+    }
     let cardinfo = ygo_db::connexion::ouvrir_lecture_seule(paths.cardinfo_db())?;
 
     // Seuls les noms introuvables tels quels coûtent une requête.
@@ -555,11 +637,11 @@ pub async fn completer(
     bilan.introuvables = decide.introuvables;
     for a in &bilan.ajouts {
         tracing::info!(classeur = %code, numero = %a.numero, carte = %a.nom, lignes = a.lignes,
-            "numéro absent retrouvé");
+            via = a.via.libelle(), "numéro absent retrouvé");
     }
     for (numero, nom) in &bilan.introuvables {
         tracing::warn!(classeur = %code, numero = %numero, nom = %nom,
-            "numéro absent : carte introuvable dans la base, rien n'est créé");
+            "numéro absent : ni dans la base, ni décrit par une fiche Yugipedia — rien n'est créé");
     }
 
     if !ecrire {
@@ -572,6 +654,21 @@ pub async fn completer(
         }
         conn
     };
+
+    // Les cartes que la base ne connaît que d'avant leur sortie : leurs cases
+    // vides se remplissent d'après la fiche. Un échec réseau ne coûte que
+    // l'enrichissement.
+    match enrichir(&conn, &cardinfo, client, &entrees).await {
+        Ok(n) => {
+            bilan.enrichies = n;
+            if n > 0 {
+                tracing::info!(classeur = %code, lignes = n,
+                    "cartes d'avant-sortie complétées d'après leur fiche Yugipedia");
+            }
+        }
+        Err(e) => tracing::warn!(classeur = %code, erreur = %e,
+            "cartes d'avant-sortie non complétées"),
+    }
 
     // L'image de chaque tirage en cadre normal, pour les numéros que la base
     // ne connaît pas — ceux ajoutés maintenant, et ceux d'un passage
@@ -660,6 +757,173 @@ fn noms_par_numero(entrees: &[EntreeSetList]) -> HashMap<String, String> {
     noms
 }
 
+/// Ce qu'une ligne de classeur dit de sa carte, et que la fiche peut
+/// compléter. **Aucune** colonne d'image n'en fait partie.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct DonneesCarte {
+    /// Nom français.
+    pub name_fr: String,
+    /// `monster`, `spell`, `trap`.
+    pub card_type: String,
+    /// Attribut.
+    pub attribute: String,
+    /// Type de monstre, ou propriété.
+    pub race: String,
+    /// Niveau, rang, valeur Lien.
+    pub level: Option<i64>,
+    /// Attaque.
+    pub atk: Option<i64>,
+    /// Défense.
+    pub def_val: Option<i64>,
+}
+
+/// Remplit les cases **vides** d'une ligne d'après sa fiche — fonction
+/// **pure**. Une case déjà remplie n'est jamais remplacée. `None` quand rien
+/// ne change.
+///
+/// ```
+/// use ygo_app::numeros_absents::{completer_ligne, DonneesCarte};
+/// use ygo_sources::yugipedia::CarteFiche;
+/// let avant = DonneesCarte { card_type: "monster".into(), ..DonneesCarte::default() };
+/// let fiche = CarteFiche {
+///     nom_fr: Some("Emi Blitzclique".into()), type_carte: "monster".into(),
+///     attribut: Some("LIGHT".into()), race: Some("Thunder".into()),
+///     niveau: Some(4), atk: Some(1500), def: Some(1200),
+/// };
+/// let apres = completer_ligne(&avant, &fiche).unwrap();
+/// assert_eq!((apres.level, apres.atk, apres.attribute.as_str()), (Some(4), Some(1500), "LIGHT"));
+/// assert_eq!(completer_ligne(&apres, &fiche), None, "rejouer ne change rien");
+/// ```
+#[must_use]
+pub fn completer_ligne(
+    avant: &DonneesCarte,
+    fiche: &ygo_sources::yugipedia::CarteFiche,
+) -> Option<DonneesCarte> {
+    let texte = |actuel: &str, propose: Option<&String>| -> String {
+        if actuel.trim().is_empty() {
+            propose.cloned().unwrap_or_default()
+        } else {
+            actuel.to_owned()
+        }
+    };
+    let type_fiche = Some(fiche.type_carte.clone()).filter(|t| !t.is_empty());
+    let apres = DonneesCarte {
+        name_fr: texte(&avant.name_fr, fiche.nom_fr.as_ref()),
+        card_type: texte(&avant.card_type, type_fiche.as_ref()),
+        attribute: texte(&avant.attribute, fiche.attribut.as_ref()),
+        race: texte(&avant.race, fiche.race.as_ref()),
+        level: avant.level.or(fiche.niveau),
+        atk: avant.atk.or(fiche.atk),
+        def_val: avant.def_val.or(fiche.def),
+    };
+    (apres != *avant).then_some(apres)
+}
+
+/// Les lignes dont la carte n'est connue de la base que **d'avant sa
+/// sortie** — sans password —, complétées d'après leur fiche Yugipedia.
+///
+/// # Pourquoi — 2026-10-15
+///
+/// YGOJSON, gelé au 2026-04-07, connaît une partie des cartes de `CORI-JP`
+/// d'après leurs annonces : sans password, sans statistiques, sans nom
+/// français. Leurs fiches Yugipedia disent tout cela aujourd'hui.
+///
+/// Seules les cases **vides** sont remplies ([`completer_ligne`]) : ni le nom
+/// anglais, ni l'image, ni la possession ne bougent. La fiche est cherchée
+/// sous le nom de la Set list pour ce numéro — c'est le nom officiel du
+/// tirage —, à défaut sous celui de la ligne. Les fiches passent par le cache
+/// de 30 jours : rejouer ne coûte rien.
+async fn enrichir(
+    conn: &Connection,
+    cardinfo: &Connection,
+    client: &ygo_sources::ClientHttp,
+    entrees: &[EntreeSetList],
+) -> Result<usize> {
+    struct Ligne {
+        rowid: i64,
+        numero: String,
+        nom: String,
+        donnees: DonneesCarte,
+    }
+    let lignes: Vec<Ligne> = {
+        let mut requete = conn.prepare(
+            "SELECT rowid, UPPER(COALESCE(set_code,'')), COALESCE(name,''), COALESCE(card_uuid,''), \
+                    COALESCE(name_fr,''), COALESCE(card_type,''), COALESCE(attribute,''), \
+                    COALESCE(race,''), level, atk, def_val \
+               FROM cards WHERE COALESCE(card_uuid,'') <> ''",
+        )?;
+        let mut sans_password =
+            cardinfo.prepare("SELECT 1 FROM cards WHERE uuid = ?1 AND ygoprodeck_id IS NULL")?;
+        let toutes = requete
+            .query_map([], |l| {
+                Ok((
+                    l.get::<_, String>(3)?,
+                    Ligne {
+                        rowid: l.get(0)?,
+                        numero: l.get(1)?,
+                        nom: l.get(2)?,
+                        donnees: DonneesCarte {
+                            name_fr: l.get(4)?,
+                            card_type: l.get(5)?,
+                            attribute: l.get(6)?,
+                            race: l.get(7)?,
+                            level: l.get(8)?,
+                            atk: l.get(9)?,
+                            def_val: l.get(10)?,
+                        },
+                    },
+                ))
+            })?
+            .collect::<rusqlite::Result<Vec<_>>>()?;
+        let mut retenues = Vec::new();
+        for (uuid, ligne) in toutes {
+            if sans_password.exists([&uuid])? {
+                retenues.push(ligne);
+            }
+        }
+        retenues
+    };
+    if lignes.is_empty() {
+        return Ok(0);
+    }
+    let noms_officiels = noms_par_numero(entrees);
+    let nom_de = |l: &Ligne| {
+        noms_officiels
+            .get(&l.numero)
+            .cloned()
+            .unwrap_or_else(|| l.nom.clone())
+    };
+    let mut a_chercher: Vec<String> = lignes.iter().map(nom_de).collect();
+    a_chercher.sort();
+    a_chercher.dedup();
+    let fiches = ygo_sources::yugipedia::fiches(client, &a_chercher).await?;
+
+    let mut enrichies = 0;
+    for l in &lignes {
+        let Some(carte) = fiches.get(&nom_de(l)).and_then(|f| f.carte.as_ref()) else {
+            continue;
+        };
+        let Some(d) = completer_ligne(&l.donnees, carte) else {
+            continue;
+        };
+        enrichies += conn.execute(
+            "UPDATE cards SET name_fr = ?1, card_type = ?2, attribute = ?3, race = ?4, \
+                    level = ?5, atk = ?6, def_val = ?7 WHERE rowid = ?8",
+            rusqlite::params![
+                d.name_fr,
+                d.card_type,
+                d.attribute,
+                d.race,
+                d.level,
+                d.atk,
+                d.def_val,
+                l.rowid
+            ],
+        )?;
+    }
+    Ok(enrichies)
+}
+
 /// Les lignes en cadre normal dont le numéro n'a **aucun** tirage dans
 /// `cardinfo.db`, et qui n'ont pas encore d'image Yugipedia — `(numéro,
 /// rareté)`, sans doublon.
@@ -711,6 +975,136 @@ fn poser_images(conn: &Connection, poses: &[(String, String, String)]) -> Result
         n += maj.execute((numero, rarete, url))?;
     }
     Ok(n)
+}
+
+/// Ce que la complétion de **tous** les classeurs a fait.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Partout {
+    /// Numéros ajoutés, tous classeurs confondus.
+    pub numeros: usize,
+    /// Lignes créées.
+    pub lignes: usize,
+    /// Numéros laissés de côté, carte introuvable dans la base.
+    pub introuvables: usize,
+    /// Lignes qui ont reçu leur image pendant les passes refaites : les
+    /// variantes (Overframe…) et, par le repli, les lignes sans image à elles.
+    pub illustrations: usize,
+    /// Lignes créées par les passes refaites : les illustrations qui
+    /// manquaient à un tirage imprimé en plusieurs (`LCKC-EN001`,
+    /// 2026-10-16).
+    pub artworks: usize,
+    /// Classeurs que Yugipedia n'a pas permis de vérifier (réseau, page
+    /// introuvable, passe en échec) — à reprendre plus tard.
+    pub echecs: usize,
+    /// Classeurs modifiés — leurs images sont à télécharger.
+    pub touches: Vec<String>,
+}
+
+/// Complète tous les classeurs de l'installation, et refait la passe
+/// artworks de ceux qui en ont besoin.
+///
+/// C'est ce que font le bouton « Numéros manquants » des Options, **chaque
+/// mise à jour de la base** (depuis le 2026-10-10) et le premier démarrage
+/// d'une nouvelle version de l'application (depuis le 2026-10-11) : un
+/// classeur créé avant une correction se rattrape sans que l'utilisateur ait
+/// à savoir qu'il le faut.
+///
+/// La passe est refaite sur un classeur quand un numéro y a été ajouté, quand
+/// une image y a été posée, **ou quand une de ses lignes Overframe n'a pas
+/// son image** ([`crate::artworks::variantes_sans_image`]). Ce dernier cas
+/// est celui des cartes renommées par Konami après leur sortie (2026-10-11),
+/// et, depuis le 2026-10-15, celui des lignes **sans image du tout** — les
+/// cartes que la base connaît sans password (sets sortis après le gel de
+/// YGOJSON), que le repli illustre :
+/// `LOCH-JP002` s'appelle « Multiplying Kuriboh! » dans la base et
+/// « Kuriboh - Multiply! » chez Yugipedia, la passe de création n'avait
+/// trouvé aucun fichier, et l'Overframe affichait l'illustration normale.
+///
+/// Depuis le 2026-10-16, elle l'est aussi quand un tirage imprimé en
+/// **plusieurs illustrations** n'a pas toutes ses lignes, ou pas toutes ses
+/// images ([`crate::artworks::illustrations_a_reprendre`]) : les trois
+/// Dragons Blancs alternatifs de `LCKC-EN001`, le Crush Card Virus de
+/// `LCKC-EN046`, les deux Dragons alternatifs du deck de Kaiba
+/// (`LDK2-ENK01`).
+///
+/// Un classeur sain ne coûte donc que la vérification des numéros.
+///
+/// Un classeur en échec (Yugipedia indisponible, page introuvable) est
+/// journalisé et sauté : il ne prive pas les autres.
+pub async fn partout(
+    paths: &Paths,
+    client: &ygo_sources::ClientHttp,
+    raretes: &Priorites,
+) -> Partout {
+    let mut bilan = Partout::default();
+    for code in paths.classeurs_existants() {
+        let issue = match completer(paths, client, &code, raretes, true).await {
+            Ok(Issue::Fait(b)) => b,
+            Ok(_) => continue,
+            Err(e) => {
+                tracing::warn!(classeur = %code, erreur = %e, "numéros manquants non vérifiés");
+                bilan.echecs += 1;
+                continue;
+            }
+        };
+        bilan.introuvables += issue.introuvables.len();
+        // Des images posées sans numéro ajouté : un numéro d'un passage
+        // précédent, dont les tirages en variante attendent la passe. Des
+        // Overframe sans image : une passe qui n'avait rien trouvé. Des
+        // illustrations multiples incomplètes : un classeur d'avant leur
+        // prise en charge.
+        let variantes = variantes_sans_image(paths, &code);
+        if issue.ajouts.is_empty()
+            && issue.images == 0
+            && variantes == 0
+            && issue.illustrations_a_reprendre == 0
+        {
+            continue;
+        }
+        bilan.numeros += issue.ajouts.len();
+        bilan.lignes += issue.lignes();
+        let (illustrations, artworks) =
+            match crate::creation::completer_artworks(paths, client, &code, raretes).await {
+                Ok(apres) => (
+                    apres.bilan.illustrations + apres.replis,
+                    apres.bilan.ajoutes,
+                ),
+                Err(e) => {
+                    tracing::warn!(classeur = %code, erreur = %e, "passe artworks refaite");
+                    bilan.echecs += 1;
+                    (0, 0)
+                }
+            };
+        tracing::info!(
+            classeur = %code,
+            numeros = issue.ajouts.len(),
+            overframe_sans_image = variantes,
+            illustrations_multiples = issue.illustrations_a_reprendre,
+            illustrations,
+            artworks,
+            "classeur réaligné sur Yugipedia"
+        );
+        bilan.illustrations += illustrations;
+        bilan.artworks += artworks;
+        if !issue.ajouts.is_empty() || issue.images > 0 || illustrations > 0 || artworks > 0 {
+            bilan.touches.push(code);
+        }
+    }
+    bilan
+}
+
+/// Les lignes du classeur `code` qui attendent une passe :
+/// [`crate::artworks::variantes_sans_image`] (Overframe sans leur image) et
+/// [`crate::artworks::lignes_sans_image`] (aucune image à elles — le repli,
+/// 2026-10-15). 0 s'il est illisible : le classeur garde alors son état.
+fn variantes_sans_image(paths: &Paths, code: &str) -> usize {
+    ygo_db::connexion::ouvrir_lecture_seule(paths.classeur_db(code))
+        .ok()
+        .map(|conn| {
+            crate::artworks::variantes_sans_image(&conn).unwrap_or(0)
+                + crate::artworks::lignes_sans_image(&conn).unwrap_or(0)
+        })
+        .unwrap_or(0)
 }
 
 #[cfg(test)]
@@ -830,6 +1224,98 @@ mod tests {
     /// Le cas réel du 2026-10-10 : la fiche Yugipedia porte le nom de la Set
     /// list, la base l'autre nom — c'est le password qui fait le pont. Sans
     /// fiche, ou sans password, rien n'est créé.
+    /// Une case remplie n'est jamais remplacée par la fiche — seules les
+    /// vides le sont.
+    #[test]
+    fn la_fiche_ne_remplace_jamais_une_case_remplie() {
+        let avant = DonneesCarte {
+            name_fr: "Nom maison".into(),
+            card_type: "monster".into(),
+            attribute: "DARK".into(),
+            race: String::new(),
+            level: Some(7),
+            atk: None,
+            def_val: Some(0),
+        };
+        let fiche = ygo_sources::yugipedia::CarteFiche {
+            nom_fr: Some("Nom officiel".into()),
+            type_carte: "spell".into(),
+            attribut: Some("LIGHT".into()),
+            race: Some("Fiend".into()),
+            niveau: Some(4),
+            atk: Some(2000),
+            def: Some(2800),
+        };
+        let apres = completer_ligne(&avant, &fiche).unwrap();
+        assert_eq!(apres.name_fr, "Nom maison");
+        assert_eq!(apres.card_type, "monster");
+        assert_eq!(apres.attribute, "DARK");
+        assert_eq!(apres.level, Some(7));
+        assert_eq!(apres.def_val, Some(0), "0 n'est pas vide");
+        assert_eq!(apres.race, "Fiend", "vide : rempli");
+        assert_eq!(apres.atk, Some(2000), "vide : rempli");
+    }
+
+    /// `CORI-JP015` (2026-10-15) : la base ignore « Aleister the
+    /// Reminiscent », sa fiche la décrit. La ligne est faite de la fiche —
+    /// nom, nom français, statistiques —, sans carte de base ni image ; une
+    /// fiche qui ne décrit rien ne fabrique rien.
+    #[test]
+    fn une_carte_hors_base_est_faite_de_sa_fiche() {
+        let c = cardinfo();
+        let nom = "Aleister the Reminiscent";
+        let manquants = [Absent {
+            numero: "CORI-JP015".to_owned(),
+            nom: nom.to_owned(),
+            tirages: vec![("Ultra Rare".to_owned(), 0), ("Secret Rare".to_owned(), 0)],
+        }];
+        let carte = ygo_sources::yugipedia::carte_du_wikitext(
+            "{{CardTable2\n| fr_name = Aleister le Réminiscent\n| attribute = DARK\n\
+             | types = Spellcaster / Effect\n| level = 4\n| atk = 1800\n| def = 1000\n\
+             | password = 57294268\n}}",
+        );
+        assert!(carte.is_some());
+        let fiches = HashMap::from([(
+            nom.to_owned(),
+            Fiche {
+                titre: nom.to_owned(),
+                password: Some(57_294_268),
+                carte,
+            },
+        )]);
+        let (bilan, lignes) =
+            decider(&c, &manquants, &fiches, "Chaos Origins", &priorites()).unwrap();
+        assert_eq!(bilan.ajouts.len(), 1);
+        assert_eq!(bilan.ajouts[0].via, Rapprochement::HorsBase);
+        assert!(bilan.introuvables.is_empty());
+        assert_eq!(lignes.len(), 2);
+        let l = &lignes[0];
+        assert_eq!(l.name, nom);
+        assert_eq!(l.name_fr, "Aleister le Réminiscent");
+        assert_eq!(
+            (l.atk, l.def_val, l.level),
+            (Some(1800), Some(1000), Some(4))
+        );
+        assert_eq!(l.card_type, "monster");
+        assert_eq!(l.race, "Spellcaster");
+        assert_eq!(l.card_uuid, "", "aucune carte de base à lier");
+        assert_eq!(l.card_image_id, None, "l'image viendra du tirage Yugipedia");
+        assert_eq!(l.set_name, "Chaos Origins");
+
+        let sans_carte = HashMap::from([(
+            nom.to_owned(),
+            Fiche {
+                titre: nom.to_owned(),
+                password: None,
+                carte: None,
+            },
+        )]);
+        let (bilan, lignes) =
+            decider(&c, &manquants, &sans_carte, "Chaos Origins", &priorites()).unwrap();
+        assert!(lignes.is_empty());
+        assert_eq!(bilan.introuvables.len(), 1, "rien n'est inventé");
+    }
+
     #[test]
     fn le_password_de_la_fiche_retrouve_la_carte_quand_aucun_nom_ne_colle() {
         let c = cardinfo();
@@ -848,6 +1334,7 @@ mod tests {
                 Fiche {
                     titre: nom.to_owned(),
                     password,
+                    carte: None,
                 },
             )])
         };

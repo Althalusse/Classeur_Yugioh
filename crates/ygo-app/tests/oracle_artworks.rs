@@ -52,6 +52,16 @@
 //! module, bâtis sur les cas que le Python documente : `RA05-EN083`,
 //! `LOCR-JP001`, et le danger des deux illustrations identiques. Les dix
 //! mutations tombent devant eux.
+//!
+//! # Une divergence assumée : la Grand Master Rare (2026-10-11)
+//!
+//! Le Python ne connaît pas l'abréviation `GMR` : ses dix lignes Overframe
+//! Grand Master Rare prennent le fichier sans rareté, `…-LOCR-JP-OP.png` —
+//! une autre photo. Le portage la connaît désormais. Une ligne GMR prend
+//! donc `…-GMR.png` quand Yugipedia l'a (six cartes dans cette capture), et
+//! sinon emprunte l'Overframe d'une autre rareté de la carte, `…-UR-EA.png`
+//! (quatre cartes, comptées dans `reutilisees`). Ces dix lignes sont
+//! comparées à [`fichier_gmr_attendu`], toutes les autres au Python.
 
 #![allow(
     clippy::unwrap_used,
@@ -73,7 +83,8 @@ use ygo_app::artworks::{
 /// Le libellé de rareté employé par la Set list, par rareté normalisée.
 type Libelles = HashMap<String, String>;
 use ygo_sources::yugipedia::artwork::{
-    abbr_rarete, cle_comparaison, formater_artwork, indexer_fichiers_set, FichierDistant,
+    abbr_rarete, cle_comparaison, formater_artwork, illustration, indexer_fichiers_set,
+    porte_un_contexte, FichierDistant,
 };
 use ygo_sources::yugipedia::{parse_set_list, structure};
 
@@ -197,6 +208,12 @@ fn fichiers_depuis_images(
                     variante: c.infos.variante.clone(),
                     card_url: c.card_url.clone(),
                     image_id: c.image_id,
+                    // Comme la passe (`artworks::convertir`). Aucun fichier
+                    // `LOCR` ne porte de rang : la règle ordinaire s'applique
+                    // partout, et l'oracle ne bouge pas.
+                    illustration: illustration(&c.infos.fichier, prefixe),
+                    edition: c.infos.edition.clone(),
+                    contexte: porte_un_contexte(&c.infos.fichier),
                 });
         }
     }
@@ -266,6 +283,8 @@ fn la_passe_rust_reproduit_le_diff_du_python() {
             set_code: l.set_code.to_uppercase(),
             rarity: l.rarity.clone(),
             ext: l.extended_art,
+            // Comme `lire_inventaire` : l'uuid tel qu'en base, vide si nul.
+            image: l.card_image_uuid.clone().unwrap_or_default(),
         })
         .collect();
 
@@ -285,11 +304,12 @@ fn la_passe_rust_reproduit_le_diff_du_python() {
             ajoutes: f.bilan.ajoutes,
             illustrations: f.bilan.illustrations,
             flags: f.bilan.flags,
-            reutilisees: f.bilan.reutilisees,
+            reutilisees: f.bilan.reutilisees + gmr_empruntees(&f),
             absents: f.bilan.absents,
         },
-        "le bilan doit être celui du Python"
+        "le bilan doit être celui du Python, aux emprunts GMR près"
     );
+    assert_eq!(gmr_empruntees(&f), 4);
 
     // ── Le diff produit doit être exactement celui du Python ────────────────
     let avant: HashMap<i64, &LigneClasseur> = f.avant.iter().map(|l| (l.rowid, l)).collect();
@@ -326,6 +346,10 @@ fn la_passe_rust_reproduit_le_diff_du_python() {
                 attendue.set_code, attendue.rarity
             )
         };
+        if let Some(gmr) = fichier_gmr_attendu(attendue, &f.images) {
+            assert_eq!(fichier.fichier, gmr, "ligne {rowid} : Grand Master Rare");
+            continue;
+        }
         assert_eq!(
             Some(fichier.image_id),
             attendue.card_image_id,
@@ -403,6 +427,36 @@ fn relire(conn: &rusqlite::Connection) -> Vec<LigneClasseur> {
         .expect("lignes")
 }
 
+/// Le fichier qu'une ligne Grand Master Rare doit recevoir — cf. la
+/// divergence assumée en tête de module. `None` pour toute autre ligne : le
+/// Python fait foi.
+fn fichier_gmr_attendu(python: &LigneClasseur, images: &[ImageOracle]) -> Option<String> {
+    if python.rarity != "Grand Master Rare" {
+        return None;
+    }
+    let uuid = python
+        .card_image_uuid
+        .as_deref()?
+        .strip_prefix("yugipedia:")?;
+    let cle = uuid.split("-LOCR-").next()?;
+    let gmr = format!("{cle}-LOCR-JP-GMR.png");
+    if images.iter().any(|i| i.fichier == gmr) {
+        Some(gmr)
+    } else {
+        Some(format!("{cle}-LOCR-JP-UR-EA.png"))
+    }
+}
+
+/// Les lignes GMR qui empruntent, faute de fichier `GMR`, l'Overframe d'une
+/// autre rareté.
+fn gmr_empruntees(f: &Fixture) -> usize {
+    f.apres
+        .iter()
+        .filter_map(|l| fichier_gmr_attendu(l, &f.images))
+        .filter(|fichier| !fichier.ends_with("-GMR.png"))
+        .count()
+}
+
 /// Les illustrations, produites par `formater_artwork` **de production**.
 fn illustrations(images: &[ImageOracle]) -> HashMap<String, Illustration> {
     indexer_fichiers_set(&distants(images), "LOCR", "JP", &[])
@@ -451,15 +505,33 @@ fn la_passe_ecrite_donne_le_classeur_du_python() {
         &options_reelles(),
     );
 
-    let applique = appliquer(&conn, &actions, &illustrations(&f.images)).expect("application");
-    assert_eq!(applique, prevu, "rien n'a été refusé par les gardes");
+    let illustrations = illustrations(&f.images);
+    let applique = appliquer(&conn, &actions, &illustrations).expect("application");
+    // `reutilisees` est un compte du planificateur : l'applicateur ne le
+    // refait pas.
+    assert_eq!(
+        applique,
+        Bilan {
+            reutilisees: 0,
+            ..prevu
+        },
+        "rien n'a été refusé par les gardes"
+    );
     assert_eq!(applique.illustrations, f.bilan.illustrations);
 
     let obtenu = relire(&conn);
     assert_eq!(obtenu.len(), f.apres.len());
     for (obtenue, attendue) in obtenu.iter().zip(&f.apres) {
+        let mut attendue = attendue.clone();
+        if let Some(gmr) = fichier_gmr_attendu(&attendue, &f.images) {
+            let i = &illustrations[&gmr];
+            attendue.card_image_id = Some(i.card_image_id);
+            attendue.card_image_uuid = Some(i.card_image_uuid.clone());
+            attendue.card_image_url = Some(i.card_image_url.clone());
+            attendue.card_image_small = Some(i.card_image_small.clone());
+        }
         assert_eq!(
-            obtenue, attendue,
+            *obtenue, attendue,
             "ligne {} ({} / {})",
             attendue.rowid, attendue.set_code, attendue.rarity
         );

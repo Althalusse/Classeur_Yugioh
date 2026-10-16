@@ -38,6 +38,7 @@ pub mod error;
 pub mod image_source;
 pub mod log;
 pub mod modele;
+pub mod numero_version;
 pub mod paths;
 pub mod rarity;
 pub mod tri;

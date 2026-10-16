@@ -39,6 +39,28 @@
 //! l'inverse. Un tirage marqué Overframe par une passe antérieure, ou par
 //! l'utilisateur, ne se fait pas déclasser par une Set list incomplète.
 //!
+//! # Un tirage, plusieurs illustrations — 2026-10-16
+//!
+//! `LCKC-EN001` Blue-Eyes White Dragon : un numéro, une rareté, **quatre**
+//! illustrations (`(four unique artworks)`), que Yugipedia nomme `…-1E.png`,
+//! `…-1E-B.png`, `…-1E-C.png`, `…-1E-D.png`. Chacune est une carte à
+//! collectionner : le classeur leur doit une ligne chacune, et à chaque ligne
+//! **son** illustration.
+//!
+//! - la Set list donne le nombre
+//!   ([`ygo_sources::yugipedia::structure::nombre_d_illustrations`]) : la
+//!   passe crée les lignes qui manquent, comme pour toute variante ;
+//! - le fichier donne le rang
+//!   ([`ygo_sources::yugipedia::artwork::illustration`]) : la k-ième ligne
+//!   reçoit la k-ième illustration, celle d'origine restant à la ligne
+//!   normale quand il y en a une (`LDK2-ENK01` : `…-1E.png` puis `-2`,
+//!   `-3`) ;
+//! - une ligne déjà servie garde la sienne, et aucune illustration ne sert
+//!   deux fois dans un tirage.
+//!
+//! Hors de ce cas — moins de deux tirages, ou aucun fichier de rang 2 à leur
+//! nombre —, rien ne change : la règle à trois niveaux s'applique.
+//!
 //! # Ce qui garde ce module honnête
 //!
 //! L'oracle `LOCR-JP` ancre la passe de bout en bout mais discrimine mal : sur
@@ -97,6 +119,11 @@ pub struct LigneInventaire {
     pub rarity: String,
     /// 1 si Overframe.
     pub ext: i64,
+    /// `card_image_uuid` de la ligne, vide s'il n'y en a pas. Une ligne en
+    /// `yugipedia:` a déjà été servie par une passe : elle garde son
+    /// illustration (garde d'idempotence de [`appliquer`]), et le
+    /// planificateur doit le savoir pour ne pas la donner à une autre ligne.
+    pub image: String,
 }
 
 /// Un fichier Yugipedia candidat, tel que la passe le manipule.
@@ -114,6 +141,14 @@ pub struct FichierCandidat {
     pub card_url: String,
     /// Identifiant synthétique, négatif.
     pub image_id: i64,
+    /// Rang d'illustration dans un tirage imprimé en plusieurs : 1 pour le
+    /// fichier nu, 2 pour `-B` ou `-2`… (cf.
+    /// [`ygo_sources::yugipedia::artwork::illustration`]).
+    pub illustration: u32,
+    /// Édition lue dans le nom (`1E`, `UE`, `LE`), vide sinon.
+    pub edition: String,
+    /// Le nom porte-t-il un jeton de contexte (`OP`, `DT`…) ?
+    pub contexte: bool,
 }
 
 impl FichierCandidat {
@@ -195,6 +230,87 @@ pub use ygo_sources::yugipedia::structure::normaliser_rarete;
 fn canonique(libelle: &str, raretes: &Priorites) -> String {
     ygo_core::rarity::canon::canoniser(libelle, raretes)
         .map_or_else(|| libelle.to_owned(), |c| c.libelle)
+}
+
+/// La Set list réindexée sur la clé **canonique** des raretés, et le libellé
+/// à écrire pour chacune.
+///
+/// Deux libellés du wiki qui désignent la même rareté fusionnent ici — ils
+/// décrivent alors les mêmes tirages, et l'ordre « normales d'abord » est
+/// rétabli après fusion. Partagée avec [`illustrations_a_reprendre`] : le
+/// compte qui décide de refaire une passe doit voir exactement ce que la
+/// passe verra.
+fn reference_canonique(
+    reference: &Reference,
+    libelles_reference: &HashMap<String, String>,
+    raretes: &Priorites,
+) -> (Reference, HashMap<String, String>) {
+    let cle_rarete = |libelle: &str| ygo_core::rarity::canon::cle(libelle, raretes);
+    let mut fusionnee: Reference = BTreeMap::new();
+    for ((numero, cle_r), variantes) in reference {
+        let libelle = libelles_reference.get(cle_r).unwrap_or(cle_r);
+        fusionnee
+            .entry((numero.clone(), cle_rarete(libelle)))
+            .or_default()
+            .extend(variantes.iter().cloned());
+    }
+    for variantes in fusionnee.values_mut() {
+        variantes
+            .sort_by(|a, b| (usize::from(!a.is_empty()), a).cmp(&(usize::from(!b.is_empty()), b)));
+    }
+    let libelles = libelles_reference
+        .values()
+        .map(|libelle| (cle_rarete(libelle), canonique(libelle, raretes)))
+        .collect();
+    (fusionnee, libelles)
+}
+
+/// Les illustrations d'un tirage imprimé en plusieurs, par rang : le fichier
+/// retenu pour chacune, de 1 à `slots`.
+///
+/// `None` quand le tirage n'en est pas un — moins de deux slots, ou aucun
+/// fichier de rang 2 à `slots`. C'est cette garde qui laisse tous les autres
+/// tirages à la règle de [`choisir_fichier`] : un rang au-delà du nombre de
+/// slots n'est pas une illustration (`Polymerization-LDK2-EN-C-1E-J.png` est
+/// la Polymerization du deck de Joey, pas la dixième illustration).
+///
+/// Entre plusieurs fichiers d'un même rang — ses éditions —, le premier
+/// selon [`preference`].
+fn illustrations_par_rang(
+    candidats: &[FichierCandidat],
+    slots: usize,
+) -> Option<BTreeMap<u32, &FichierCandidat>> {
+    let plafond = u32::try_from(slots).unwrap_or(u32::MAX);
+    let utile =
+        |c: &&FichierCandidat| !c.est_extended_art() && (1..=plafond).contains(&c.illustration);
+    if slots < 2 || !candidats.iter().filter(utile).any(|c| c.illustration >= 2) {
+        return None;
+    }
+    let mut par_rang: BTreeMap<u32, &FichierCandidat> = BTreeMap::new();
+    for c in candidats.iter().filter(utile) {
+        let retenu = par_rang.entry(c.illustration).or_insert(c);
+        if preference(c) < preference(retenu) {
+            *retenu = c;
+        }
+    }
+    Some(par_rang)
+}
+
+/// L'ordre entre les fichiers d'une même illustration : sans jeton de
+/// contexte d'abord, puis l'édition — `1E`, sans édition, `UE`, `LE`, l'ordre
+/// de [`fichier_de_repli`] —, puis sans suffixe de variante, puis le nom :
+/// le même index donne toujours le même choix.
+fn preference(c: &FichierCandidat) -> (bool, usize, bool, &str) {
+    let edition = ["1E", "", "UE", "LE"]
+        .iter()
+        .position(|e| c.edition.eq_ignore_ascii_case(e))
+        .unwrap_or(4);
+    (
+        c.contexte,
+        edition,
+        !c.variante.is_empty(),
+        c.fichier.as_str(),
+    )
 }
 
 /// Choisit l'image la plus adaptée à un slot de variante.
@@ -307,6 +423,13 @@ pub fn planifier(
     let mut bilan = Bilan::default();
     let cle_rarete = |libelle: &str| ygo_core::rarity::canon::cle(libelle, raretes);
 
+    // La Set list est réindexée sur la clé canonique, elle aussi : c'est le
+    // second bout de la comparaison (cf. [`reference_canonique`]).
+    let (reference, libelles_reference) =
+        reference_canonique(reference, libelles_reference, raretes);
+    let reference: &Reference = &reference;
+    let libelles_reference = &libelles_reference;
+
     // Index du classeur, et orthographe de rareté réellement employée.
     let mut index: HashMap<(String, String), Vec<&LigneInventaire>> = HashMap::new();
     let mut orthographe: HashMap<String, String> = HashMap::new();
@@ -327,33 +450,6 @@ pub fn planifier(
             .or_insert_with(|| l.name.clone());
     }
     let numeros_classeur: HashSet<&String> = index.keys().map(|(sc, _)| sc).collect();
-
-    // La Set list est réindexée sur la clé canonique, elle aussi : c'est le
-    // second bout de la comparaison. Deux libellés du wiki qui désignent la
-    // même rareté fusionnent ici — ils décrivent alors les mêmes tirages, et
-    // l'ordre « normales d'abord » est rétabli après fusion.
-    let reference: Reference = {
-        let mut fusionnee: Reference = BTreeMap::new();
-        for ((numero, cle_r), variantes) in reference {
-            let libelle = libelles_reference.get(cle_r).unwrap_or(cle_r);
-            fusionnee
-                .entry((numero.clone(), cle_rarete(libelle)))
-                .or_default()
-                .extend(variantes.iter().cloned());
-        }
-        for variantes in fusionnee.values_mut() {
-            variantes.sort_by(|a, b| {
-                (usize::from(!a.is_empty()), a).cmp(&(usize::from(!b.is_empty()), b))
-            });
-        }
-        fusionnee
-    };
-    let libelles_reference: HashMap<String, String> = libelles_reference
-        .values()
-        .map(|libelle| (cle_rarete(libelle), canonique(libelle, raretes)))
-        .collect();
-    let reference: &Reference = &reference;
-    let libelles_reference = &libelles_reference;
 
     // Toutes les images d'une carte, toutes raretés confondues : repli quand la
     // rareté visée n'a aucun fichier dédié. Deux raretés d'une même variante
@@ -447,6 +543,34 @@ pub fn planifier(
         // Ce couple (numéro, rareté) n'a-t-il aucun tirage en cadre normal ?
         let sans_tirage_normal = variantes.iter().all(|v| !v.is_empty());
 
+        // ── Un tirage, plusieurs illustrations (`LCKC-EN001`) ────────────
+        //
+        // Les fichiers portent leur rang (`…-1E.png`, `…-1E-B.png`…) : la
+        // k-ième ligne reçoit la k-ième illustration. Le rang de la ligne
+        // normale lui est réservé — c'est l'illustration d'origine, que
+        // l'API montre déjà —, et une ligne déjà servie garde la sienne.
+        let plafond = u32::try_from(variantes.len()).unwrap_or(u32::MAX);
+        let multiples = illustrations_par_rang(&candidats, variantes.len());
+        let mut prises: BTreeSet<u32> = BTreeSet::new();
+        let mut servies: HashSet<i64> = HashSet::new();
+        if multiples.is_some() {
+            if variantes.iter().any(String::is_empty) {
+                prises.insert(1);
+            }
+            for l in triees.iter().filter(|l| l.ext == 0) {
+                let Some(fichier) = l.image.strip_prefix("yugipedia:") else {
+                    continue;
+                };
+                servies.insert(l.rowid);
+                if let Some(c) = candidats
+                    .iter()
+                    .find(|c| c.fichier == fichier && !c.est_extended_art())
+                {
+                    prises.insert(c.illustration);
+                }
+            }
+        }
+
         let mut utilises: HashSet<String> = HashSet::new();
         for (i, v) in variantes.iter().enumerate() {
             let Some(&cible) = rows.get(i) else { break };
@@ -458,6 +582,34 @@ pub fn planifier(
             }
             if v.is_empty() {
                 continue; // slot normal : l'API garde la main
+            }
+
+            if let (Some(par_rang), false) = (&multiples, v == "EA") {
+                if matches!(cible, Cible::Existante(rowid) if servies.contains(&rowid)) {
+                    continue; // déjà servie : elle garde son illustration
+                }
+                // Son propre rang s'il est libre ; sinon le premier libre.
+                // Un rang sans fichier est réservé quand même : la ligne
+                // attend le sien plutôt que de prendre celui d'une autre.
+                let voulu = u32::try_from(i + 1).unwrap_or(u32::MAX);
+                let rang = if prises.contains(&voulu) {
+                    (1..=plafond).find(|r| !prises.contains(r))
+                } else {
+                    Some(voulu)
+                };
+                let Some(rang) = rang else { continue };
+                prises.insert(rang);
+                let Some(&choisi) = par_rang.get(&rang) else {
+                    continue;
+                };
+                utilises.insert(choisi.fichier.clone());
+                actions.push(Action::PoserIllustration {
+                    cible,
+                    fichier: choisi.clone(),
+                    extended_art: None,
+                });
+                bilan.illustrations += 1;
+                continue;
             }
 
             let mut choisi = choisir_fichier(&candidats, v, &utilises, sans_tirage_normal).cloned();
@@ -517,7 +669,8 @@ pub fn lire_inventaire(conn: &Connection) -> Result<(Vec<LigneInventaire>, Strin
         "0"
     };
     let sql = format!(
-        "SELECT rowid, name, set_code, rarity, set_name, {expression} \
+        "SELECT rowid, name, set_code, rarity, set_name, {expression}, \
+                COALESCE(card_image_uuid, '') \
          FROM cards WHERE name IS NOT NULL AND name != '' ORDER BY rowid"
     );
     let mut requete = conn.prepare(&sql)?;
@@ -533,6 +686,7 @@ pub fn lire_inventaire(conn: &Connection) -> Result<(Vec<LigneInventaire>, Strin
                         .to_uppercase(),
                     rarity: l.get::<_, Option<String>>(3)?.unwrap_or_default(),
                     ext: l.get::<_, Option<i64>>(5)?.unwrap_or(0),
+                    image: l.get::<_, Option<String>>(6)?.unwrap_or_default(),
                 },
                 l.get::<_, Option<String>>(4)?.unwrap_or_default(),
             ))
@@ -676,7 +830,7 @@ fn maj_illustration(
 /// Colonnes héritées d'une ligne existante par un tirage créé.
 const COLONNES_HERITEES: &str = "card_uuid, set_code, rarity, rarity_code, set_name, \
      name, name_fr, card_image_url, card_image_small, card_image_id, sort_order, \
-     card_type, atk, def_val, level, attribute, race";
+     card_type, atk, def_val, level, attribute, race, COALESCE(card_image_uuid,'')";
 
 /// Crée un tirage manquant en recopiant une ligne existante du même numéro.
 ///
@@ -756,11 +910,24 @@ fn inserer_ligne(
             .cloned()
             .unwrap_or(rusqlite::types::Value::Null)
     };
+    // Une image Yugipedia est celle d'UN tirage — sa rareté, son cadre :
+    // la ligne créée n'en hérite pas, sous peine d'afficher la rareté de sa
+    // sœur (`CORI-JP027` Secret Rare montrait la Prismatic, 2026-10-15). Elle
+    // naît sans image, et le repli lui pose la sienne. Une image YGOPRODeck,
+    // elle, est celle de l'illustration, commune à toutes les raretés.
+    let image_de_tirage = matches!(
+        source.get(17),
+        Some(rusqlite::types::Value::Text(uuid)) if uuid.starts_with("yugipedia")
+    );
     valeurs.push(prendre(0)); // card_uuid
     valeurs.push(prendre(1)); // set_code — celui de la source, comme le Python
     valeurs.push(rarete_finale);
     for i in [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16] {
-        valeurs.push(prendre(i));
+        valeurs.push(match i {
+            7 | 8 if image_de_tirage => rusqlite::types::Value::Text(String::new()),
+            9 if image_de_tirage => rusqlite::types::Value::Null,
+            _ => prendre(i),
+        });
     }
     if a_extended_art {
         valeurs.push(rusqlite::types::Value::Integer(extended_art));
@@ -773,7 +940,7 @@ fn inserer_ligne(
 
 /// Toutes les colonnes d'une ligne, sans les typer.
 fn ligne_valeurs(ligne: &rusqlite::Row<'_>) -> rusqlite::Result<Vec<rusqlite::types::Value>> {
-    (0..17).map(|i| ligne.get(i)).collect()
+    (0..18).map(|i| ligne.get(i)).collect()
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -791,6 +958,9 @@ pub enum Issue {
         revid: Option<i64>,
         /// Titre de la page employée.
         titre: String,
+        /// Lignes sans image propre qui ont reçu le fichier Yugipedia de
+        /// leur rareté ([`poser_images_de_repli`]).
+        replis: usize,
     },
     /// Le classeur est vide, ou n'a aucune ligne nommée.
     ClasseurVide,
@@ -840,37 +1010,279 @@ pub async fn passe(
     };
 
     let titres = yugipedia::resoudre_pages(client, &set_name, None).await?;
-    let Some(titre) = structure::choisir_page(&titres, &langue) else {
+    let Some(titre) = structure::choisir_page_du_set(&titres, &set_name, &langue) else {
         return Ok(Issue::PageIntrouvable);
     };
     let titre = titre.to_owned();
     let (entrees, revid) = yugipedia::lire_set_list(client, &titre).await?;
 
-    let slots = structure::slots(&entrees);
-    if slots.is_empty() {
+    if structure::slots(&entrees).is_empty() {
         return Ok(Issue::StructureSterile { titre });
     }
-    let reference = structure::index_slots(&slots);
-    let libelles = structure::libelles(&slots);
 
-    // Les fichiers Yugipedia portent le nom de la FICHE, que la Set list
-    // reprend ; la base peut en garder un autre (cf. `noms_set_list`). Les deux
-    // sont cherchés : un fichier n'est rapproché d'une ligne que si son nom
-    // correspond à l'un des deux.
-    let selon_set_list = noms_set_list(&entrees);
+    let noms = noms_recherches(&inventaire, &entrees);
+    let index = artwork::fichiers_pour_set(client, &code_reference, &noms, &langue).await?;
+    let bilan = aligner(conn, inventaire, &entrees, &index, &code_reference, raretes)?;
+    // Après la passe, jamais avant : elle garde la main sur les variantes, et
+    // le repli ne prend que ce qu'elle a laissé sans image.
+    let replis = poser_images_de_repli(conn, &entrees, &index, &code_reference)?;
+    Ok(Issue::Fait {
+        bilan,
+        revid,
+        titre,
+        replis,
+    })
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Le repli : le fichier Yugipedia de sa rareté, pour une ligne sans image
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Préfixe du `card_image_uuid` d'une image posée par le repli.
+///
+/// Différent de `yugipedia:` **à dessein** : la garde d'idempotence de la
+/// passe (`NOT LIKE 'yugipedia:%'`) laisse ainsi une ligne de repli
+/// éligible. Si la passe trouve un jour mieux — l'illustration d'une
+/// variante —, elle l'emporte. L'identifiant négatif, lui, fait que
+/// `images_tirage` la traite comme une image externe et n'y touche pas.
+pub const PREFIXE_REPLI: &str = "yugipedia-repli:";
+
+/// Les lignes qui n'ont pas d'image **à elles**.
+///
+/// - **aucune image** : ni identifiant, ni adresse. C'est le cas d'une carte
+///   que la base connaît sans password ni image YGOPRODeck — tout set sorti
+///   après le gel de YGOJSON (2026-04-07), `CORI-JP` le premier
+///   (2026-10-15 : 77 lignes sur 83) ;
+/// - **une image d'emprunt** : une ligne créée par la passe en recopiant une
+///   sœur déjà servie, qui affiche donc le fichier d'une **autre** rareté
+///   (`CORI-JP027` Secret Rare montrait la Prismatic Secret Rare).
+const SQL_SANS_IMAGE_PROPRE: &str =
+    "((card_image_id IS NULL AND COALESCE(card_image_url,'') = '') \
+     OR (COALESCE(card_image_uuid,'') = '' AND card_image_id < 0 AND EXISTS ( \
+         SELECT 1 FROM cards s WHERE s.card_image_id = cards.card_image_id \
+           AND s.card_image_uuid LIKE 'yugipedia%' AND s.rowid <> cards.rowid)))";
+
+/// Le nombre de lignes sans image à elles : aucune image, ou une image
+/// d'emprunt recopiée d'une sœur servie par la passe.
+///
+/// # Errors
+///
+/// Rend une erreur si la table `cards` est illisible.
+pub fn lignes_sans_image(conn: &Connection) -> Result<usize> {
+    let n: i64 = conn.query_row(
+        &format!("SELECT COUNT(*) FROM cards WHERE {SQL_SANS_IMAGE_PROPRE}"),
+        [],
+        |l| l.get(0),
+    )?;
+    Ok(usize::try_from(n).unwrap_or(0))
+}
+
+/// Le fichier Yugipedia d'une ligne, parmi ceux de sa carte et de sa rareté.
+///
+/// Fonction pure. La règle, dans l'ordre :
+///
+/// 1. la **famille** du cadre : un fichier sans suffixe de variante pour une
+///    ligne normale, un fichier `EA` pour une Overframe — jamais l'inverse ;
+/// 2. un fichier **sans jeton de contexte** (`OP`, `DT`, `PR`…) d'abord ;
+/// 3. l'**édition** de la ligne, puis `1E`, sans édition, `UE`, `LE` ;
+/// 4. **un seul** fichier à cette édition : deux, et rien n'est choisi —
+///    mieux vaut une case vide qu'une image devinée.
+#[must_use]
+pub fn fichier_de_repli<'a>(
+    candidats: &'a [ygo_sources::yugipedia::artwork::Candidat],
+    overframe: bool,
+    edition: Option<&str>,
+) -> Option<&'a ygo_sources::yugipedia::artwork::Candidat> {
+    use ygo_sources::yugipedia::artwork::{porte_un_contexte, Candidat};
+    let famille: Vec<&Candidat> = candidats
+        .iter()
+        .filter(|c| {
+            let v = c.infos.variante.to_ascii_uppercase();
+            if overframe {
+                v.starts_with("EA")
+            } else {
+                v.is_empty()
+            }
+        })
+        .collect();
+    let a_contexte = |c: &Candidat| porte_un_contexte(&c.infos.fichier);
+    let propres: Vec<&Candidat> = famille.iter().copied().filter(|c| !a_contexte(c)).collect();
+    let pool = if propres.is_empty() { famille } else { propres };
+
+    let voulue = match edition.map(str::trim) {
+        Some("1st") => Some("1E"),
+        Some("unlimited") => Some("UE"),
+        Some("limited") => Some("LE"),
+        _ => None,
+    };
+    let ordre = voulue.into_iter().chain(
+        ["1E", "", "UE", "LE"]
+            .into_iter()
+            .filter(|e| Some(*e) != voulue),
+    );
+    for e in ordre {
+        let mut fichiers: Vec<&Candidat> = pool
+            .iter()
+            .copied()
+            .filter(|c| c.infos.edition.eq_ignore_ascii_case(e))
+            .collect();
+        fichiers.sort_by(|a, b| a.infos.fichier.cmp(&b.infos.fichier));
+        fichiers.dedup_by(|a, b| a.infos.fichier == b.infos.fichier);
+        match fichiers.len() {
+            0 => {}
+            1 => return fichiers.pop(),
+            _ => return None,
+        }
+    }
+    None
+}
+
+/// Donne à chaque ligne sans image à elle le fichier Yugipedia de **sa**
+/// rareté — le repli des cartes que la base ne sait pas illustrer.
+///
+/// # Ce que le repli ne fait jamais
+///
+/// - toucher une ligne qui a son image (YGOPRODeck, tirage, passe artworks,
+///   artwork externe) : le `WHERE` rejoue la condition de
+///   [`lignes_sans_image`] ;
+/// - deviner : une rareté sans abréviation connue, une carte sans fichier ou
+///   deux fichiers possibles, et la ligne reste comme elle est ;
+/// - toucher à la possession, la quantité, l'état ou l'édition.
+///
+/// # Errors
+///
+/// Rend une erreur si l'écriture SQLite échoue.
+pub fn poser_images_de_repli(
+    conn: &Connection,
+    entrees: &[ygo_sources::yugipedia::EntreeSetList],
+    index: &ygo_sources::yugipedia::artwork::IndexFichiers,
+    code_reference: &str,
+) -> Result<usize> {
+    use ygo_sources::yugipedia::artwork;
+
+    if index.is_empty() || lignes_sans_image(conn)? == 0 {
+        return Ok(0);
+    }
+    let a_ext = colonne_existe(conn, "extended_art")?;
+    let a_edition = colonne_existe(conn, "edition")?;
+    let lignes: Vec<(i64, String, String, String, bool, Option<String>)> = {
+        let mut requete = conn.prepare(&format!(
+            "SELECT rowid, COALESCE(name,''), UPPER(COALESCE(set_code,'')),                     COALESCE(rarity,''), {}, {}                FROM cards WHERE {SQL_SANS_IMAGE_PROPRE}",
+            if a_ext { "COALESCE(extended_art,0)" } else { "0" },
+            if a_edition { "edition" } else { "NULL" },
+        ))?;
+        let lignes = requete
+            .query_map([], |l| {
+                Ok((
+                    l.get(0)?,
+                    l.get(1)?,
+                    l.get(2)?,
+                    l.get(3)?,
+                    l.get::<_, i64>(4)? == 1,
+                    l.get(5)?,
+                ))
+            })?
+            .collect::<rusqlite::Result<Vec<_>>>()?;
+        lignes
+    };
+
+    let selon_set_list = noms_set_list(entrees);
+    let cles: HashSet<&String> = index.keys().map(|(cle, _)| cle).collect();
+    let prefixe = artwork::prefixe_set(code_reference);
+    let sql = format!(
+        "UPDATE cards SET card_image_uuid = ?1, card_image_id = ?2,                 card_image_url = ?3, card_image_small = ?4           WHERE rowid = ?5 AND {SQL_SANS_IMAGE_PROPRE}"
+    );
+    let mut posees = 0;
+    for (rowid, nom, set_code, rarete, overframe, edition) in lignes {
+        let abbr = artwork::abbr_rarete(&rarete).to_uppercase();
+        if abbr.is_empty() {
+            continue;
+        }
+        // Le nom de la base d'abord ; celui de la Set list si seul lui a des
+        // fichiers — la même règle que `rebaptiser`.
+        let mut cle = artwork::cle_comparaison(&nom);
+        if !cles.contains(&cle) {
+            if let Some(autre) = selon_set_list.get(&set_code) {
+                cle = artwork::cle_comparaison(autre);
+            }
+        }
+        let Some(candidats) = index.get(&(cle, abbr)) else {
+            continue;
+        };
+        let Some(choisi) = fichier_de_repli(candidats, overframe, edition.as_deref()) else {
+            continue;
+        };
+        let art = artwork::formater_artwork(choisi, &prefixe);
+        posees += conn.execute(
+            &sql,
+            rusqlite::params![
+                format!("{PREFIXE_REPLI}{}", choisi.infos.fichier),
+                art.card_image_id,
+                art.card_image_url,
+                art.card_image_small,
+                rowid
+            ],
+        )?;
+    }
+    if posees > 0 {
+        tracing::info!(set = %prefixe, lignes = posees, "images de repli Yugipedia posées");
+    }
+    Ok(posees)
+}
+
+/// Les noms sous lesquels chercher les fichiers Yugipedia d'un classeur.
+///
+/// Les fichiers Yugipedia portent le nom de la FICHE, que la Set list
+/// reprend ; la base peut en garder un autre (cf. `noms_set_list`). Les deux
+/// sont cherchés : un fichier n'est rapproché d'une ligne que si son nom
+/// correspond à l'un des deux.
+#[must_use]
+pub fn noms_recherches(
+    inventaire: &[LigneInventaire],
+    entrees: &[ygo_sources::yugipedia::EntreeSetList],
+) -> Vec<String> {
+    let selon_set_list = noms_set_list(entrees);
     let mut noms: Vec<String> = inventaire.iter().map(|l| l.name.clone()).collect();
-    for l in &inventaire {
+    for l in inventaire {
         if let Some(n) = selon_set_list.get(&l.set_code) {
             if !noms.contains(n) {
                 noms.push(n.clone());
             }
         }
     }
-    let index = artwork::fichiers_pour_set(client, &code_reference, &noms, &langue).await?;
-    let inventaire = rebaptiser(inventaire, &selon_set_list, &index);
-    let prefixe = artwork::prefixe_set(&code_reference);
+    noms
+}
 
-    let (fichiers, illustrations) = convertir(&index, &prefixe);
+/// La moitié **hors réseau** de la passe : la Set list et les fichiers déjà
+/// lus, aligne le classeur et l'écrit.
+///
+/// Séparée de [`passe`] le 2026-10-11 pour pouvoir rejouer la passe sur un
+/// classeur réel avec des réponses Yugipedia enregistrées — c'est ainsi
+/// qu'a été vérifiée la reprise des Overframe dont la carte a changé de nom
+/// (`LOCH-JP002` « Multiplying Kuriboh » devenu « Kuriboh - Multiply! »).
+///
+/// # Errors
+///
+/// Rend une erreur si l'écriture SQLite échoue.
+pub fn aligner(
+    conn: &Connection,
+    inventaire: Vec<LigneInventaire>,
+    entrees: &[ygo_sources::yugipedia::EntreeSetList],
+    index: &ygo_sources::yugipedia::artwork::IndexFichiers,
+    code_reference: &str,
+    raretes: &Priorites,
+) -> Result<Bilan> {
+    use ygo_sources::yugipedia::{artwork, structure};
+
+    let slots = structure::slots(entrees);
+    let reference = structure::index_slots(&slots);
+    let libelles = structure::libelles(&slots);
+
+    let selon_set_list = noms_set_list(entrees);
+    let inventaire = rebaptiser(inventaire, &selon_set_list, index);
+    let prefixe = artwork::prefixe_set(code_reference);
+
+    let (fichiers, illustrations) = convertir(index, &prefixe);
     let (actions, _) = planifier(
         &reference,
         &libelles,
@@ -880,12 +1292,33 @@ pub async fn passe(
         &artwork::cle_comparaison,
         raretes,
     );
-    let bilan = appliquer(conn, &actions, &illustrations)?;
-    Ok(Issue::Fait {
-        bilan,
-        revid,
-        titre,
-    })
+    appliquer(conn, &actions, &illustrations)
+}
+
+/// Les lignes **Overframe** du classeur qui n'ont pas reçu d'image de la
+/// passe artworks.
+///
+/// Une telle ligne affiche l'illustration du cadre normal : c'est le défaut
+/// constaté le 2026-10-11 sur `LOCH-JP002` (« Multiplying Kuriboh! » dans la
+/// base, « Kuriboh - Multiply! » chez Yugipedia). Le compte décide si un
+/// classeur existant mérite qu'on refasse sa passe — une passe ne retouche
+/// que ces lignes-là (garde d'idempotence de [`appliquer`]).
+///
+/// # Errors
+///
+/// Rend une erreur si la table `cards` est illisible.
+pub fn variantes_sans_image(conn: &Connection) -> Result<usize> {
+    if !colonne_existe(conn, "extended_art")? {
+        return Ok(0);
+    }
+    let n: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM cards \
+         WHERE COALESCE(extended_art,0) = 1 \
+           AND COALESCE(card_image_uuid,'') NOT LIKE 'yugipedia:%'",
+        [],
+        |l| l.get(0),
+    )?;
+    Ok(usize::try_from(n).unwrap_or(0))
 }
 
 /// Le nom que la Set list donne à chaque numéro, numéro en majuscules.
@@ -946,7 +1379,7 @@ fn convertir(
     index: &ygo_sources::yugipedia::artwork::IndexFichiers,
     prefixe_set: &str,
 ) -> (IndexCandidats, IndexIllustrations) {
-    use ygo_sources::yugipedia::artwork::formater_artwork;
+    use ygo_sources::yugipedia::artwork::{formater_artwork, illustration, porte_un_contexte};
 
     let mut fichiers: IndexCandidats = HashMap::new();
     let mut illustrations: IndexIllustrations = HashMap::new();
@@ -972,10 +1405,105 @@ fn convertir(
                     variante: c.infos.variante.clone(),
                     card_url: c.card_url.clone(),
                     image_id: c.image_id,
+                    illustration: illustration(&c.infos.fichier, prefixe_set),
+                    edition: c.infos.edition.clone(),
+                    contexte: porte_un_contexte(&c.infos.fichier),
                 });
         }
     }
     (fichiers, illustrations)
+}
+
+/// Les tirages imprimés en **plusieurs illustrations** qu'une passe doit
+/// encore servir, d'après la Set list.
+///
+/// Un tirage `(numéro, rareté)` dont la Set list annonce au moins **deux**
+/// illustrations en variante — `LCKC-EN001` (quatre), `LDK2-ENK01` (une
+/// normale, deux alternatives) — compte :
+///
+/// - ses lignes **manquantes** au classeur ;
+/// - ses slots de variante qu'aucune ligne servie par une passe
+///   (`yugipedia:`) ne couvre.
+///
+/// # Pourquoi — 2026-10-16
+///
+/// C'est ce compte qui fait refaire la passe d'un classeur **existant**
+/// ([`crate::numeros_absents::partout`]). Un `LCKC` créé avant n'avait
+/// qu'une ligne pour `LCKC-EN001`, et ses trois Dragons Blancs alternatifs
+/// manquaient sans qu'aucun autre signal ne le dise : ni Overframe sans
+/// image, ni ligne sans image. Un `LDK2` montrait trois fois l'illustration
+/// d'origine sur les trois Dragons du deck de Kaiba.
+///
+/// Le compte réindexe la Set list exactement comme [`planifier`] — même clé
+/// canonique des raretés, même fonction : une passe refaite le ramène à
+/// zéro, ou à ce que Yugipedia n'illustre pas encore. Un numéro absent du
+/// classeur n'y entre pas — c'est l'affaire de `numeros_absents`.
+///
+/// ```
+/// use ygo_app::artworks::{illustrations_a_reprendre, LigneInventaire};
+/// use ygo_core::rarity::Priorites;
+/// use ygo_sources::yugipedia::parse_set_list;
+/// let entrees = parse_set_list(
+///     "{{Set list|region=EN|\n\
+///      LCKC-EN001; Blue-Eyes White Dragon; Ultra Rare //description::(four unique artworks)\n}}",
+/// );
+/// let ligne = LigneInventaire {
+///     rowid: 1,
+///     name: "Blue-Eyes White Dragon".into(),
+///     set_code: "LCKC-EN001".into(),
+///     rarity: "Ultra Rare".into(),
+///     ext: 0,
+///     image: "yugipedia:BlueEyesWhiteDragon-LCKC-EN-UR-1E.png".into(),
+/// };
+/// let raretes = Priorites::depuis_paires([("Ultra Rare", 4)]);
+/// // Trois lignes manquent, et trois illustrations avec elles.
+/// assert_eq!(illustrations_a_reprendre(&[ligne], &entrees, &raretes), 6);
+/// ```
+#[must_use]
+pub fn illustrations_a_reprendre(
+    inventaire: &[LigneInventaire],
+    entrees: &[ygo_sources::yugipedia::EntreeSetList],
+    raretes: &Priorites,
+) -> usize {
+    use ygo_sources::yugipedia::structure;
+
+    let slots = structure::slots(entrees);
+    let (reference, _) = reference_canonique(
+        &structure::index_slots(&slots),
+        &structure::libelles(&slots),
+        raretes,
+    );
+    let mut lignes: HashMap<(&str, String), Vec<&LigneInventaire>> = HashMap::new();
+    for l in inventaire {
+        lignes
+            .entry((
+                l.set_code.as_str(),
+                ygo_core::rarity::canon::cle(&l.rarity, raretes),
+            ))
+            .or_default()
+            .push(l);
+    }
+    let numeros: HashSet<&str> = inventaire.iter().map(|l| l.set_code.as_str()).collect();
+
+    let mut total = 0;
+    for ((numero, cle_r), variantes) in &reference {
+        let a_servir = variantes
+            .iter()
+            .filter(|v| !v.is_empty() && v.as_str() != "EA")
+            .count();
+        if a_servir < 2 || !numeros.contains(numero.as_str()) {
+            continue;
+        }
+        let du_tirage: &[&LigneInventaire] = lignes
+            .get(&(numero.as_str(), cle_r.clone()))
+            .map_or(&[], Vec::as_slice);
+        let servies = du_tirage
+            .iter()
+            .filter(|l| l.ext == 0 && l.image.starts_with("yugipedia:"))
+            .count();
+        total += variantes.len().saturating_sub(du_tirage.len()) + a_servir.saturating_sub(servies);
+    }
+    total
 }
 
 #[cfg(test)]
@@ -992,6 +1520,21 @@ mod tests {
             variante: variante.to_owned(),
             card_url: format!("https://ms.yugipedia.com/{nom}"),
             image_id: -(nom.len() as i64),
+            illustration: 1,
+            edition: String::new(),
+            contexte: false,
+        }
+    }
+
+    /// Un fichier d'un tirage imprimé en plusieurs illustrations : son rang
+    /// et son édition, lus par les vraies fonctions de `ygo-sources`.
+    fn fichier_rang(nom: &str, prefixe: &str) -> FichierCandidat {
+        use ygo_sources::yugipedia::artwork::{decouper_fichier, illustration};
+        let (_, infos) = decouper_fichier(nom, prefixe).unwrap();
+        FichierCandidat {
+            illustration: illustration(nom, prefixe),
+            edition: infos.edition,
+            ..fichier(nom, "darkmagician", "UR", &infos.variante)
         }
     }
 
@@ -1002,6 +1545,7 @@ mod tests {
             set_code: numero.to_owned(),
             rarity: rarete.to_owned(),
             ext,
+            image: String::new(),
         }
     }
 
@@ -1393,6 +1937,286 @@ mod tests {
         assert_eq!(fichiers, ["un-AA.png", "deux-EA.png"]);
     }
 
+    // ── Un tirage, plusieurs illustrations (2026-10-16) ─────────────────────
+
+    /// Les fichiers de `LCKC-EN001` tels que la recherche Yugipedia les rend
+    /// — dans cet ordre, qui n'est pas celui des illustrations.
+    fn fichiers_lckc_en001() -> HashMap<(String, String), Vec<FichierCandidat>> {
+        index(
+            [
+                "BlueEyesWhiteDragon-LCKC-EN-UR-1E-B.png",
+                "BlueEyesWhiteDragon-LCKC-EN-UR-1E-C.png",
+                "BlueEyesWhiteDragon-LCKC-EN-UR-1E-D.png",
+                "BlueEyesWhiteDragon-LCKC-EN-UR-1E.png",
+                "BlueEyesWhiteDragon-LCKC-EN-UR-UE-C.png",
+            ]
+            .into_iter()
+            .map(|nom| ("darkmagician", "UR", fichier_rang(nom, "LCKC")))
+            .collect(),
+        )
+    }
+
+    /// `(cible, fichier)` de chaque illustration posée, dans l'ordre du plan.
+    fn poses(actions: &[Action]) -> Vec<(Cible, &str)> {
+        actions
+            .iter()
+            .filter_map(|a| match a {
+                Action::PoserIllustration { cible, fichier, .. } => {
+                    Some((*cible, fichier.fichier.as_str()))
+                }
+                _ => None,
+            })
+            .collect()
+    }
+
+    /// `LCKC-EN001`, classeur neuf : une ligne, quatre illustrations
+    /// annoncées. Trois lignes naissent, et chacune reçoit **son** fichier,
+    /// dans l'ordre de la galerie — la première édition plutôt que
+    /// l'Unlimited quand les deux existent.
+    #[test]
+    fn un_tirage_en_quatre_illustrations_les_recoit_toutes_dans_l_ordre() {
+        let (r, lib) = reference(vec![("LCKC-EN001", "Ultra Rare", vec!["AA"; 4])]);
+        let inv = vec![ligne(1, "LCKC-EN001", "Ultra Rare", 0)];
+
+        let (actions, bilan) = plan(&r, &lib, &inv, &fichiers_lckc_en001());
+        assert_eq!(bilan.ajoutes, 3);
+        assert_eq!(bilan.illustrations, 4);
+        assert_eq!(
+            poses(&actions),
+            [
+                (Cible::Existante(1), "BlueEyesWhiteDragon-LCKC-EN-UR-1E.png"),
+                (
+                    Cible::Nouvelle(0),
+                    "BlueEyesWhiteDragon-LCKC-EN-UR-1E-B.png"
+                ),
+                (
+                    Cible::Nouvelle(1),
+                    "BlueEyesWhiteDragon-LCKC-EN-UR-1E-C.png"
+                ),
+                (
+                    Cible::Nouvelle(2),
+                    "BlueEyesWhiteDragon-LCKC-EN-UR-1E-D.png"
+                ),
+            ]
+        );
+    }
+
+    /// Le classeur réel de l'utilisateur : la passe d'avant avait posé la
+    /// première illustration sur la seule ligne. Elle la garde, et les trois
+    /// autres vont aux lignes créées. Une ligne servie d'une autre
+    /// illustration garde la sienne aussi, et les autres se répartissent ce
+    /// qui reste — jamais deux fois la même.
+    #[test]
+    fn une_ligne_deja_servie_garde_son_illustration_et_les_autres_suivent() {
+        let (r, lib) = reference(vec![("LCKC-EN001", "Ultra Rare", vec!["AA"; 4])]);
+        let servie = |fichier: &str| {
+            let mut l = ligne(1, "LCKC-EN001", "Ultra Rare", 0);
+            l.image = format!("yugipedia:{fichier}");
+            vec![l]
+        };
+
+        let inv = servie("BlueEyesWhiteDragon-LCKC-EN-UR-1E.png");
+        let (actions, bilan) = plan(&r, &lib, &inv, &fichiers_lckc_en001());
+        assert_eq!((bilan.ajoutes, bilan.illustrations), (3, 3));
+        assert_eq!(
+            poses(&actions),
+            [
+                (
+                    Cible::Nouvelle(0),
+                    "BlueEyesWhiteDragon-LCKC-EN-UR-1E-B.png"
+                ),
+                (
+                    Cible::Nouvelle(1),
+                    "BlueEyesWhiteDragon-LCKC-EN-UR-1E-C.png"
+                ),
+                (
+                    Cible::Nouvelle(2),
+                    "BlueEyesWhiteDragon-LCKC-EN-UR-1E-D.png"
+                ),
+            ]
+        );
+
+        let inv = servie("BlueEyesWhiteDragon-LCKC-EN-UR-UE-C.png");
+        let (actions, _) = plan(&r, &lib, &inv, &fichiers_lckc_en001());
+        assert_eq!(
+            poses(&actions),
+            [
+                (
+                    Cible::Nouvelle(0),
+                    "BlueEyesWhiteDragon-LCKC-EN-UR-1E-B.png"
+                ),
+                (Cible::Nouvelle(1), "BlueEyesWhiteDragon-LCKC-EN-UR-1E.png"),
+                (
+                    Cible::Nouvelle(2),
+                    "BlueEyesWhiteDragon-LCKC-EN-UR-1E-D.png"
+                ),
+            ],
+            "la C est prise : son slot prend la première libre"
+        );
+    }
+
+    /// Rejouer la passe sur un tirage complet ne prévoit plus rien.
+    #[test]
+    fn un_tirage_deja_complet_ne_prevoit_plus_rien() {
+        let (r, lib) = reference(vec![("LCKC-EN001", "Ultra Rare", vec!["AA"; 4])]);
+        let inv: Vec<LigneInventaire> = ["", "-B", "-C", "-D"]
+            .iter()
+            .enumerate()
+            .map(|(i, suffixe)| {
+                let mut l = ligne(i as i64 + 1, "LCKC-EN001", "Ultra Rare", 0);
+                l.image = format!("yugipedia:BlueEyesWhiteDragon-LCKC-EN-UR-1E{suffixe}.png");
+                l
+            })
+            .collect();
+        let (actions, bilan) = plan(&r, &lib, &inv, &fichiers_lckc_en001());
+        assert!(actions.is_empty(), "{actions:?}");
+        assert_eq!(bilan, Bilan::default());
+    }
+
+    /// `LDK2-ENK01` : une ligne normale et deux alternatives. La normale
+    /// garde l'illustration d'origine, que l'API montre ; les deux autres
+    /// reçoivent `-2` et `-3`, jamais le fichier nu.
+    #[test]
+    fn la_ligne_normale_garde_l_origine_et_les_variantes_prennent_les_suivantes() {
+        let (r, lib) = reference(vec![("LDK2-ENK01", "Common", vec!["", "AA", "AA"])]);
+        let inv = vec![
+            ligne(44, "LDK2-ENK01", "Common", 0),
+            ligne(131, "LDK2-ENK01", "Common", 0),
+            ligne(132, "LDK2-ENK01", "Common", 0),
+        ];
+        let f = index(
+            [
+                "BlueEyesWhiteDragon-LDK2-EN-C-1E-2.png",
+                "BlueEyesWhiteDragon-LDK2-EN-C-1E-3.png",
+                "BlueEyesWhiteDragon-LDK2-EN-C-1E.png",
+                "BlueEyesWhiteDragon-LDK2-EN-C-UE-2.png",
+                "BlueEyesWhiteDragon-LDK2-EN-C-UE-3.png",
+                "BlueEyesWhiteDragon-LDK2-EN-C-UE.png",
+            ]
+            .into_iter()
+            .map(|nom| ("darkmagician", "C", fichier_rang(nom, "LDK2")))
+            .collect(),
+        );
+        let abbr_c = |r: &str| {
+            if r == "Common" {
+                "C".to_owned()
+            } else {
+                abbr(r)
+            }
+        };
+        let (actions, bilan) = planifier(&r, &lib, &inv, &f, &abbr_c, &cle, &options());
+        assert_eq!(bilan.ajoutes, 0);
+        assert_eq!(
+            poses(&actions),
+            [
+                (
+                    Cible::Existante(131),
+                    "BlueEyesWhiteDragon-LDK2-EN-C-1E-2.png"
+                ),
+                (
+                    Cible::Existante(132),
+                    "BlueEyesWhiteDragon-LDK2-EN-C-1E-3.png"
+                ),
+            ]
+        );
+
+        // La première alternative servie de la troisième illustration : la
+        // seconde, dont c'était le rang, prend le rang libre — le 2, jamais
+        // le 1, qui reste celui de la ligne normale.
+        let mut inv = inv;
+        inv[1].image = "yugipedia:BlueEyesWhiteDragon-LDK2-EN-C-UE-3.png".to_owned();
+        let (actions, _) = planifier(&r, &lib, &inv, &f, &abbr_c, &cle, &options());
+        assert_eq!(
+            poses(&actions),
+            [(
+                Cible::Existante(132),
+                "BlueEyesWhiteDragon-LDK2-EN-C-1E-2.png"
+            )]
+        );
+    }
+
+    /// Une lettre au-delà du nombre de tirages n'est pas une illustration :
+    /// `Polymerization-LDK2-EN-C-1E-J.png` est celle du deck de Joey. Le
+    /// tirage reste à la règle ordinaire, qui refuse le fichier nu — et le
+    /// même montage avec `-B` est bien servi. Sur deux variantes, le plan
+    /// est exactement celui qu'on aurait sans la lettre.
+    #[test]
+    fn une_lettre_au_dela_du_nombre_de_tirages_n_est_pas_une_illustration() {
+        let (r, lib) = reference(vec![("A-EN001", "Ultra Rare", vec!["", "AA"])]);
+        let inv = vec![
+            ligne(1, "A-EN001", "Ultra Rare", 0),
+            ligne(2, "A-EN001", "Ultra Rare", 0),
+        ];
+        let avec = |dernier: &str| {
+            index(
+                ["X-SET-EN-UR-1E.png", dernier]
+                    .into_iter()
+                    .map(|nom| ("darkmagician", "UR", fichier_rang(nom, "SET")))
+                    .collect(),
+            )
+        };
+        let (actions, _) = plan(&r, &lib, &inv, &avec("X-SET-EN-UR-1E-J.png"));
+        assert!(poses(&actions).is_empty(), "{actions:?}");
+
+        let (actions, _) = plan(&r, &lib, &inv, &avec("X-SET-EN-UR-1E-B.png"));
+        assert_eq!(
+            poses(&actions),
+            [(Cible::Existante(2), "X-SET-EN-UR-1E-B.png")]
+        );
+
+        let (r, lib) = reference(vec![("A-EN001", "Ultra Rare", vec!["AA", "AA"])]);
+        let mut sans_rang = avec("X-SET-EN-UR-1E-J.png");
+        for f in sans_rang.values_mut().flatten() {
+            f.illustration = 1;
+        }
+        let (avec_j, bilan_j) = plan(&r, &lib, &inv, &avec("X-SET-EN-UR-1E-J.png"));
+        let (sans, bilan_sans) = plan(&r, &lib, &inv, &sans_rang);
+        assert_eq!((poses(&avec_j), bilan_j), (poses(&sans), bilan_sans));
+    }
+
+    /// Le compte qui fait refaire la passe d'un classeur existant : trois
+    /// lignes et trois images manquent à `LCKC-EN001`, deux images aux
+    /// variantes de `LDK2-ENK01` ; un tirage ordinaire ne compte jamais.
+    #[test]
+    fn le_compte_des_illustrations_a_reprendre() {
+        let entrees = ygo_sources::yugipedia::parse_set_list(
+            "{{Set list|region=EN|\n\
+             LCKC-EN001; Blue-Eyes White Dragon; Ultra Rare //description::(four unique artworks)\n\
+             LCKC-EN002; La Jinn the Mystical Genie of the Lamp; Ultra Rare\n\
+             LCKC-EN046; Crush Card Virus; Ultra Rare //description::(two unique artworks)\n}}\n\
+             {{Set list|region=EN|rarities=C|\n\
+             LDK2-ENK01; Blue-Eyes White Dragon\n\
+             LDK2-ENK01; Blue-Eyes White Dragon // description::(alternate art)\n\
+             LDK2-ENK01; Blue-Eyes White Dragon // description::(alternate art)\n}}",
+        );
+        let servie = |rowid: i64, numero: &str, rarete: &str, image: &str| {
+            let mut l = ligne(rowid, numero, rarete, 0);
+            l.image = image.to_owned();
+            l
+        };
+        let options = Priorites::depuis_paires([("Common", 1), ("Ultra Rare", 4)]);
+        let inv = vec![
+            servie(1, "LCKC-EN001", "Ultra Rare", "yugipedia:A.png"),
+            servie(2, "LCKC-EN002", "Ultra Rare", ""),
+            servie(46, "LCKC-EN046", "Ultra Rare", "yugipedia:B.png"),
+            servie(60, "LDK2-ENK01", "Common", ""),
+            servie(61, "LDK2-ENK01", "Common", ""),
+            servie(62, "LDK2-ENK01", "Common", ""),
+        ];
+        // LCKC-EN001 : 3 + 3 ; LCKC-EN046 : 1 + 1 ; LDK2-ENK01 : 0 + 2.
+        assert_eq!(illustrations_a_reprendre(&inv, &entrees, &options), 10);
+
+        let complet: Vec<LigneInventaire> = (0..4)
+            .map(|i| servie(10 + i, "LCKC-EN001", "Ultra Rare", "yugipedia:x.png"))
+            .chain([servie(2, "LCKC-EN002", "Ultra Rare", "")])
+            .collect();
+        assert_eq!(
+            illustrations_a_reprendre(&complet, &entrees, &options),
+            0,
+            "LCKC-EN046 et LDK2 absents du classeur : l'affaire des numéros absents"
+        );
+    }
+
     // ── Repli sur une autre rareté ──────────────────────────────────────────
 
     #[test]
@@ -1674,6 +2498,439 @@ mod tests {
             .unwrap();
         }
         conn
+    }
+
+    /// Le cas réel du 2026-10-11, rejoué hors réseau : la Set list
+    /// `LOCH-JP` enregistrée (révision 5892606) et les fichiers que Yugipedia
+    /// liste réellement pour la carte, relevés le même jour.
+    ///
+    /// La base nomme `LOCH-JP002` « Multiplying Kuriboh! », Yugipedia
+    /// « Kuriboh - Multiply! » — et ses fichiers `KuribohMultiply-…`. Créé
+    /// avant le correctif des noms, le classeur montrait l'illustration
+    /// normale sur les trois Overframe. Refaire la passe les sert, chacun
+    /// avec le fichier de **sa** rareté — la Grand Master Rare comprise, qui
+    /// prenait le fichier « OP » faute d'abréviation connue —, et ne touche
+    /// pas au cadre normal.
+    #[test]
+    fn une_carte_renommee_retrouve_ses_overframe_quand_la_passe_est_refaite() {
+        use ygo_sources::yugipedia::artwork::{indexer_fichiers_set, FichierDistant};
+
+        let fixture = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../tests/fixtures/net/yugipedia/wikitext_LOCH-JP_rev5892606.json");
+        let json: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(fixture).unwrap()).unwrap();
+        let entrees = ygo_sources::yugipedia::parse_set_list(json["wikitext"].as_str().unwrap());
+
+        let nom = "Multiplying Kuriboh!";
+        let conn = base(&[
+            (1, nom, "LOCH-JP002", "Ultra Rare", 0),
+            (2, nom, "LOCH-JP002", "Secret Rare", 0),
+            (3, nom, "LOCH-JP002", "Ultra Rare", 1),
+            (4, nom, "LOCH-JP002", "Prismatic Secret Rare", 1),
+            (5, nom, "LOCH-JP002", "Grand Master Rare", 1),
+        ]);
+        assert_eq!(variantes_sans_image(&conn).unwrap(), 3);
+
+        let distants: Vec<FichierDistant> = [
+            "KuribohMultiply-LOCH-JP-GMR.png",
+            "KuribohMultiply-LOCH-JP-OP.png",
+            "KuribohMultiply-LOCH-JP-PScR.png",
+            "KuribohMultiply-LOCH-JP-ScR.png",
+            "KuribohMultiply-LOCH-JP-UR-EA.png",
+            "KuribohMultiply-LOCH-JP-UR.png",
+        ]
+        .iter()
+        .map(|f| FichierDistant {
+            nom: (*f).to_owned(),
+            url: format!("https://ms.yugipedia.com/x/{f}"),
+        })
+        .collect();
+        let (inventaire, _) = lire_inventaire(&conn).unwrap();
+        let noms = noms_recherches(&inventaire, &entrees);
+        let index = indexer_fichiers_set(&distants, "LOCH", "JP", &noms);
+
+        let bilan = aligner(
+            &conn,
+            inventaire,
+            &entrees,
+            &index,
+            "LOCH-JP002",
+            &options(),
+        )
+        .unwrap();
+        assert_eq!(bilan.illustrations, 3, "{bilan:?}");
+        assert_eq!(bilan.ajoutes, 0);
+
+        let fichier = |rowid: i64| -> String {
+            conn.query_row(
+                "SELECT card_image_url FROM cards WHERE rowid = ?1",
+                [rowid],
+                |l| l.get::<_, String>(0),
+            )
+            .unwrap()
+            .rsplit('/')
+            .next()
+            .unwrap()
+            .to_owned()
+        };
+        assert_eq!(fichier(1), "x.jpg", "le cadre normal n'est pas touché");
+        assert_eq!(fichier(2), "x.jpg");
+        assert_eq!(fichier(3), "KuribohMultiply-LOCH-JP-UR-EA.png");
+        assert_eq!(fichier(4), "KuribohMultiply-LOCH-JP-PScR.png");
+        assert_eq!(fichier(5), "KuribohMultiply-LOCH-JP-GMR.png");
+        assert_eq!(variantes_sans_image(&conn).unwrap(), 0);
+    }
+
+    /// Le cas réel du 2026-10-16, rejoué hors réseau : la Set list `LCKC`
+    /// enregistrée (révision 4446453) et les fichiers que Yugipedia liste
+    /// réellement pour ces cartes, relevés le même jour.
+    ///
+    /// Le classeur est celui de l'utilisateur, réduit à trois numéros : une
+    /// ligne chacun, la première illustration déjà posée par la passe d'avant
+    /// sur `LCKC-EN001` et `LCKC-EN046`, et une voisine en cadre normal. La
+    /// passe refaite crée trois Dragons et un Virus, chacun avec **son**
+    /// illustration, sans toucher aux lignes servies ni à la voisine — et,
+    /// rejouée, ne fait plus rien.
+    #[test]
+    fn lckc_recoit_ses_quatre_dragons_et_ses_deux_virus() {
+        use ygo_sources::yugipedia::artwork::{indexer_fichiers_set, FichierDistant};
+
+        let fixture = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../tests/fixtures/net/yugipedia/wikitext_LCKC-EN_rev4446453.json");
+        let json: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(fixture).unwrap()).unwrap();
+        let entrees = ygo_sources::yugipedia::parse_set_list(json["wikitext"].as_str().unwrap());
+
+        let conn = base(&[
+            (1, "Blue-Eyes White Dragon", "LCKC-EN001", "Ultra Rare", 0),
+            (
+                2,
+                "La Jinn the Mystical Genie of the Lamp",
+                "LCKC-EN002",
+                "Ultra Rare",
+                0,
+            ),
+            (46, "Crush Card Virus", "LCKC-EN046", "Ultra Rare", 0),
+        ]);
+        for (rowid, fichier) in [
+            (1, "BlueEyesWhiteDragon-LCKC-EN-UR-1E.png"),
+            (46, "CrushCardVirus-LCKC-EN-UR-1E.png"),
+        ] {
+            conn.execute(
+                "UPDATE cards SET card_image_uuid = 'yugipedia:' || ?2, card_image_id = -1, \
+                     card_image_url = 'https://ms.yugipedia.com/x/' || ?2 WHERE rowid = ?1",
+                rusqlite::params![rowid, fichier],
+            )
+            .unwrap();
+        }
+
+        let distants: Vec<FichierDistant> = [
+            "BlueEyesWhiteDragon-LCKC-EN-UR-1E-B.png",
+            "BlueEyesWhiteDragon-LCKC-EN-UR-1E-C.png",
+            "BlueEyesWhiteDragon-LCKC-EN-UR-1E-D.png",
+            "BlueEyesWhiteDragon-LCKC-EN-UR-1E.png",
+            "BlueEyesWhiteDragon-LCKC-EN-UR-UE-C.png",
+            "BlueEyesWhiteDragon-LCKC-PT-UR-1E-C.png",
+            "BlueEyesWhiteDragon-LCKC-SP-UR-1E.png",
+            "CrushCardVirus-LCKC-EN-UR-1E-B.png",
+            "CrushCardVirus-LCKC-EN-UR-1E.png",
+            "CrushCardVirus-LCKC-EN-UR-UE.png",
+            "LaJinntheMysticalGenieoftheLamp-LCKC-EN-UR-UE.png",
+        ]
+        .iter()
+        .map(|f| FichierDistant {
+            nom: (*f).to_owned(),
+            url: format!("https://ms.yugipedia.com/x/{f}"),
+        })
+        .collect();
+        let (inventaire, _) = lire_inventaire(&conn).unwrap();
+        let noms = noms_recherches(&inventaire, &entrees);
+        let index = indexer_fichiers_set(&distants, "LCKC", "EN", &noms);
+        assert_eq!(
+            illustrations_a_reprendre(&inventaire, &entrees, &options()),
+            3 + 3 + 1 + 1
+        );
+
+        let bilan = aligner(
+            &conn,
+            inventaire,
+            &entrees,
+            &index,
+            "LCKC-EN001",
+            &options(),
+        )
+        .unwrap();
+        assert_eq!((bilan.ajoutes, bilan.illustrations), (4, 4), "{bilan:?}");
+
+        let lignes = |numero: &str| -> Vec<(String, i64, i64)> {
+            conn.prepare(
+                "SELECT COALESCE(card_image_uuid,''), possessed, sort_order FROM cards \
+                 WHERE set_code = ?1 ORDER BY rowid",
+            )
+            .unwrap()
+            .query_map([numero], |l| Ok((l.get(0)?, l.get(1)?, l.get(2)?)))
+            .unwrap()
+            .collect::<rusqlite::Result<_>>()
+            .unwrap()
+        };
+        let uuids = |numero: &str| -> Vec<String> {
+            lignes(numero).into_iter().map(|(u, _, _)| u).collect()
+        };
+        assert_eq!(
+            uuids("LCKC-EN001"),
+            [
+                "yugipedia:BlueEyesWhiteDragon-LCKC-EN-UR-1E.png",
+                "yugipedia:BlueEyesWhiteDragon-LCKC-EN-UR-1E-B.png",
+                "yugipedia:BlueEyesWhiteDragon-LCKC-EN-UR-1E-C.png",
+                "yugipedia:BlueEyesWhiteDragon-LCKC-EN-UR-1E-D.png",
+            ]
+        );
+        assert_eq!(
+            uuids("LCKC-EN046"),
+            [
+                "yugipedia:CrushCardVirus-LCKC-EN-UR-1E.png",
+                "yugipedia:CrushCardVirus-LCKC-EN-UR-1E-B.png",
+            ]
+        );
+        assert_eq!(uuids("LCKC-EN002"), [""], "la voisine n'est pas touchée");
+        let possession: Vec<i64> = lignes("LCKC-EN001").iter().map(|l| l.1).collect();
+        assert_eq!(
+            possession,
+            [1, 0, 0, 0],
+            "la ligne d'origine garde sa possession, les nouvelles naissent vides"
+        );
+        assert!(
+            lignes("LCKC-EN001").iter().all(|l| l.2 == 7),
+            "à la place de la carte dans la grille"
+        );
+
+        let (inventaire, _) = lire_inventaire(&conn).unwrap();
+        assert_eq!(
+            illustrations_a_reprendre(&inventaire, &entrees, &options()),
+            0
+        );
+        let rejouee = aligner(
+            &conn,
+            inventaire,
+            &entrees,
+            &index,
+            "LCKC-EN001",
+            &options(),
+        )
+        .unwrap();
+        assert_eq!(rejouee, Bilan::default(), "rejouer ne change plus rien");
+    }
+
+    // ── Le repli : le fichier de sa rareté pour une ligne sans image ────────
+
+    fn candidat_repli(fichier: &str) -> ygo_sources::yugipedia::artwork::Candidat {
+        let (_, infos) =
+            ygo_sources::yugipedia::artwork::decouper_fichier(fichier, "CORI").unwrap();
+        ygo_sources::yugipedia::artwork::Candidat {
+            segment: String::new(),
+            cle_carte: String::new(),
+            infos,
+            card_url: format!("https://ms.yugipedia.com/x/{fichier}"),
+            image_id: ygo_sources::yugipedia::artwork::id_synthetique(fichier),
+            uuid: format!("yugipedia:{fichier}"),
+        }
+    }
+
+    /// La famille du cadre, puis le fichier sans contexte, puis l'édition ;
+    /// deux fichiers possibles, et rien n'est choisi.
+    #[test]
+    fn le_fichier_de_repli_suit_cadre_contexte_et_edition() {
+        let c = |f: &str| candidat_repli(f);
+        let nom = |x: Option<&ygo_sources::yugipedia::artwork::Candidat>| {
+            x.map(|c| c.infos.fichier.clone())
+        };
+        let normal_et_ea = [c("X-CORI-JP-UR-EA.png"), c("X-CORI-JP-UR.png")];
+        assert_eq!(
+            nom(fichier_de_repli(&normal_et_ea, false, None)).as_deref(),
+            Some("X-CORI-JP-UR.png"),
+            "cadre normal : jamais l'EA"
+        );
+        assert_eq!(
+            nom(fichier_de_repli(&normal_et_ea, true, None)).as_deref(),
+            Some("X-CORI-JP-UR-EA.png"),
+            "Overframe : l'EA"
+        );
+        let contexte = [c("X-CORI-JP-OP-ScR.png"), c("X-CORI-JP-ScR.png")];
+        assert_eq!(
+            nom(fichier_de_repli(&contexte, false, None)).as_deref(),
+            Some("X-CORI-JP-ScR.png"),
+            "le fichier sans contexte passe devant"
+        );
+        let editions = [c("X-CORI-EN-UR-UE.png"), c("X-CORI-EN-UR-1E.png")];
+        assert_eq!(
+            nom(fichier_de_repli(&editions, false, Some("unlimited"))).as_deref(),
+            Some("X-CORI-EN-UR-UE.png"),
+            "l'édition de la ligne décide"
+        );
+        assert_eq!(
+            nom(fichier_de_repli(&editions, false, None)).as_deref(),
+            Some("X-CORI-EN-UR-1E.png"),
+            "sans édition : 1E"
+        );
+        let deux = [c("X-CORI-JP-UR.png"), c("Y-CORI-JP-UR.png")];
+        assert_eq!(fichier_de_repli(&deux, false, None), None, "ambigu : rien");
+        assert_eq!(
+            fichier_de_repli(&[c("X-CORI-JP-UR-EA.png")], false, None),
+            None
+        );
+    }
+
+    /// Le cas réel `CORI-JP` (2026-10-15), réduit : une ligne sans image, une
+    /// Secret Rare qui montrait la Prismatic de sa sœur servie, et une ligne
+    /// YGOPRODeck. Les deux premières reçoivent le fichier de **leur**
+    /// rareté, la troisième ne bouge pas, et rejouer ne change plus rien.
+    #[test]
+    fn le_repli_illustre_les_lignes_sans_image_a_elles_et_rien_d_autre() {
+        use ygo_sources::yugipedia::artwork::{indexer_fichiers_set, FichierDistant};
+        let conn = base(&[
+            (
+                1,
+                "Black Chaos the Ultimate Magical Swordsman",
+                "CORI-JP001",
+                "Super Rare",
+                0,
+            ),
+            (
+                2,
+                "Magician of Dark Chaos",
+                "CORI-JP027",
+                "Prismatic Secret Rare",
+                1,
+            ),
+            (3, "Magician of Dark Chaos", "CORI-JP027", "Secret Rare", 0),
+            (4, "Skull Archfiend of Chaos", "CORI-JP002", "Rare", 0),
+        ]);
+        conn.execute(
+            "UPDATE cards SET card_image_id = NULL, card_image_url = '', card_image_small = '' \
+             WHERE rowid = 1",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "UPDATE cards SET card_image_uuid = 'yugipedia:M-CORI-JP-PScR.png', \
+                 card_image_id = -55, card_image_url = 'http://ms/M-CORI-JP-PScR.png' \
+             WHERE rowid = 2",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "UPDATE cards SET card_image_uuid = '', card_image_id = -55, \
+                 card_image_url = 'http://ms/M-CORI-JP-PScR.png' WHERE rowid = 3",
+            [],
+        )
+        .unwrap();
+        assert_eq!(lignes_sans_image(&conn).unwrap(), 2);
+
+        let entrees = ygo_sources::yugipedia::parse_set_list(
+            "{{Set list|region=JP|\nCORI-JP001; Black Chaos; Super Rare\n\
+             CORI-JP027; Magician of Dark Chaos; Secret Rare\n}}",
+        );
+        let distants: Vec<FichierDistant> = [
+            "BlackChaos-CORI-JP-SR.png",
+            "BlackChaos-CORI-JP-OP.png",
+            "MagicianofDarkChaos-CORI-JP-ScR.png",
+            "MagicianofDarkChaos-CORI-JP-PScR.png",
+            "SkullArchfiendofChaos-CORI-JP-R.png",
+        ]
+        .iter()
+        .map(|f| FichierDistant {
+            nom: (*f).to_owned(),
+            url: format!("https://ms.yugipedia.com/x/{f}"),
+        })
+        .collect();
+        let noms = vec![
+            "Black Chaos the Ultimate Magical Swordsman".to_owned(),
+            "Black Chaos".to_owned(),
+            "Magician of Dark Chaos".to_owned(),
+            "Skull Archfiend of Chaos".to_owned(),
+        ];
+        let index = indexer_fichiers_set(&distants, "CORI", "JP", &noms);
+
+        assert_eq!(
+            poser_images_de_repli(&conn, &entrees, &index, "CORI-JP001").unwrap(),
+            2
+        );
+        let image = |rowid: i64| -> (String, String) {
+            conn.query_row(
+                "SELECT COALESCE(card_image_uuid,''), COALESCE(card_image_url,'') \
+                 FROM cards WHERE rowid = ?1",
+                [rowid],
+                |l| Ok((l.get(0)?, l.get(1)?)),
+            )
+            .unwrap()
+        };
+        assert_eq!(
+            image(1).0,
+            "yugipedia-repli:BlackChaos-CORI-JP-SR.png",
+            "le nom de la Set list a trouvé le fichier"
+        );
+        assert_eq!(
+            image(3).0,
+            "yugipedia-repli:MagicianofDarkChaos-CORI-JP-ScR.png"
+        );
+        assert_eq!(
+            image(2).0,
+            "yugipedia:M-CORI-JP-PScR.png",
+            "la servie reste"
+        );
+        assert_eq!(image(4).1, "http://img/x.jpg", "l'image YGOPRODeck reste");
+        assert_eq!(lignes_sans_image(&conn).unwrap(), 0);
+        assert_eq!(
+            poser_images_de_repli(&conn, &entrees, &index, "CORI-JP001").unwrap(),
+            0,
+            "rejouer ne change rien"
+        );
+    }
+
+    /// Une ligne créée par la passe n'hérite pas d'une image Yugipedia : elle
+    /// est celle d'UN tirage. Une image YGOPRODeck, si.
+    #[test]
+    fn une_ligne_creee_n_herite_pas_d_une_image_de_tirage() {
+        let conn = base(&[(1, "Dark Magician", "A-EN001", "Prismatic Secret Rare", 1)]);
+        conn.execute(
+            "UPDATE cards SET card_image_uuid = 'yugipedia:DM-A-EN-PScR.png', \
+                 card_image_id = -9, card_image_url = 'http://ms/DM-A-EN-PScR.png' WHERE rowid = 1",
+            [],
+        )
+        .unwrap();
+        let inserer = |rarete: &str| Action::Inserer {
+            indice: 0,
+            numero: "A-EN001".to_owned(),
+            rarete: rarete.to_owned(),
+            extended_art: 0,
+        };
+        appliquer(&conn, &[inserer("Secret Rare")], &HashMap::new()).unwrap();
+        let (id, url): (Option<i64>, String) = conn
+            .query_row(
+                "SELECT card_image_id, card_image_url FROM cards WHERE rowid = 2",
+                [],
+                |l| Ok((l.get(0)?, l.get(1)?)),
+            )
+            .unwrap();
+        assert_eq!(
+            (id, url.as_str()),
+            (None, ""),
+            "née sans image, pour le repli"
+        );
+
+        let conn = base(&[(1, "Dark Magician", "A-EN001", "Ultra Rare", 0)]);
+        appliquer(&conn, &[inserer("Secret Rare")], &HashMap::new()).unwrap();
+        let url: String = conn
+            .query_row(
+                "SELECT card_image_url FROM cards WHERE rowid = 2",
+                [],
+                |l| l.get(0),
+            )
+            .unwrap();
+        assert_eq!(
+            url, "http://img/x.jpg",
+            "l'illustration YGOPRODeck est héritée"
+        );
     }
 
     fn illustration() -> HashMap<String, Illustration> {

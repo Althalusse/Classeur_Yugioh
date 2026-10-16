@@ -206,6 +206,16 @@ pub struct EcranOptions {
     numeros_demandee: bool,
     /// Elle est partie dans cette visite.
     numeros_lancee: bool,
+    /// Le contrôle complet a été demandé, pas encore repris.
+    controle_demande: bool,
+    /// Il est parti dans cette visite.
+    controle_lance: bool,
+    /// Chercher une nouvelle version de l'application au démarrage.
+    maj_appli_verifier: bool,
+    /// Proposer aussi les versions de test.
+    maj_appli_pre: bool,
+    /// Une recherche de mise à jour a été demandée, pas encore reprise.
+    appli_demandee: bool,
 }
 
 impl std::fmt::Debug for EcranOptions {
@@ -251,6 +261,8 @@ impl EcranOptions {
             ordre: config.ordre_tri(),
             n_raretes: config.n_raretes_par_artwork(),
             completer_artworks: config.completer_artworks_yugipedia(),
+            maj_appli_verifier: config.maj_appli_verifier(),
+            maj_appli_pre: config.maj_appli_pre_versions(),
             font_scale: config.font_scale(),
             priorites,
             priorites_modifiees: false,
@@ -270,12 +282,25 @@ impl EcranOptions {
             images_tirage_lancee: false,
             numeros_demandee: false,
             numeros_lancee: false,
+            controle_demande: false,
+            controle_lance: false,
+            appli_demandee: false,
         }
+    }
+
+    /// Reprend la demande de recherche d'une nouvelle version.
+    pub fn verification_appli_demandee(&mut self) -> bool {
+        std::mem::take(&mut self.appli_demandee)
     }
 
     /// Reprend la demande de recherche des numéros manquants.
     pub fn numeros_absents_demandee(&mut self) -> bool {
         std::mem::take(&mut self.numeros_demandee)
+    }
+
+    /// Reprend la demande de contrôle complet.
+    pub fn controle_demande(&mut self) -> bool {
+        std::mem::take(&mut self.controle_demande)
     }
 
     /// Reprend la demande de mise à jour des images vers Yugipedia.
@@ -399,6 +424,8 @@ impl eframe::App for EcranOptions {
             egui::ScrollArea::vertical().show(ui, |ui| {
                 ui.add_space(8.0);
                 self.affichage(ui);
+                ui.add_space(16.0);
+                self.application(ui);
                 ui.add_space(16.0);
                 self.tri(ui);
                 ui.add_space(16.0);
@@ -839,6 +866,59 @@ impl EcranOptions {
         }
     }
 
+    /// La version de l'application et ses mises à jour.
+    fn application(&mut self, ui: &mut egui::Ui) {
+        section(ui, "Application", |ui| {
+            ligne(ui, "Version", |ui| {
+                ui.label(egui::RichText::new(env!("CARGO_PKG_VERSION")).strong());
+                ui.add_space(12.0);
+                if ui
+                    .button("🔍 Rechercher une mise à jour")
+                    .on_hover_text(
+                        "Demande à GitHub s'il existe une version plus récente. \
+                         Rien ne s'installe sans votre accord.",
+                    )
+                    .clicked()
+                {
+                    self.appli_demandee = true;
+                }
+            });
+            ligne(ui, "Au démarrage", |ui| {
+                let mut actif = self.maj_appli_verifier;
+                if ui
+                    .checkbox(&mut actif, "chercher une nouvelle version")
+                    .on_hover_text("Une seule requête à GitHub par lancement")
+                    .changed()
+                {
+                    if let Some(v) = self.ecrire(
+                        "recherche de mise à jour",
+                        self.config.definir_maj_appli_verifier(actif),
+                    ) {
+                        self.maj_appli_verifier = v;
+                    }
+                }
+            });
+            ligne(ui, "Versions de test", |ui| {
+                let mut actif = self.maj_appli_pre;
+                if ui
+                    .checkbox(&mut actif, "proposer aussi les versions de test")
+                    .on_hover_text(
+                        "Les versions marquées « pre-release » sur GitHub : plus tôt, \
+                         mais moins éprouvées",
+                    )
+                    .changed()
+                {
+                    if let Some(v) = self.ecrire(
+                        "versions de test",
+                        self.config.definir_maj_appli_pre_versions(actif),
+                    ) {
+                        self.maj_appli_pre = v;
+                    }
+                }
+            });
+        });
+    }
+
     fn maintenance(&mut self, ui: &mut egui::Ui) {
         section(ui, "Maintenance", |ui| {
             ui.small(
@@ -861,17 +941,19 @@ impl EcranOptions {
                     "refait cardinfo.db à l'identique — cartes manquantes, raretés aberrantes",
                 );
             });
-            ligne(ui, "Numéros manquants", |ui| {
+            ligne(ui, "Classeurs ↔ Yugipedia", |ui| {
                 let clique = ui
                     .add_enabled(
                         !self.numeros_lancee,
                         egui::Button::new("🔍 Compléter depuis Yugipedia"),
                     )
                     .on_hover_text(
-                        "Compare chaque classeur à sa Set list Yugipedia et ajoute les \
-                         numéros que la base a perdus (ex. LOCH-JP013), si la carte \
-                         existe dans la base. Rien n'est inventé : une carte introuvable \
-                         est signalée et laissée de côté.",
+                        "Compare chaque classeur à sa Set list Yugipedia : ajoute les \
+                         numéros que la base a perdus (ex. LOCH-JP013), et redonne leur \
+                         image aux Overframe qui affichent l'illustration normale (carte \
+                         renommée depuis sa sortie). Rien n'est inventé : une carte \
+                         introuvable est signalée et laissée de côté. Fait aussi tout \
+                         seul après chaque mise à jour de la base ou de l'application.",
                     )
                     .on_disabled_hover_text("Lancée — suivez la bande de progression.")
                     .clicked();
@@ -879,7 +961,32 @@ impl EcranOptions {
                     self.numeros_demandee = true;
                     self.numeros_lancee = true;
                 }
-                ui.small("une à deux requêtes Yugipedia par classeur, au rythme d'une par seconde");
+                ui.small(
+                    "une à deux requêtes Yugipedia par classeur, quelques-unes de plus \
+                     pour ceux à réaligner — au rythme d'une par seconde",
+                );
+            });
+            ligne(ui, "Contrôle complet", |ui| {
+                let clique = ui
+                    .add_enabled(
+                        !self.controle_lance,
+                        egui::Button::new("🛡 Contrôler et réparer les classeurs"),
+                    )
+                    .on_hover_text(
+                        "Tous les garde-fous, à la suite : sauvegarde des classeurs \
+                         (backups/avant_controle_…), doublons retirés, raretés \
+                         canonisées, noms français officiels, numéros manquants et \
+                         Overframe réalignés sur Yugipedia, images de tirage, images \
+                         de repli reprises. Aucune possession ni quantité n'est \
+                         modifiée ; une ligne en double que vous possédez est gardée.",
+                    )
+                    .on_disabled_hover_text("Lancé — suivez la bande de progression.")
+                    .clicked();
+                if clique {
+                    self.controle_demande = true;
+                    self.controle_lance = true;
+                }
+                ui.small("quelques minutes selon le nombre de classeurs — sauvegarde faite avant");
             });
         });
     }

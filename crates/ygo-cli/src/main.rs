@@ -140,6 +140,7 @@ async fn executer() -> anyhow::Result<bool> {
             cmd_etats_defaut(&cible.context("chemin de l'installation attendu")?, reste)
         }
         "doublons" => cmd_doublons(&cible.context("chemin de l'installation attendu")?, reste),
+        "controle" => cmd_controle(&cible.context("chemin de l'installation attendu")?).await,
         "anomalies" => cmd_anomalies(&cible.context("chemin de l'installation attendu")?, reste),
         "images" => cmd_images(&cible.context("chemin de l'installation attendu")?, reste).await,
         "importer" => {
@@ -227,6 +228,10 @@ USAGE
   ygo-cli etats-defaut <installation>  pose Mint et l'édition connue sur les possédées qui n'en ont pas
         [--corriger]                  écrit — sans lui, rien n'est modifié
         [--classeur CODE]             se limite à un classeur
+  ygo-cli controle <installation>  contrôle complet — sauvegarde, puis doublons, raretés,
+                                   noms FR, numéros manquants et Overframe, images de
+                                   tirage, replis : le bouton des Options › Maintenance.
+                                   ÉCRIT (après une copie dans backups/avant_controle_…)
   ygo-cli doublons <installation>  retire les lignes insérées à tort par la passe artworks
         [--corriger]                  supprime — sans lui, rien n'est modifié
         [--classeur CODE]             se limite à un classeur
@@ -863,6 +868,44 @@ fn cmd_raretes(installation: &Path, args: &[String]) -> anyhow::Result<bool> {
     Ok(true)
 }
 
+/// `controle` — le bouton « Contrôle complet » des Options, en ligne de
+/// commande ([`ygo_app::controle::complet`]). Il écrit, après sauvegarde.
+async fn cmd_controle(installation: &Path) -> anyhow::Result<bool> {
+    let paths = Paths::depuis_racine(installation);
+    ygo_sources::cache::activer(&paths.cache_http());
+    let raretes = Priorites::charger(paths.rarity_config());
+    let client = ygo_sources::ClientHttp::new()?;
+    println!("Installation : {}", installation.display());
+    println!("Contrôle complet — sauvegarde, puis tous les garde-fous…\n");
+    let b = ygo_app::controle::complet(&paths, &client, &raretes).await?;
+    println!("Sauvegarde       : {}", b.sauvegarde.display());
+    println!("Classeurs        : {}", b.classeurs);
+    println!(
+        "Doublons retirés : {} ({} gardés car possédés)",
+        b.doublons, b.doublons_bloques
+    );
+    println!("Raretés          : {}", b.raretes);
+    println!("Noms FR          : {}", b.noms_fr);
+    println!(
+        "Numéros ajoutés  : {} ({} inconnus de la base)",
+        b.numeros, b.introuvables
+    );
+    println!("Overframe        : {}", b.illustrations);
+    println!("Images de tirage : {}", b.images_tirage);
+    println!("Replis repris    : {}", b.replis);
+    for e in &b.echecs {
+        println!("À REVOIR         : {e}");
+    }
+    if !b.touches.is_empty() {
+        println!(
+            "\nImages à télécharger dans : {} — ouvrez ces classeurs, ou `ygo-cli images {} --telecharger`.",
+            b.touches.join(", "),
+            installation.display()
+        );
+    }
+    Ok(b.echecs.is_empty())
+}
+
 /// `noms-fr` — ce que chaque mise à jour de la base fait d'elle-même pour les
 /// noms français ([`ygo_app::noms_fr`]) : poser le nom officiel là où il
 /// manque, remplacer celui qui en diffère, ne rien inventer, ne rien effacer.
@@ -1007,6 +1050,12 @@ async fn cmd_numeros_absents(installation: &Path, args: &[String]) -> anyhow::Re
             println!(
                 "    {} ligne(s) reçoivent l'image Yugipedia de leur tirage",
                 bilan.images
+            );
+        }
+        if bilan.enrichies > 0 {
+            println!(
+                "    {} ligne(s) complétées d'après leur fiche (nom FR, statistiques)",
+                bilan.enrichies
             );
         }
         // Les tirages en variante des numéros ajoutés — maintenant ou lors
@@ -1247,7 +1296,8 @@ async fn cmd_simuler_numeros(installation: &Path, args: &[String]) -> anyhow::Re
             match a.via {
                 ygo_app::numeros_absents::Rapprochement::Password => t_password += 1,
                 ygo_app::numeros_absents::Rapprochement::Fiche => t_fiche += 1,
-                ygo_app::numeros_absents::Rapprochement::Nom => {}
+                ygo_app::numeros_absents::Rapprochement::Nom
+                | ygo_app::numeros_absents::Rapprochement::HorsBase => {}
             }
             let _ = writeln!(
                 detail,
@@ -2279,6 +2329,7 @@ async fn cmd_artworks(classeur: &Path, args: &[String]) -> anyhow::Result<bool> 
             bilan,
             revid,
             titre,
+            replis,
         } => {
             println!("  page             {titre}");
             match revid {
@@ -2293,10 +2344,11 @@ async fn cmd_artworks(classeur: &Path, args: &[String]) -> anyhow::Result<bool> 
                 bilan.reutilisees
             );
             println!("  numéros absents du classeur            {}", bilan.absents);
+            println!("  images de repli (lignes sans image)    {replis}");
             if detail {
                 detailler(&tx, &avant)?;
             }
-            if bilan.illustrations == 0 && bilan.ajoutes == 0 && bilan.flags == 0 {
+            if bilan.illustrations == 0 && bilan.ajoutes == 0 && bilan.flags == 0 && *replis == 0 {
                 println!(
                     "\n  Rien à faire — soit la passe a déjà tourné (les lignes servies\n  \
                      sont protégées), soit ce set n'a aucune variante d'illustration."
@@ -2564,15 +2616,13 @@ fn cmd_exporter(installation: &Path, fichier: &Path, args: &[String]) -> anyhow:
         classeurs.retain(|c| c == code);
         anyhow::ensure!(!classeurs.is_empty(), "classeur {code} introuvable");
     }
-    let (classeurs, ecartes) = ygo_app::export::ecarter_ocg(&classeurs);
-
     let possedees = ygo_app::export::possedees_de(&paths, &classeurs)?;
     // Les rangs se lisent sur la base entière des classeurs, pas sur les
     // seules cartes possédées : c'est la même numérotation que l'import.
     let rangs = ygo_app::export::rangs(&ygo_app::export::bases_de(&paths, &classeurs)?);
     let lignes = ygo_app::export::lignes(&possedees, langue, &rangs);
     ygo_app::scanflip::ecrire(fichier, &lignes)?;
-    let bilan = ygo_app::export::bilan(&lignes, ecartes);
+    let bilan = ygo_app::export::bilan(&lignes);
 
     println!(
         "{} ligne(s), {} exemplaire(s), {} classeur(s) → {}",
@@ -2581,12 +2631,12 @@ fn cmd_exporter(installation: &Path, fichier: &Path, args: &[String]) -> anyhow:
         classeurs.len(),
         fichier.display()
     );
-    if !bilan.ecartes.is_empty() {
+    if !bilan.ocg.is_empty() {
         println!(
-            "{} classeur(s) OCG écarté(s) : {} — leur code est natif, mais la \
-             colonne Langue du format est unique pour tout le fichier",
-            bilan.ecartes.len(),
-            bilan.ecartes.join(", ")
+            "{} classeur(s) OCG inclus : {} — codes natifs, langue de la carte.\n\
+             L'application les relit ; Scanflip ne connaît pas l'OCG.",
+            bilan.ocg.len(),
+            bilan.ocg.join(", ")
         );
     }
     if !bilan.raretes_refusees.is_empty() {
