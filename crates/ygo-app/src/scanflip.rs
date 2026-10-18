@@ -46,6 +46,22 @@
 //! raison du crate `csv` plutôt qu'un `split(',')` : le découpage naïf
 //! coupait ces lignes en plein milieu et décalait toutes les colonnes
 //! suivantes.
+//!
+//! # Le format « Application » — 2026-10-18
+//!
+//! L'export sert aussi à passer une collection d'une installation de
+//! l'application à une autre. Les onze colonnes de Scanflip n'y suffisent
+//! pas : un code de rareté (`QCR`) recouvre plusieurs libellés, et le rang
+//! d'artwork (`N° Artwork`) dépend des lignes de chaque classeur — deux
+//! installations dont les passes n'en sont pas au même point ne numérotent
+//! pas leurs artworks pareil. L'export « Application » ajoute donc, **après**
+//! les onze colonnes de Scanflip, de quoi désigner une ligne sans deviner
+//! ([`COLONNES_APPLICATION`]) : la rareté telle qu'en base, le nom anglais,
+//! le fichier de l'illustration, son identifiant et le cadre Overframe.
+//!
+//! Le lecteur les repère par leur nom, comme les autres : un fichier qui les
+//! porte rend des lignes dotées d'un [`Complement`], un fichier Scanflip des
+//! lignes qui n'en ont pas.
 
 use std::path::Path;
 
@@ -67,6 +83,59 @@ pub const COLONNES: [&str; 11] = [
     "N° Artwork",
     "Reprint",
 ];
+
+/// Les colonnes que l'export « Application » ajoute après les onze de
+/// Scanflip, dans l'ordre où il les écrit.
+pub const COLONNES_APPLICATION: [&str; 5] = [
+    "Rareté complète",
+    "Nom anglais",
+    "Illustration",
+    "ID image",
+    "Overframe",
+];
+
+/// Ce qu'une ligne de l'export « Application » dit de plus qu'une ligne
+/// Scanflip : de quoi retrouver **sa** ligne de classeur dans une autre
+/// installation.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Complement {
+    /// `Rareté complète` : le libellé de la base (`Quarter Century Secret
+    /// Rare`), là où `Rareté` porte le code Scanflip.
+    pub rarete: String,
+    /// `Nom anglais`, quelle que soit la langue du fichier.
+    pub nom_anglais: String,
+    /// `Illustration` : le fichier de l'image de la ligne
+    /// (`BlueEyesWhiteDragon-RA04-EN-QCScR-1E.png`, `89631139.jpg`).
+    pub illustration: String,
+    /// `ID image` : `card_image_id`.
+    pub id_image: Option<i64>,
+    /// `Overframe` : la ligne est un tirage à cadre étendu.
+    pub overframe: bool,
+}
+
+impl Complement {
+    /// Les cinq cellules, dans l'ordre de [`COLONNES_APPLICATION`].
+    #[must_use]
+    pub fn cellules(&self) -> [String; 5] {
+        [
+            self.rarete.clone(),
+            self.nom_anglais.clone(),
+            self.illustration.clone(),
+            self.id_image.map(|i| i.to_string()).unwrap_or_default(),
+            if self.overframe {
+                "1".to_owned()
+            } else {
+                String::new()
+            },
+        ]
+    }
+}
+
+/// Une case « Overframe » : vide, `0`, `non`… valent non ; le reste oui.
+fn vrai(texte: &str) -> bool {
+    let t = texte.trim().to_lowercase();
+    !t.is_empty() && !matches!(t.as_str(), "0" | "non" | "no" | "false" | "faux")
+}
 
 /// Les états de conservation, du meilleur au pire.
 ///
@@ -132,7 +201,7 @@ impl Edition {
 }
 
 /// Une ligne du CSV, décodée.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Ligne {
     /// Numéro de la ligne dans le fichier — l'en-tête est la ligne 1.
     ///
@@ -162,6 +231,8 @@ pub struct Ligne {
     pub artwork: u32,
     /// Colonne `Reprint`, conservée telle quelle pour l'aller-retour.
     pub reprint: String,
+    /// Les colonnes de l'export « Application », si le fichier les porte.
+    pub complement: Option<Complement>,
 }
 
 /// Ce qui a empêché de décoder une ligne.
@@ -180,6 +251,8 @@ pub struct Lecture {
     pub lignes: Vec<Ligne>,
     /// Celles qui ne l'ont pas été, avec leur raison.
     pub illisibles: Vec<LigneIllisible>,
+    /// Le fichier porte les colonnes de l'export « Application ».
+    pub application: bool,
 }
 
 /// Décode la quantité.
@@ -274,6 +347,18 @@ pub struct Colonnes {
     pub artwork: Option<usize>,
     /// `Reprint`.
     pub reprint: Option<usize>,
+    /// Les colonnes de l'export « Application », dans l'ordre de
+    /// [`COLONNES_APPLICATION`].
+    pub application: [Option<usize>; 5],
+}
+
+impl Colonnes {
+    /// Le fichier porte-t-il au moins une colonne de l'export
+    /// « Application » ?
+    #[must_use]
+    pub fn a_le_complement(&self) -> bool {
+        self.application.iter().any(Option::is_some)
+    }
 }
 
 /// Repère les colonnes d'un en-tête.
@@ -316,6 +401,7 @@ pub fn reperer(entete: &[String]) -> Result<Colonnes> {
         quantite: cherche("Quantité"),
         artwork: cherche("N° Artwork"),
         reprint: cherche("Reprint"),
+        application: COLONNES_APPLICATION.map(cherche),
     })
 }
 
@@ -378,7 +464,10 @@ pub fn lire_octets(octets: &[u8]) -> Result<Lecture> {
         .collect();
     let colonnes = reperer(&entete)?;
 
-    let mut lecture = Lecture::default();
+    let mut lecture = Lecture {
+        application: colonnes.a_le_complement(),
+        ..Lecture::default()
+    };
     for (i, resultat) in lecteur.records().enumerate() {
         let numero = i + 2; // la ligne 1 est l'en-tête
         let enregistrement = match resultat {
@@ -427,6 +516,19 @@ pub fn lire_octets(octets: &[u8]) -> Result<Lecture> {
             Some(i) if !enregistrement.get(i).unwrap_or("").trim().is_empty() => champ(Some(i)),
             _ => extension_deduite(&code),
         };
+        let complement = colonnes.a_le_complement().then(|| {
+            let [rarete, nom_anglais, illustration, id_image, overframe] =
+                colonnes.application.map(champ);
+            Complement {
+                rarete,
+                nom_anglais,
+                illustration,
+                // Un identifiant illisible n'identifie rien : il compte comme
+                // absent, la ligne reste importable par son rang.
+                id_image: id_image.parse::<i64>().ok(),
+                overframe: vrai(&overframe),
+            }
+        });
 
         lecture.lignes.push(Ligne {
             numero,
@@ -440,13 +542,14 @@ pub fn lire_octets(octets: &[u8]) -> Result<Lecture> {
             quantite,
             artwork: artwork(&champ(colonnes.artwork)),
             reprint: champ(colonnes.reprint),
+            complement,
         });
     }
     Ok(lecture)
 }
 
 /// Une ligne prête à écrire.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Sortie {
     /// Libellé de langue.
     pub langue: String,
@@ -466,6 +569,9 @@ pub struct Sortie {
     pub quantite: i64,
     /// Rang d'artwork.
     pub artwork: u32,
+    /// Les colonnes de l'export « Application » ; `None` pour une ligne
+    /// Scanflip.
+    pub complement: Option<Complement>,
 }
 
 impl Sortie {
@@ -517,20 +623,33 @@ pub fn ecrire(chemin: &Path, lignes: &[Sortie]) -> Result<()> {
 
 /// Produit les octets du fichier — BOM compris.
 ///
+/// Les colonnes de l'export « Application » ne s'écrivent que si une ligne
+/// au moins porte un [`Complement`] : un export Scanflip garde ses onze
+/// colonnes, au caractère près.
+///
 /// # Errors
 ///
 /// Rend une erreur si la sérialisation échoue, ce qui ne peut arriver que
 /// sur une écriture mémoire impossible.
 pub fn ecrire_octets(lignes: &[Sortie]) -> Result<Vec<u8>> {
+    let application = lignes.iter().any(|l| l.complement.is_some());
     let mut sortie = csv::WriterBuilder::new()
         .terminator(csv::Terminator::CRLF)
         .from_writer(Vec::new());
+    let mut entete: Vec<&str> = COLONNES.to_vec();
+    if application {
+        entete.extend(COLONNES_APPLICATION);
+    }
     sortie
-        .write_record(COLONNES)
+        .write_record(&entete)
         .map_err(|e| AppError::Creation(e.to_string()))?;
     for ligne in lignes {
+        let mut cellules: Vec<String> = ligne.cellules().to_vec();
+        if application {
+            cellules.extend(ligne.complement.clone().unwrap_or_default().cellules());
+        }
         sortie
-            .write_record(ligne.cellules())
+            .write_record(&cellules)
             .map_err(|e| AppError::Creation(e.to_string()))?;
     }
     let corps = sortie
@@ -773,6 +892,7 @@ mod tests {
                 qualite: "NM".into(),
                 quantite: 1,
                 artwork: 0,
+                complement: None,
             },
             Sortie {
                 langue: "Anglais (Monde)".into(),
@@ -784,6 +904,7 @@ mod tests {
                 qualite: "M".into(),
                 quantite: 3,
                 artwork: 1,
+                complement: None,
             },
         ];
         let octets = ecrire_octets(&sorties).unwrap();
@@ -821,6 +942,7 @@ mod tests {
                 qualite: "NM".into(),
                 quantite: 1,
                 artwork: 0,
+                complement: None,
             };
             let cellules = s.cellules();
             let remplies: Vec<&String> = cellules[5..8].iter().filter(|c| !c.is_empty()).collect();
@@ -851,6 +973,7 @@ mod tests {
             qualite: "EX".into(),
             quantite: 1,
             artwork: 0,
+            complement: None,
         };
         assert_eq!(s.cellules()[5], "EX");
         assert_eq!(s.cellules()[6], "");
@@ -879,5 +1002,115 @@ mod tests {
         assert_eq!(Edition::depuis_code("Unlimited"), Some(Edition::Illimitee));
         assert_eq!(Edition::depuis_code(""), None);
         assert_eq!(Edition::depuis_code("premiere"), None);
+    }
+
+    fn sortie_application(complement: Option<Complement>) -> Sortie {
+        Sortie {
+            langue: "Français (France)".into(),
+            extension: "RA04".into(),
+            code: "RA04-EN002".into(),
+            nom: "Dragon Blanc aux Yeux Bleus".into(),
+            rarete: "QCR".into(),
+            edition: Some(Edition::Premiere),
+            qualite: "NM".into(),
+            quantite: 2,
+            artwork: 1,
+            complement,
+        }
+    }
+
+    /// Un export Scanflip garde ses onze colonnes au caractère près ; un
+    /// export « Application » ajoute les siennes après, et elles se relisent.
+    #[test]
+    fn les_colonnes_application_s_ajoutent_et_se_relisent() {
+        let scanflip = ecrire_octets(&[sortie_application(None)]).unwrap();
+        let entete = String::from_utf8(scanflip[3..].to_vec()).unwrap();
+        assert!(
+            entete.starts_with(&format!("{}\r\n", COLONNES.join(","))),
+            "{entete}"
+        );
+        let relu = lire_octets(&scanflip).unwrap();
+        assert!(!relu.application);
+        assert_eq!(relu.lignes[0].complement, None);
+
+        let complement = Complement {
+            rarete: "Quarter Century Secret Rare".into(),
+            nom_anglais: "Blue-Eyes White Dragon".into(),
+            illustration: "BlueEyesWhiteDragon-RA04-EN-QCScR-1E.png".into(),
+            id_image: Some(-1_589_717_855),
+            overframe: true,
+        };
+        let application = ecrire_octets(&[
+            sortie_application(Some(complement.clone())),
+            // Une ligne sans complément dans un fichier qui en porte : ses
+            // cases restent vides.
+            sortie_application(None),
+        ])
+        .unwrap();
+        let texte = String::from_utf8(application[3..].to_vec()).unwrap();
+        let premiere = texte.lines().next().unwrap();
+        assert_eq!(
+            premiere,
+            format!("{},{}", COLONNES.join(","), COLONNES_APPLICATION.join(","))
+        );
+        let relu = lire_octets(&application).unwrap();
+        assert!(relu.application);
+        assert!(relu.illisibles.is_empty());
+        assert_eq!(relu.lignes[0].complement.as_ref(), Some(&complement));
+        assert_eq!(
+            relu.lignes[0].artwork, 1,
+            "les onze colonnes n'ont pas bougé"
+        );
+        assert_eq!(relu.lignes[0].quantite, 2);
+        assert_eq!(
+            relu.lignes[1].complement,
+            Some(Complement::default()),
+            "colonnes présentes, cases vides"
+        );
+    }
+
+    /// Les cases du complément se lisent avec indulgence : un identifiant
+    /// illisible compte comme absent, « Overframe » accepte ce qu'un tableur
+    /// y écrit.
+    #[test]
+    fn les_cases_du_complement_se_lisent_avec_indulgence() {
+        let csv = "Code,Rareté,ID image,Overframe\n\
+                   RA04-EN002,QCR,-42,1\n\
+                   RA04-EN002,QCR,quarante,oui\n\
+                   RA04-EN002,QCR,,0\n\
+                   RA04-EN002,QCR, 7 ,\n";
+        let relu = lire_octets(csv.as_bytes()).unwrap();
+        assert!(
+            relu.application,
+            "une seule colonne suffit à le reconnaître"
+        );
+        let c: Vec<(Option<i64>, bool)> = relu
+            .lignes
+            .iter()
+            .map(|l| {
+                let c = l.complement.as_ref().unwrap();
+                (c.id_image, c.overframe)
+            })
+            .collect();
+        assert_eq!(
+            c,
+            vec![
+                (Some(-42), true),
+                (None, true),
+                (None, false),
+                (Some(7), false)
+            ]
+        );
+        for (texte, attendu) in [
+            ("", false),
+            ("0", false),
+            ("Non", false),
+            ("faux", false),
+            ("1", true),
+            ("x", true),
+            ("Overframe", true),
+        ] {
+            assert_eq!(vrai(texte), attendu, "« {texte} »");
+        }
     }
 }

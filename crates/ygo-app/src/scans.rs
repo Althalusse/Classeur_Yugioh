@@ -62,11 +62,19 @@
 //! 2026-10-17 : sans précaution, `RA04-EN001` se voyait proposer les `AA2`,
 //! `AA3`, `AA4` que la passe artworks a posés sur `RA04-EN106`.
 //!
-//! D'où la règle : une illustration **en place sur un autre numéro** du
-//! classeur lui appartient, et n'est pas proposée ici ([`Carte::ailleurs`]) —
-//! sauf si ce numéro la porte aussi. Seule la galerie du set saurait
-//! trancher plus finement ; ce qui n'est porté nulle part reste proposé, et
-//! l'utilisateur juge sur l'image.
+//! # La galerie du set dit à qui est chaque scan — 2026-10-18
+//!
+//! La galerie (`Set Card Galleries`) montre chaque numéro avec **son**
+//! fichier ([`ygo_sources::yugipedia::galerie`]). Avec elle, le tableau range
+//! les scans du numéro **d'abord**, et ceux qu'elle donne à un autre numéro
+//! ensuite, nommés : « Scan AA · RA04-EN108 ». Sans elle — page absente,
+//! réseau absent —, c'est ce que les autres numéros du classeur portent qui
+//! en tient lieu ([`Carte::ailleurs`]).
+//!
+//! Un scan d'un autre numéro n'est plus écarté : retour d'usage, la carte en
+//! main peut être celle que la galerie — ou une passe d'avant — a donnée à
+//! l'autre numéro. Il reste proposé, « Mettre sur cette carte » compris,
+//! mais n'est jamais coché en bloc.
 //!
 //! # Ce que le module ne fait pas
 //!
@@ -81,6 +89,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use rusqlite::OptionalExtension;
 use ygo_core::paths::Paths;
 use ygo_sources::yugipedia::artwork;
+
+use ygo_sources::yugipedia::galerie::Galerie;
 
 use crate::anomalies::{self, Anomalie, ArtworkPropose, Correction, Origine};
 use crate::artworks::colonne_existe;
@@ -129,12 +139,14 @@ pub struct Carte {
     pub prefixe: String,
     /// La langue des fichiers attendus (`EN`, `JP`…).
     pub langue: String,
+    /// Le nom du set (`Quarter Century Stampede`) — celui de sa galerie.
+    pub set_name: String,
     /// Les lignes du numéro, dans l'ordre du classeur.
     pub lignes: Vec<LigneCarte>,
     /// Les illustrations que **d'autres numéros** du classeur portent :
-    /// `(clé de carte, rareté, suffixe)`. Un nom de fichier ne dit pas son
-    /// numéro — cf. l'en-tête du module.
-    pub ailleurs: BTreeSet<(String, String, String)>,
+    /// `(clé de carte, rareté, suffixe)` → ces numéros. Un nom de fichier ne
+    /// dit pas son numéro — cf. l'en-tête du module.
+    pub ailleurs: BTreeMap<(String, String, String), BTreeSet<String>>,
 }
 
 impl Carte {
@@ -167,6 +179,7 @@ impl Carte {
     ///     nom: "Odd-Eyes Pendulum Dragon of the Four Heavenly Dragons".into(),
     ///     prefixe: "LOCH".into(),
     ///     langue: "JP".into(),
+    ///     set_name: "Legacy of Destruction".into(),
     ///     lignes: vec![LigneCarte {
     ///         rowid: 1,
     ///         rarete: "Ultra Rare".into(),
@@ -235,8 +248,9 @@ impl Carte {
     }
 }
 
-/// Le scan qu'une adresse désigne, s'il en est un.
-fn scan_de(url: &str) -> Option<String> {
+/// Le scan qu'une adresse désigne, s'il en est un : le fichier Yugipedia,
+/// décodé, une révision archivée ramenée au fichier courant.
+pub(crate) fn scan_de(url: &str) -> Option<String> {
     if !ygo_sources::http::est_yugipedia(url) {
         return None;
     }
@@ -269,14 +283,14 @@ pub fn lire_carte(paths: &Paths, classeur: &str, set_code: &str) -> Result<Optio
     let sql = format!(
         "SELECT rowid, COALESCE(name,''), COALESCE(set_code,''), COALESCE(rarity,''), \
                 {ext}, {edition}, COALESCE(quantite,0), COALESCE(card_image_url,''), \
-                card_image_id \
+                card_image_id, COALESCE(set_name,'') \
            FROM cards WHERE UPPER(COALESCE(set_code,'')) = ?1 ORDER BY rowid"
     );
     let mut requete = conn.prepare(&sql)?;
     let brutes = requete
         .query_map([set_code.trim().to_uppercase()], |l| {
             Ok((
-                l.get::<_, i64>(0)?,
+                l.get::<_, String>(9)?,
                 l.get::<_, String>(1)?,
                 l.get::<_, String>(2)?,
                 LigneCarte {
@@ -298,6 +312,12 @@ pub fn lire_carte(paths: &Paths, classeur: &str, set_code: &str) -> Result<Optio
         return Ok(None);
     };
     let (nom, code) = (nom.clone(), code.clone());
+    let set_name = brutes
+        .iter()
+        .map(|(set_name, _, _, _)| set_name.trim())
+        .find(|s| !s.is_empty())
+        .unwrap_or_default()
+        .to_owned();
     let prefixe = artwork::prefixe_set(&code);
     let langue = match artwork::langue_set_code(&code) {
         l if l.is_empty() => "EN".to_owned(),
@@ -311,23 +331,28 @@ pub fn lire_carte(paths: &Paths, classeur: &str, set_code: &str) -> Result<Optio
         })
         .collect();
 
-    // Ce que portent les autres numéros : un scan qui y est en place leur
-    // appartient.
-    let mut ailleurs: BTreeSet<(String, String, String)> = BTreeSet::new();
+    // Ce que portent les autres numéros : un scan qui y est en place est,
+    // faute de galerie, réputé leur appartenir.
+    let mut ailleurs: BTreeMap<(String, String, String), BTreeSet<String>> = BTreeMap::new();
     let mut requete = conn.prepare(
-        "SELECT COALESCE(card_image_url,'') FROM cards \
+        "SELECT UPPER(COALESCE(set_code,'')), COALESCE(card_image_url,'') FROM cards \
           WHERE UPPER(COALESCE(set_code,'')) <> ?1 AND card_image_url LIKE '%yugipedia%'",
     )?;
     let urls = requete
-        .query_map([code.to_uppercase()], |l| l.get::<_, String>(0))?
+        .query_map([code.to_uppercase()], |l| {
+            Ok((l.get::<_, String>(0)?, l.get::<_, String>(1)?))
+        })?
         .collect::<rusqlite::Result<Vec<_>>>()?;
-    for fichier in urls.iter().filter_map(|u| scan_de(u)) {
+    for (numero, fichier) in urls.iter().filter_map(|(n, u)| Some((n, scan_de(u)?))) {
         if let Some((segment, infos)) = artwork::decouper_fichier(&fichier, &prefixe) {
-            ailleurs.insert((
-                artwork::cle_comparaison(&segment),
-                infos.rarete_abbr.to_ascii_uppercase(),
-                artwork::suffixe(&fichier, &prefixe),
-            ));
+            ailleurs
+                .entry((
+                    artwork::cle_comparaison(&segment),
+                    infos.rarete_abbr.to_ascii_uppercase(),
+                    artwork::suffixe(&fichier, &prefixe),
+                ))
+                .or_default()
+                .insert(numero.clone());
         }
     }
 
@@ -337,6 +362,7 @@ pub fn lire_carte(paths: &Paths, classeur: &str, set_code: &str) -> Result<Optio
         nom,
         prefixe,
         langue,
+        set_name,
         lignes,
         ailleurs,
     }))
@@ -516,8 +542,9 @@ pub struct Tableau {
     /// Yugipedia connaît-il au moins un scan de ce tirage, en place ou non ?
     /// C'est ce qui relègue les illustrations YGOPRODeck.
     pub connu: bool,
-    /// Les scans écartés parce qu'un **autre numéro** du classeur les porte.
-    pub ecartes: usize,
+    /// Les colonnes d'un **autre numéro** — rangées après celles du numéro,
+    /// et jamais cochées en bloc.
+    pub autres: usize,
 }
 
 impl Tableau {
@@ -573,10 +600,19 @@ fn edition_fichier(edition: Option<&str>) -> Option<&'static str> {
     }
 }
 
+/// Range les scans d'une carte en colonnes, sans galerie — cf.
+/// [`tableau_avec`].
+#[must_use]
+pub fn tableau(carte: &Carte, scans: &[Scan]) -> Tableau {
+    tableau_avec(carte, scans, None)
+}
+
 /// Range les scans d'une carte en colonnes — **fonction pure**.
 ///
-/// Un scan qu'un autre numéro du classeur porte déjà est écarté, à moins que
-/// celui-ci ne le porte aussi : c'est la carte de l'autre numéro.
+/// Les scans du numéro d'abord ; ceux d'un **autre** numéro ensuite, dans
+/// des colonnes à part, nommées (« Scan AA · RA04-EN108 »). À qui est un
+/// scan : la galerie le dit quand elle le connaît ; sinon, un scan qu'un
+/// autre numéro du classeur porte — et pas celui-ci — est réputé le sien.
 ///
 /// ```
 /// use ygo_app::scans::{tableau, Carte, LigneCarte, Scan};
@@ -604,6 +640,7 @@ fn edition_fichier(edition: Option<&str>) -> Option<&'static str> {
 ///     nom: "Blue-Eyes White Dragon".into(),
 ///     prefixe: "LCKC".into(),
 ///     langue: "EN".into(),
+///     set_name: "Legendary Collection Kaiba Mega Pack".into(),
 ///     // Une ligne : l'illustration A.
 ///     lignes: vec![ligne(1, Some("BlueEyesWhiteDragon-LCKC-EN-UR-1E.png"))],
 ///     ailleurs: Default::default(),
@@ -618,14 +655,18 @@ fn edition_fichier(edition: Option<&str>) -> Option<&'static str> {
 /// assert_eq!(t.colonnes.len(), 1);
 /// assert_eq!(t.colonnes[0].libelle(), "Scan B");
 ///
-/// // B porté par un autre numéro du classeur : il est à lui.
-/// carte.ailleurs.insert(("blueeyeswhitedragon".into(), "UR".into(), "B".into()));
+/// // B porté par un autre numéro du classeur : il lui est réputé, et se
+/// // range après, à son nom.
+/// carte.ailleurs.insert(
+///     ("blueeyeswhitedragon".into(), "UR".into(), "B".into()),
+///     ["LCKC-EN046".to_owned()].into(),
+/// );
 /// let t = tableau(&carte, &scans);
-/// assert!(t.colonnes.is_empty());
-/// assert_eq!(t.ecartes, 1);
+/// assert_eq!(t.colonnes[0].libelle(), "Scan B · LCKC-EN046");
+/// assert_eq!(t.autres, 1);
 /// ```
 #[must_use]
-pub fn tableau(carte: &Carte, scans: &[Scan]) -> Tableau {
+pub fn tableau_avec(carte: &Carte, scans: &[Scan], galerie: Option<&Galerie>) -> Tableau {
     // L'abréviation Yugipedia de chaque rareté du classeur.
     let raretes: Vec<(String, String)> = carte
         .raretes()
@@ -661,9 +702,38 @@ pub fn tableau(carte: &Carte, scans: &[Scan]) -> Tableau {
             .find_map(|l| edition_fichier(l.edition.as_deref()))
     };
 
-    // suffixe → rareté du classeur → meilleur fichier.
-    let mut colonnes: BTreeMap<(u8, u32, String), BTreeMap<usize, &Scan>> = BTreeMap::new();
-    let mut ecartes = 0;
+    // À qui est un scan : la galerie d'abord ; sinon les autres numéros du
+    // classeur qui le portent, quand celui-ci ne le porte pas. Vide : à ce
+    // numéro, ou on ne sait pas.
+    let galerie = galerie.filter(|g| !g.est_vide());
+    let cles = carte.cles();
+    let porteurs = |scan: &Scan| -> Vec<String> {
+        if let Some(g) = galerie {
+            let numeros = g.numeros(&cles, &scan.rarete, &scan.suffixe);
+            if !numeros.is_empty() {
+                if numeros
+                    .iter()
+                    .any(|n| n.eq_ignore_ascii_case(&carte.set_code))
+                {
+                    return Vec::new();
+                }
+                return numeros.into_iter().collect();
+            }
+        }
+        if en_place.contains(&(scan.rarete.clone(), scan.suffixe.clone())) {
+            return Vec::new();
+        }
+        carte
+            .ailleurs
+            .get(&(scan.cle.clone(), scan.rarete.clone(), scan.suffixe.clone()))
+            .map(|n| n.iter().cloned().collect())
+            .unwrap_or_default()
+    };
+
+    // (à un autre numéro ?, ordre du suffixe, ses numéros) → rareté du
+    // classeur → meilleur fichier.
+    type Colonne = (bool, (u8, u32, String), Vec<String>);
+    let mut colonnes: BTreeMap<Colonne, BTreeMap<usize, &Scan>> = BTreeMap::new();
     for scan in scans {
         let Some((i, (rarete, _))) = raretes
             .iter()
@@ -672,19 +742,11 @@ pub fn tableau(carte: &Carte, scans: &[Scan]) -> Tableau {
         else {
             continue;
         };
-        let illustration = (scan.rarete.clone(), scan.suffixe.clone());
-        if !en_place.contains(&illustration)
-            && carte.ailleurs.contains(&(
-                scan.cle.clone(),
-                scan.rarete.clone(),
-                scan.suffixe.clone(),
-            ))
-        {
-            ecartes += 1;
-            continue;
-        }
+        let numeros = porteurs(scan);
         let voulue = edition_de(rarete.as_str());
-        let cellules = colonnes.entry(ordre_colonne(&scan.suffixe)).or_default();
+        let cellules = colonnes
+            .entry((!numeros.is_empty(), ordre_colonne(&scan.suffixe), numeros))
+            .or_default();
         let meilleur = cellules.get(&i).is_none_or(|actuel| {
             (rang_edition(&scan.edition, voulue), &scan.fichier)
                 < (rang_edition(&actuel.edition, voulue), &actuel.fichier)
@@ -696,10 +758,10 @@ pub fn tableau(carte: &Carte, scans: &[Scan]) -> Tableau {
 
     let mut tableau = Tableau {
         connu: !scans.is_empty(),
-        ecartes,
+        autres: colonnes.keys().filter(|(autre, _, _)| *autre).count(),
         ..Tableau::default()
     };
-    for (rang, ((_, _, suffixe), cellules)) in colonnes.into_iter().enumerate() {
+    for (rang, ((_, (_, _, suffixe), numeros), cellules)) in colonnes.into_iter().enumerate() {
         let par_rarete: Vec<Anomalie> = cellules
             .into_iter()
             .filter_map(|(i, scan)| {
@@ -722,9 +784,13 @@ pub fn tableau(carte: &Carte, scans: &[Scan]) -> Tableau {
             .collect();
         let colonne = ArtworkPropose {
             art_index: u32::try_from(rang + 1).unwrap_or(1),
-            image_uuid: format!("{PREFIXE_COLONNE}{suffixe}"),
+            image_uuid: if numeros.is_empty() {
+                format!("{PREFIXE_COLONNE}{suffixe}")
+            } else {
+                format!("{PREFIXE_COLONNE}{suffixe}@{}", numeros.join(","))
+            },
             par_rarete,
-            origine: Origine::Yugipedia { suffixe },
+            origine: Origine::Yugipedia { suffixe, numeros },
         };
         if colonne.par_rarete.iter().all(|a| a.corrige) {
             tableau.completes.push(colonne);
@@ -789,6 +855,9 @@ pub fn ajouter(paths: &Paths, anomalie: &Anomalie) -> Result<Correction> {
             "UPDATE cards SET card_image_small = ?1 WHERE rowid = ?2",
             (&anomalie.image_url_small, rowid),
         )?;
+        // Un scan ajouté à la main est un choix : la galerie ne le reprend
+        // pas (cf. [`crate::galerie`]).
+        crate::galerie::noter_choix(&conn, *rowid, Some(fichier))?;
         let prefixe = artwork::prefixe_set(&anomalie.missing_set_code);
         if artwork::suffixe(fichier, &prefixe).starts_with("EA")
             && colonne_existe(&conn, "extended_art")?
@@ -830,7 +899,10 @@ pub struct ImageAvant {
 /// La ligne doit être du numéro et de la rareté du scan ; sinon rien n'est
 /// écrit et la fonction rend `None`. L'uuid `yugipedia:` protège ensuite le
 /// choix : la passe artworks ne retouche pas une ligne servie, et
-/// `images_tirage` laisse les identifiants négatifs.
+/// `images_tirage` laisse les identifiants négatifs. Le choix est noté dans
+/// le classeur ([`crate::galerie::noter_choix`]) : le réalignement sur la
+/// galerie du set n'y touche pas non plus — c'est la carte en main qui
+/// décide, même si la galerie montre ce scan sous un autre numéro.
 ///
 /// # Errors
 ///
@@ -881,6 +953,9 @@ pub fn mettre_sur_la_carte(
             rowid
         ],
     )?;
+    if let Some(fichier) = fichier_du_scan(anomalie) {
+        crate::galerie::noter_choix(&conn, rowid, Some(fichier))?;
+    }
     Ok(Some(avant))
 }
 
@@ -907,6 +982,8 @@ pub fn retablir(paths: &Paths, avant: &ImageAvant) -> Result<bool> {
             avant.rowid
         ],
     )?;
+    // Annulé, le choix n'en est plus un.
+    crate::galerie::noter_choix(&conn, avant.rowid, None)?;
     Ok(n > 0)
 }
 
@@ -930,6 +1007,11 @@ pub fn retirer_ajout(paths: &Paths, classeur: &str, rowid: i64) -> Result<bool> 
         "DELETE FROM cards WHERE rowid = ?1 AND COALESCE(quantite,0) = 0",
         [rowid],
     )?;
+    if n > 0 {
+        // Le `rowid` d'une ligne retirée peut resservir : son choix part
+        // avec elle.
+        crate::galerie::noter_choix(&conn, rowid, None)?;
+    }
     Ok(n > 0)
 }
 
@@ -1358,9 +1440,18 @@ mod tests {
             ["Scan"]
         );
 
+        let conn = rusqlite::Connection::open(paths.classeur_db("LCKC")).unwrap();
+        assert!(
+            crate::galerie::choix(&conn).unwrap().contains(&rowid),
+            "choix noté"
+        );
         assert!(retablir(&paths, &avant).unwrap());
         let (u, id, _, q) = lire();
         assert_eq!((u.as_str(), id, q), (avant_url, 89_631_139, 3));
+        assert!(
+            crate::galerie::choix(&conn).unwrap().is_empty(),
+            "annulé, oublié"
+        );
 
         // Une ligne d'une autre rareté ne prend pas ce scan.
         let autre = inserer(&paths, "LCKC-EN001", SCR, "", 1, 0);
@@ -1376,11 +1467,11 @@ mod tests {
     }
 
     /// Un nom de fichier ne dit pas son numéro : `RA04` imprime Dark Magician
-    /// sous deux numéros, et `…-QCScR-1E-AA2.png` sert les deux noms. Ce
-    /// qu'un autre numéro porte est à lui ; ce que personne ne porte reste
-    /// proposé.
+    /// sous deux numéros, et `…-QCScR-1E-AA2.png` sert les deux noms. Sans
+    /// galerie, ce qu'un autre numéro porte — et pas celui-ci — lui est
+    /// réputé : proposé quand même, à part et à son nom.
     #[test]
-    fn un_scan_porte_par_un_autre_numero_lui_appartient() {
+    fn un_scan_porte_par_un_autre_numero_se_range_a_part() {
         let (_t, paths) = installation();
         let f = |s: &str| format!("BlueEyesWhiteDragon-LCKC-EN-UR-1E{s}.png");
         inserer(&paths, "LCKC-EN001", UR, &url(&f("-AA")), 1, 0);
@@ -1392,21 +1483,89 @@ mod tests {
         }
         let carte = lire_carte(&paths, "LCKC", "LCKC-EN001").unwrap().unwrap();
         assert_eq!(carte.ailleurs.len(), 3);
+        assert_eq!(carte.set_name, "Legendary Collection Kaiba");
         let t = tableau(&carte, &scans_locaux(&paths, &carte));
         assert_eq!(
             t.libelles_completes(),
             ["Scan AA"],
-            "porté ici et là-bas : en place"
+            "porté ici et là-bas : en place, à lui"
         );
-        assert_eq!(t.ecartes, 2, "le nu et AA2 sont à EN106");
         let libelles: Vec<String> = t.colonnes.iter().map(ArtworkPropose::libelle).collect();
-        assert_eq!(libelles, ["Scan AA3"], "personne ne le porte");
+        assert_eq!(
+            libelles,
+            ["Scan AA3", "Scan · LCKC-EN106", "Scan AA2 · LCKC-EN106"],
+            "les siens d'abord, ceux d'EN106 ensuite, nommés"
+        );
+        assert_eq!(t.autres, 2);
+        assert_eq!(t.colonnes[1].autres_numeros(), ["LCKC-EN106"]);
+        assert_ne!(
+            t.colonnes[1].image_uuid, t.colonnes[0].image_uuid,
+            "une colonne à part, même suffixe ou non"
+        );
 
-        // Vu de l'autre numéro, rien n'est écarté.
+        // Vu de l'autre numéro, rien n'est à un autre.
         let autre = lire_carte(&paths, "LCKC", "LCKC-EN106").unwrap().unwrap();
         let t = tableau(&autre, &scans_locaux(&paths, &autre));
-        assert_eq!(t.ecartes, 0);
+        assert_eq!(t.autres, 0);
         assert_eq!(t.libelles_completes(), ["Scan", "Scan AA", "Scan AA2"]);
+    }
+
+    /// Avec la galerie, chaque scan est à **son** numéro — même quand le
+    /// classeur dit le contraire : la ligne d'EN001 montre l'AA d'EN106, et
+    /// c'est le scan nu, le sien, qui lui est proposé en premier.
+    #[test]
+    fn la_galerie_dit_a_qui_est_chaque_scan() {
+        let (_t, paths) = installation();
+        let f = |s: &str| format!("BlueEyesWhiteDragon-LCKC-EN-UR-1E{s}.png");
+        let ligne = inserer(&paths, "LCKC-EN001", UR, &url(&f("-AA")), 1, 1);
+        inserer(&paths, "LCKC-EN106", UR, &url(&f("")), 1, 0);
+        for s in ["", "-AA", "-AA2"] {
+            deposer(&paths, &f(s));
+        }
+        let galerie = Galerie {
+            titres: vec!["essai".into()],
+            entrees: ygo_sources::yugipedia::galerie::parse_galerie(
+                "{{Set gallery|rarity=Ultra Rare|\n\
+                 LCKC-EN001; Blue-Eyes White Dragon\n\
+                 LCKC-EN106; Blue-Eyes White Dragon;; AA\n\
+                 LCKC-EN106; Blue-Eyes White Dragon;; AA2\n}}",
+            ),
+        };
+        let carte = lire_carte(&paths, "LCKC", "LCKC-EN001").unwrap().unwrap();
+        let scans = scans_locaux(&paths, &carte);
+        let t = tableau_avec(&carte, &scans, Some(&galerie));
+        let libelles: Vec<String> = t.colonnes.iter().map(ArtworkPropose::libelle).collect();
+        assert_eq!(libelles, ["Scan", "Scan AA2 · LCKC-EN106"]);
+        assert_eq!(
+            t.libelles_completes(),
+            ["Scan AA · LCKC-EN106"],
+            "la ligne montre l'AA d'EN106 : il est en place, au nom d'EN106"
+        );
+        // Le scan nu se pose sur la carte en main.
+        let nu = t.colonnes[0].pour(UR).unwrap().clone();
+        assert!(!nu.corrige);
+        assert!(mettre_sur_la_carte(&paths, ligne, &nu).unwrap().is_some());
+        let conn = rusqlite::Connection::open(paths.classeur_db("LCKC")).unwrap();
+        assert!(
+            crate::galerie::choix(&conn).unwrap().contains(&ligne),
+            "le choix est noté : la galerie n'y reviendra pas"
+        );
+
+        // Sans la galerie, c'est le classeur qui parle — EN106 porte le nu.
+        let carte = lire_carte(&paths, "LCKC", "LCKC-EN106").unwrap().unwrap();
+        let t = tableau(&carte, &scans_locaux(&paths, &carte));
+        assert_eq!(t.libelles_completes(), ["Scan"]);
+        // Avec elle, le nu est à EN001, et AA, AA2 sont à EN106.
+        let t = tableau_avec(&carte, &scans_locaux(&paths, &carte), Some(&galerie));
+        let libelles: Vec<String> = t.colonnes.iter().map(ArtworkPropose::libelle).collect();
+        assert_eq!(libelles, ["Scan AA", "Scan AA2"]);
+        assert_eq!(t.libelles_completes(), ["Scan · LCKC-EN001"]);
+        // Une galerie vide ne change rien.
+        let vide = Galerie::default();
+        assert_eq!(
+            tableau_avec(&carte, &scans_locaux(&paths, &carte), Some(&vide)),
+            tableau(&carte, &scans_locaux(&paths, &carte))
+        );
     }
 
     /// La récolte de Yugipedia complète celle du disque sans la remplacer.

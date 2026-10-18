@@ -1948,6 +1948,7 @@ pub fn message_controle(bilan: &Result<ygo_app::controle::Bilan, String>) -> Str
         ),
         (b.images_tirage, "image(s) de tirage posée(s)"),
         (b.replis, "image(s) reprise(s)"),
+        (b.galerie, "scan(s) rendu(s) à leur numéro"),
     ] {
         if n > 0 {
             parties.push(format!("{n} {quoi}"));

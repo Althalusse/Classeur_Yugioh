@@ -29,6 +29,9 @@
 //!    réseau.
 //! 7. **Replis d'images** ([`crate::replis::reprendre`]) — ce que Yugipedia
 //!    a ajouté depuis.
+//! 8. **Galeries** ([`crate::galerie::realigner`], 2026-10-18) — en dernier :
+//!    `images_tirage` a pu poser sur un numéro le scan d'un autre, la
+//!    galerie du set rend chacun au sien.
 //!
 //! Une étape en échec est **dite** dans le bilan et n'arrête pas les
 //! suivantes : un Yugipedia injoignable n'empêche pas de canoniser une
@@ -67,6 +70,9 @@ pub struct Bilan {
     pub images_tirage: usize,
     /// Adresses d'image reposées par la reprise des replis.
     pub replis: usize,
+    /// Lignes rendues à leur scan d'après la galerie du set, après les
+    /// images de tirage (étape 8).
+    pub galerie: usize,
     /// Ce qui n'a pas pu être fait, une phrase par étape.
     pub echecs: Vec<String>,
     /// Classeurs dont les images sont à revoir.
@@ -84,6 +90,7 @@ impl Bilan {
             + self.illustrations
             + self.images_tirage
             + self.replis
+            + self.galerie
     }
 }
 
@@ -194,6 +201,20 @@ pub async fn complet(
         Err(e) => bilan.echecs.push(format!("replis d'images — {e}")),
     }
 
+    // Les galeries en dernier — cf. l'en-tête. Gardées 30 jours : l'étape 5
+    // vient de les lire, celle-ci ne coûte que ce qu'elle corrige. Ce que
+    // l'étape 5 a déjà rendu est compté dans `illustrations`.
+    for code in paths.classeurs_existants() {
+        match crate::galerie::realigner(paths, client, &code).await {
+            Ok(g) if g.posees > 0 => {
+                bilan.galerie += g.posees;
+                touches.insert(code);
+            }
+            Ok(_) => {}
+            Err(e) => bilan.echecs.push(format!("galerie {code} — {e}")),
+        }
+    }
+
     bilan.touches = touches.into_iter().collect();
     tracing::info!(
         classeurs = bilan.classeurs,
@@ -205,6 +226,7 @@ pub async fn complet(
         illustrations = bilan.illustrations,
         images_tirage = bilan.images_tirage,
         replis = bilan.replis,
+        galerie = bilan.galerie,
         echecs = bilan.echecs.len(),
         "contrôle complet — terminé"
     );

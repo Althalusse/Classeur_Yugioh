@@ -615,15 +615,22 @@ impl EcranAccueil {
                         self.stats = true;
                     }
                     ui.add_space(8.0);
-                    if ui.button("Exporter…").clicked() {
+                    if ui
+                        .button("Exporter…")
+                        .on_hover_text(
+                            "Vers Scanflip, ou vers une autre installation de \
+                             l'application (format Application : tout, tel quel)",
+                        )
+                        .clicked()
+                    {
                         self.csv.basculer(Face::Export);
                     }
                     ui.add_space(8.0);
                     if ui
                         .button("Importer…")
                         .on_hover_text(
-                            "Un CSV Scanflip — vous pouvez aussi le déposer \
-                             directement sur la fenêtre",
+                            "Un CSV Scanflip ou Application — vous pouvez aussi le \
+                             déposer directement sur la fenêtre",
                         )
                         .clicked()
                     {

@@ -5,7 +5,7 @@ classeur : chaque tirage à sa place, avec sa rareté, son illustration et son
 édition, et pour chaque carte possédée, l'état de chaque exemplaire.
 
 Application de bureau pour **Windows**, écrite en **Rust** (interface egui).
-Version actuelle : **2.0.0-alpha.1**.
+Version actuelle : **2.0.7**.
 
 > Projet de fan, non officiel, sans lien avec Konami. *Yu-Gi-Oh!* et les
 > illustrations des cartes appartiennent à leurs ayants droit. Aucune image de
@@ -30,10 +30,16 @@ Version actuelle : **2.0.0-alpha.1**.
   la base connaît pour ce tirage.
 - **L'inventaire** — toute la collection, tous classeurs confondus : tri,
   filtres, sélection multiple, actions en masse, détail par exemplaire.
-- **Import / export Scanflip** — aller-retour CSV sans perte d'état ni
-  d'édition. L'export est aussi une sauvegarde complète, lisible dans un
-  tableur : les cartes japonaises (OCG) y figurent avec leur code et leur
-  langue, et l'application les relit — Scanflip, lui, ne connaît pas l'OCG.
+- **Import / export CSV** — deux formats au choix, tous deux sans perte
+  d'état ni d'édition : **Scanflip** (les onze colonnes de Scanflip, sans les
+  classeurs japonais — Scanflip ne connaît pas l'OCG) et **Application**
+  (toute la collection telle quelle, OCG compris, avec de quoi retrouver
+  chaque illustration : la sauvegarde, ou le passage vers une autre
+  installation). L'import relit les deux.
+- **Chaque scan à son numéro** — quand un set imprime une carte sous
+  plusieurs numéros, la galerie Yugipedia du set dit lequel porte quel
+  artwork ; « Modifier l'artwork… » propose ceux de la carte d'abord, et
+  laisse choisir celui d'un autre numéro si c'est celui de la carte en main.
 - **Noms français officiels** — jamais inventés : une carte sans nom français
   officiel garde son nom anglais.
 - **Statistiques**, **corbeille** (un classeur supprimé se restaure), **fiche

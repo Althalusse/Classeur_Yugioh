@@ -996,6 +996,10 @@ pub struct Partout {
     /// Classeurs que Yugipedia n'a pas permis de vérifier (réseau, page
     /// introuvable, passe en échec) — à reprendre plus tard.
     pub echecs: usize,
+    /// Lignes rendues à leur scan d'après la galerie du set
+    /// ([`crate::galerie`], 2026-10-18) — comptées aussi dans
+    /// `illustrations`.
+    pub galerie: usize,
     /// Classeurs modifiés — leurs images sont à télécharger.
     pub touches: Vec<String>,
 }
@@ -1027,6 +1031,12 @@ pub struct Partout {
 /// `LCKC-EN046`, les deux Dragons alternatifs du deck de Kaiba
 /// (`LDK2-ENK01`).
 ///
+/// Depuis le 2026-10-18, chaque classeur est enfin **réaligné sur la
+/// galerie** de son set ([`crate::galerie::realigner`]) : un scan posé sur le
+/// mauvais numéro (`RA04-EN002` qui montrait l'`AA` d'`EN108`) retrouve le
+/// sien. La galerie est gardée 30 jours ; un classeur qu'elle ne contredit
+/// pas ne coûte rien de plus.
+///
 /// Un classeur sain ne coûte donc que la vérification des numéros.
 ///
 /// Un classeur en échec (Yugipedia indisponible, page introuvable) est
@@ -1038,59 +1048,86 @@ pub async fn partout(
 ) -> Partout {
     let mut bilan = Partout::default();
     for code in paths.classeurs_existants() {
-        let issue = match completer(paths, client, &code, raretes, true).await {
-            Ok(Issue::Fait(b)) => b,
-            Ok(_) => continue,
+        let touche = numeros_et_passe(paths, client, &code, raretes, &mut bilan).await;
+        // La galerie après tout le reste : la passe et `images_tirage` ont
+        // posé leurs images, elle en rend chaque scan à son numéro.
+        let realignes = match crate::galerie::realigner(paths, client, &code).await {
+            Ok(g) => g.posees,
             Err(e) => {
-                tracing::warn!(classeur = %code, erreur = %e, "numéros manquants non vérifiés");
-                bilan.echecs += 1;
-                continue;
+                tracing::warn!(classeur = %code, erreur = %e, "galerie du set non lue");
+                0
             }
         };
-        bilan.introuvables += issue.introuvables.len();
-        // Des images posées sans numéro ajouté : un numéro d'un passage
-        // précédent, dont les tirages en variante attendent la passe. Des
-        // Overframe sans image : une passe qui n'avait rien trouvé. Des
-        // illustrations multiples incomplètes : un classeur d'avant leur
-        // prise en charge.
-        let variantes = variantes_sans_image(paths, &code);
-        if issue.ajouts.is_empty()
-            && issue.images == 0
-            && variantes == 0
-            && issue.illustrations_a_reprendre == 0
-        {
-            continue;
-        }
-        bilan.numeros += issue.ajouts.len();
-        bilan.lignes += issue.lignes();
-        let (illustrations, artworks) =
-            match crate::creation::completer_artworks(paths, client, &code, raretes).await {
-                Ok(apres) => (
-                    apres.bilan.illustrations + apres.replis,
-                    apres.bilan.ajoutes,
-                ),
-                Err(e) => {
-                    tracing::warn!(classeur = %code, erreur = %e, "passe artworks refaite");
-                    bilan.echecs += 1;
-                    (0, 0)
-                }
-            };
-        tracing::info!(
-            classeur = %code,
-            numeros = issue.ajouts.len(),
-            overframe_sans_image = variantes,
-            illustrations_multiples = issue.illustrations_a_reprendre,
-            illustrations,
-            artworks,
-            "classeur réaligné sur Yugipedia"
-        );
-        bilan.illustrations += illustrations;
-        bilan.artworks += artworks;
-        if !issue.ajouts.is_empty() || issue.images > 0 || illustrations > 0 || artworks > 0 {
+        bilan.galerie += realignes;
+        bilan.illustrations += realignes;
+        if touche || realignes > 0 {
             bilan.touches.push(code);
         }
     }
     bilan
+}
+
+/// Les numéros manquants d'un classeur, puis sa passe artworks s'il en a
+/// besoin — cf. [`partout`]. Rend `true` si le classeur a changé.
+async fn numeros_et_passe(
+    paths: &Paths,
+    client: &ygo_sources::ClientHttp,
+    code: &str,
+    raretes: &Priorites,
+    bilan: &mut Partout,
+) -> bool {
+    let issue = match completer(paths, client, code, raretes, true).await {
+        Ok(Issue::Fait(b)) => b,
+        Ok(_) => return false,
+        Err(e) => {
+            tracing::warn!(classeur = %code, erreur = %e, "numéros manquants non vérifiés");
+            bilan.echecs += 1;
+            return false;
+        }
+    };
+    bilan.introuvables += issue.introuvables.len();
+    // Des images posées sans numéro ajouté : un numéro d'un passage
+    // précédent, dont les tirages en variante attendent la passe. Des
+    // Overframe sans image : une passe qui n'avait rien trouvé. Des
+    // illustrations multiples incomplètes : un classeur d'avant leur
+    // prise en charge.
+    let variantes = variantes_sans_image(paths, code);
+    if issue.ajouts.is_empty()
+        && issue.images == 0
+        && variantes == 0
+        && issue.illustrations_a_reprendre == 0
+    {
+        return false;
+    }
+    bilan.numeros += issue.ajouts.len();
+    bilan.lignes += issue.lignes();
+    let (illustrations, artworks) =
+        match crate::creation::completer_artworks(paths, client, code, raretes).await {
+            Ok(apres) => {
+                bilan.galerie += apres.galerie;
+                (
+                    apres.bilan.illustrations + apres.replis + apres.galerie,
+                    apres.bilan.ajoutes,
+                )
+            }
+            Err(e) => {
+                tracing::warn!(classeur = %code, erreur = %e, "passe artworks refaite");
+                bilan.echecs += 1;
+                (0, 0)
+            }
+        };
+    tracing::info!(
+        classeur = %code,
+        numeros = issue.ajouts.len(),
+        overframe_sans_image = variantes,
+        illustrations_multiples = issue.illustrations_a_reprendre,
+        illustrations,
+        artworks,
+        "classeur réaligné sur Yugipedia"
+    );
+    bilan.illustrations += illustrations;
+    bilan.artworks += artworks;
+    !issue.ajouts.is_empty() || issue.images > 0 || illustrations > 0 || artworks > 0
 }
 
 /// Les lignes du classeur `code` qui attendent une passe :

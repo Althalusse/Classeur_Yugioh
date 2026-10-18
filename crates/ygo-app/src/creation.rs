@@ -1336,6 +1336,9 @@ pub struct ApresArtworks {
     /// Lignes sans image à elles qui ont reçu le fichier Yugipedia de leur
     /// rareté (cf. `artworks::poser_images_de_repli`).
     pub replis: usize,
+    /// Lignes rendues à leur scan d'après la galerie du set
+    /// (cf. [`crate::galerie`]).
+    pub galerie: usize,
 }
 
 /// La passe artworks d'un classeur, **suivie** du rattrapage des fantômes.
@@ -1407,10 +1410,21 @@ pub async fn completer_artworks(
     // La passe a créé des tirages en recopiant une ligne sœur, URL comprise :
     // chacun doit recevoir l'image de **son** tirage.
     poser_images_tirage(paths, code, reference);
+    // La galerie en dernier : un nom de fichier ne dit pas son numéro, et la
+    // passe comme `images_tirage` ont pu donner à un numéro le scan d'un
+    // autre (`RA04-EN002`, 2026-10-18). Son échec ne coûte pas la passe.
+    let galerie = match crate::galerie::realigner(paths, client, code).await {
+        Ok(g) => g.posees,
+        Err(e) => {
+            tracing::warn!(classeur = %code, erreur = %e, "galerie du set non lue");
+            0
+        }
+    };
     Ok(ApresArtworks {
         bilan,
         fantomes_retires,
         replis,
+        galerie,
     })
 }
 

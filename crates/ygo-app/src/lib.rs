@@ -43,6 +43,7 @@ pub mod error;
 pub mod exemplaires;
 pub mod export;
 pub mod fiche;
+pub mod galerie;
 pub mod images;
 pub mod images_tirage;
 pub mod import;

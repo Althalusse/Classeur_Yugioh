@@ -24,21 +24,34 @@
 //! deux : l'export les rend dans la langue demandée pour le fichier. C'est
 //! la perte que l'import signale déjà à l'entrée, et elle est symétrique.
 //!
-//! # Les classeurs OCG sont exportés — 2026-10-11
+//! # Deux formats : « Scanflip » et « Application » — 2026-10-18
 //!
-//! Ils étaient écartés : la colonne `Langue` était la même pour tout le
-//! fichier, et les 154 cartes `LOCR-JP` de l'installation réelle
-//! ressortaient étiquetées « Français (France) ». Mais l'export n'est pas
-//! qu'un envoi vers Scanflip : c'est aussi **la sauvegarde** de la collection,
-//! celle qu'on ouvre dans un tableur. Un export qui oublie les cartes
-//! japonaises n'en est pas une — et l'import de l'application, qui les relit
-//! très bien, ne les retrouvait jamais après un aller-retour.
+//! L'export servait deux maîtres à la fois : Scanflip, qui ne connaît pas
+//! l'OCG et attend des codes dans la langue de la carte, et l'application
+//! elle-même, qui relit le fichier dans une autre installation (sauvegarde,
+//! transfert vers une nouvelle version). Le compromis — classeurs OCG inclus,
+//! codes TCG traduits — ne contentait ni l'un ni l'autre : Scanflip recevait
+//! des lignes qu'il rejette, et l'autre installation des codes qu'elle n'a
+//! pas (`CORI-ENS10` d'un classeur japonais, exporté en `CORI-FRS10`).
+//! L'utilisateur choisit désormais ([`Format`]) :
 //!
-//! La langue s'écrit donc **par ligne** : une carte OCG garde son code natif
-//! (`LOCR-JP001`) et reçoit le libellé de sa langue ([`libelle_ocg`]), les
-//! autres celui du fichier. Scanflip ne connaissant pas l'OCG, [`Bilan::ocg`]
-//! nomme les classeurs concernés pour que l'utilisateur le sache avant
-//! d'envoyer le fichier.
+//! - **Scanflip** : ses onze colonnes, codes traduits dans la langue du
+//!   fichier, et **sans les classeurs OCG** ([`classeurs_du_format`]) —
+//!   [`Bilan::ecartes`] les nomme.
+//! - **Application** : tous les classeurs, **codes tels qu'en base**, et les
+//!   colonnes qui désignent une ligne sans deviner
+//!   ([`crate::scanflip::Complement`] : rareté exacte, nom anglais,
+//!   illustration, identifiant d'image, Overframe). La colonne `Langue` garde
+//!   la langue de la collection (celle de l'en-tête, celle de sa région pour
+//!   un tirage OCG) : la base ne connaît pas la langue d'un exemplaire, et un
+//!   code en `-EN` n'en dit rien.
+//!
+//! # Les classeurs OCG — 2026-10-11
+//!
+//! Un tirage OCG garde son code natif (`LOCR-JP001`) et reçoit le libellé de
+//! sa langue ([`libelle_ocg`]), les autres celui du fichier. Scanflip ne
+//! connaissant pas l'OCG, ses classeurs ne sortent plus qu'au format
+//! « Application » ; [`Bilan::ocg`] les nomme.
 //!
 //! # L'état inconnu reste vide
 //!
@@ -57,7 +70,36 @@ use ygo_core::rarity::{self, reference};
 
 use crate::error::{AppError, Result};
 use crate::import;
-use crate::scanflip::{Edition, Sortie};
+use crate::scanflip::{Complement, Edition, Sortie};
+
+/// Ce qu'un export vise.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Format {
+    /// Scanflip : onze colonnes, codes dans la langue du fichier, classeurs
+    /// OCG écartés.
+    #[default]
+    Scanflip,
+    /// Une autre installation de l'application : tous les classeurs, codes
+    /// tels qu'en base, colonnes d'identité en plus.
+    Application,
+}
+
+impl Format {
+    /// Le nom montré à l'utilisateur.
+    #[must_use]
+    pub fn libelle(self) -> &'static str {
+        match self {
+            Self::Scanflip => "Scanflip",
+            Self::Application => "Application",
+        }
+    }
+
+    /// Les deux formats, dans l'ordre où l'écran les propose.
+    #[must_use]
+    pub fn tous() -> [Self; 2] {
+        [Self::Scanflip, Self::Application]
+    }
+}
 
 /// La langue d'un fichier exporté.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -93,7 +135,7 @@ impl Langue {
 }
 
 /// Une ligne possédée, telle que la base la donne.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Possedee {
     /// Identité de la ligne.
     pub rowid: i64,
@@ -115,6 +157,11 @@ pub struct Possedee {
     pub qualite: String,
     /// Édition stockée (`1st`, `unlimited`, `limited`).
     pub edition: String,
+    /// Adresse de l'image (`card_image_url`) — l'illustration de l'export
+    /// « Application ».
+    pub image: String,
+    /// Tirage à cadre étendu (`extended_art`).
+    pub overframe: bool,
 }
 
 /// Traduit un code carte vers la langue de l'export.
@@ -194,6 +241,11 @@ pub fn libelle_ocg(code: &str) -> Option<&'static str> {
 /// Ce qu'un export contient, et ce qu'il a laissé de côté.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Bilan {
+    /// Le format écrit.
+    pub format: Format,
+    /// Classeurs que le format n'exporte pas — les classeurs OCG d'un export
+    /// Scanflip.
+    pub ecartes: Vec<String>,
     /// Lignes écrites.
     pub lignes: usize,
     /// Somme des quantités.
@@ -220,6 +272,12 @@ pub fn bilan(lignes: &[Sortie]) -> Bilan {
     ocg.sort_unstable();
     ocg.dedup();
     Bilan {
+        format: if lignes.iter().any(|l| l.complement.is_some()) {
+            Format::Application
+        } else {
+            Format::Scanflip
+        },
+        ecartes: Vec::new(),
         lignes: lignes.len(),
         exemplaires: lignes.iter().map(|l| l.quantite).sum(),
         sans_etat: lignes
@@ -342,9 +400,104 @@ pub fn lignes(
                     .map_or_else(|| p.qualite.clone(), ToOwned::to_owned),
                 quantite: p.quantite.max(1),
                 artwork: rang,
+                complement: None,
             }
         })
         .collect()
+}
+
+/// Transforme les lignes possédées en lignes de l'export « Application ».
+///
+/// Les onze colonnes de Scanflip, à une différence près : le **code reste
+/// celui de la base** (`RA04-EN002`, `CORI-JPS10`), jamais traduit — c'est
+/// lui que l'autre installation connaît. Le complément dit le reste : la
+/// rareté exacte, le nom anglais, l'illustration, son identifiant et le
+/// cadre.
+#[must_use]
+pub fn lignes_application(
+    possedees: &[Possedee],
+    langue: Langue,
+    rangs: &HashMap<(String, i64), u32>,
+) -> Vec<Sortie> {
+    lignes(possedees, langue, rangs)
+        .into_iter()
+        .zip(possedees)
+        .map(|(sortie, p)| Sortie {
+            code: p.set_code.clone(),
+            complement: Some(Complement {
+                rarete: p.rarity.clone(),
+                nom_anglais: p.name.clone(),
+                illustration: import::illustration_de(&p.image),
+                id_image: p.card_image_id,
+                overframe: p.overframe,
+            }),
+            ..sortie
+        })
+        .collect()
+}
+
+/// Les classeurs qu'un format exporte, et ceux qu'il écarte.
+///
+/// Scanflip ne connaît pas l'OCG : un export Scanflip laisse les classeurs
+/// OCG de côté — et leurs tirages anglais avec eux (`CORI-ENS10`, rangé dans
+/// `CORI-JP`), que Scanflip recevrait sous un code qu'il ne relie à rien.
+///
+/// ```
+/// use ygo_app::export::{classeurs_du_format, Format};
+/// let tous = vec!["CORI-JP".to_owned(), "RA04".to_owned()];
+/// assert_eq!(
+///     classeurs_du_format(Format::Scanflip, &tous),
+///     (vec!["RA04".to_owned()], vec!["CORI-JP".to_owned()])
+/// );
+/// assert_eq!(classeurs_du_format(Format::Application, &tous), (tous.clone(), vec![]));
+/// ```
+#[must_use]
+pub fn classeurs_du_format(format: Format, classeurs: &[String]) -> (Vec<String>, Vec<String>) {
+    match format {
+        Format::Application => (classeurs.to_vec(), Vec::new()),
+        Format::Scanflip => classeurs.iter().cloned().partition(|c| !a_suffixe_ocg(c)),
+    }
+}
+
+/// Un export prêt à écrire : ses lignes, et ce qu'il en faut savoir.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Export {
+    /// Les lignes, dans l'ordre des classeurs puis du classeur.
+    pub lignes: Vec<Sortie>,
+    /// Le bilan, classeurs écartés compris.
+    pub bilan: Bilan,
+}
+
+/// Prépare l'export de `classeurs` au `format` donné.
+///
+/// Les rangs se lisent sur la base entière des classeurs exportés, pas sur
+/// les seules cartes possédées : c'est la même numérotation que l'import.
+///
+/// # Errors
+///
+/// Rend une erreur au premier classeur illisible.
+pub fn preparer(
+    paths: &Paths,
+    classeurs: &[String],
+    format: Format,
+    langue: Langue,
+) -> Result<Export> {
+    let (retenus, ecartes) = classeurs_du_format(format, classeurs);
+    let rangs = rangs(&bases_de(paths, &retenus)?);
+    let possedees = possedees_de(paths, &retenus)?;
+    let lignes = match format {
+        Format::Scanflip => lignes(&possedees, langue, &rangs),
+        Format::Application => lignes_application(&possedees, langue, &rangs),
+    };
+    let mut bilan = bilan(&lignes);
+    bilan.format = format;
+    bilan.ecartes = ecartes;
+    if format == Format::Application {
+        // Les règles de Scanflip ne concernent pas un fichier qui ne lui est
+        // pas destiné : l'application relit toutes ses raretés.
+        bilan.raretes_refusees.clear();
+    }
+    Ok(Export { lignes, bilan })
 }
 
 /// Lit les cartes possédées d'un classeur.
@@ -369,7 +522,7 @@ pub fn possedees(paths: &Paths, classeur: &str) -> Result<Vec<Possedee>> {
     let mut requete = conn
         .prepare(
             "SELECT rowid, set_code, rarity, card_image_id, name, name_fr,
-                    quantite, qualite, edition
+                    quantite, qualite, edition, card_image_url, extended_art
                FROM cards
               WHERE possessed = 1
               ORDER BY sort_order, rowid",
@@ -389,6 +542,8 @@ pub fn possedees(paths: &Paths, classeur: &str) -> Result<Vec<Possedee>> {
                 quantite: l.get::<_, Option<i64>>(6)?.unwrap_or(1),
                 qualite: l.get::<_, Option<String>>(7)?.unwrap_or_default(),
                 edition: l.get::<_, Option<String>>(8)?.unwrap_or_default(),
+                image: l.get::<_, Option<String>>(9)?.unwrap_or_default(),
+                overframe: l.get::<_, Option<i64>>(10)?.unwrap_or(0) != 0,
             })
         })
         .and_then(Iterator::collect::<rusqlite::Result<Vec<_>>>)
@@ -457,6 +612,7 @@ mod tests {
             quantite: 1,
             qualite: "NM".into(),
             edition: "1st".into(),
+            ..Possedee::default()
         }
     }
 
@@ -472,6 +628,7 @@ mod tests {
                 card_image_id: Some(*img),
                 name: "Rescue Cat".into(),
                 name_fr: Some("Chat Sauveteur".into()),
+                ..import::LigneBase::default()
             });
         }
         bases
@@ -789,6 +946,7 @@ mod tests {
                 card_image_id: Some(1),
                 name: "Rescue Cat".into(),
                 name_fr: None,
+                ..import::LigneBase::default()
             }],
         );
         let sortie = lignes(&[jp, tcg], Langue::Francais, &rangs(&base));
@@ -818,6 +976,7 @@ mod tests {
                 card_image_id: Some(9),
                 name: "Rescue Cat".into(),
                 name_fr: None,
+                ..import::LigneBase::default()
             }],
         )]);
         let sortie = lignes(&[jp], Langue::Francais, &rangs(&base));
@@ -930,6 +1089,7 @@ mod tests {
                     card_image_id: p.card_image_id,
                     name: p.name.clone(),
                     name_fr: (!p.name_fr.is_empty()).then(|| p.name_fr.clone()),
+                    ..import::LigneBase::default()
                 });
         }
         let rapport = import::planifier(&relu.lignes, &bases);
@@ -972,5 +1132,225 @@ mod tests {
         let relu = scanflip::lire_octets(&octets).unwrap();
         assert_eq!(relu.lignes[0].edition, Some(Edition::Premiere));
         assert_eq!(relu.lignes[0].qualite, "NM");
+    }
+
+    /// Une ligne de l'export « Application » : le code de la base, jamais
+    /// traduit, et le complément qui désigne la ligne.
+    #[test]
+    fn l_export_application_garde_le_code_de_la_base_et_l_illustration() {
+        let mut p = possedee(
+            984,
+            "RA04-EN002",
+            "Quarter Century Secret Rare",
+            -610_954_957,
+        );
+        p.image =
+            "https://ms.yugipedia.com//b/bd/BlueEyesWhiteDragon-RA04-EN-QCScR-1E-AA.png".into();
+        p.overframe = true;
+        let rangs = rangs(&base_des(std::slice::from_ref(&p)));
+        let scanflip = lignes(std::slice::from_ref(&p), Langue::Francais, &rangs);
+        let application = lignes_application(std::slice::from_ref(&p), Langue::Francais, &rangs);
+        assert_eq!(scanflip[0].code, "RA04-FR002");
+        assert_eq!(scanflip[0].complement, None);
+        let a = &application[0];
+        assert_eq!(a.code, "RA04-EN002", "le code de la base");
+        assert_eq!(a.rarete, scanflip[0].rarete, "la case Rareté ne change pas");
+        assert_eq!(
+            (a.langue.as_str(), a.nom.as_str(), a.quantite),
+            (scanflip[0].langue.as_str(), scanflip[0].nom.as_str(), 1)
+        );
+        assert_eq!(
+            a.complement,
+            Some(Complement {
+                rarete: "Quarter Century Secret Rare".into(),
+                nom_anglais: "Rescue Cat".into(),
+                illustration: "BlueEyesWhiteDragon-RA04-EN-QCScR-1E-AA.png".into(),
+                id_image: Some(-610_954_957),
+                overframe: true,
+            })
+        );
+        assert_eq!(bilan(&application).format, Format::Application);
+        assert_eq!(bilan(&scanflip).format, Format::Scanflip);
+    }
+
+    /// Le cas qui a motivé le format : deux installations qui ne rangent pas
+    /// les artworks d'un tirage dans le même ordre. Par le rang (Scanflip),
+    /// les deux cartes échangent leurs lignes ; par l'illustration
+    /// (Application), chacune retrouve la sienne.
+    #[test]
+    fn l_export_application_survit_a_un_autre_ordre_des_artworks() {
+        // La source range le scan de base (976) avant l'AA (587) ; la cible a
+        // les mêmes scans sous d'autres identifiants, et l'ordre inverse.
+        let fichiers = [
+            (
+                976,
+                -1_589_717_855,
+                10,
+                100,
+                "BlueEyesWhiteDragon-RA04-EN-QCScR-1E.png",
+            ),
+            (
+                587,
+                -610_954_957,
+                11,
+                99,
+                "BlueEyesWhiteDragon-RA04-EN-QCScR-1E-AA.png",
+            ),
+        ];
+        let rarete = "Quarter Century Secret Rare";
+        let source: Vec<Possedee> = fichiers
+            .iter()
+            .map(|(rowid, img, _, _, fichier)| Possedee {
+                image: format!("https://ms.yugipedia.com//a/ab/{fichier}"),
+                ..possedee(*rowid, "RA04-EN108", rarete, *img)
+            })
+            .collect();
+        let cible = HashMap::from([(
+            "RA04".to_owned(),
+            fichiers
+                .iter()
+                .map(|(_, _, rowid, img, fichier)| import::LigneBase {
+                    rowid: *rowid,
+                    set_code: "RA04-EN108".into(),
+                    rarity: rarete.into(),
+                    card_image_id: Some(*img),
+                    name: "Blue-Eyes White Dragon".into(),
+                    image: format!("https://ms.yugipedia.com//c/cd/{fichier}"),
+                    ..import::LigneBase::default()
+                })
+                .collect::<Vec<_>>(),
+        )]);
+        let rangs_source = rangs(&base_des(&source));
+        // La ligne de la cible où une ligne exportée retombe.
+        let cible_de = |sortie: &Sortie| -> i64 {
+            let octets = scanflip::ecrire_octets(std::slice::from_ref(sortie)).unwrap();
+            let lecture = scanflip::lire_octets(&octets).unwrap();
+            let r = import::planifier(&lecture.lignes, &cible);
+            assert!(r.refusees.is_empty(), "{:?}", r.refusees);
+            r.ecritures[0].rowid
+        };
+        let par_rang: Vec<i64> = lignes(&source, Langue::Francais, &rangs_source)
+            .iter()
+            .map(cible_de)
+            .collect();
+        let par_illustration: Vec<i64> =
+            lignes_application(&source, Langue::Francais, &rangs_source)
+                .iter()
+                .map(cible_de)
+                .collect();
+        assert_eq!(
+            par_rang,
+            vec![11, 10],
+            "par le rang, elles échangent leurs lignes"
+        );
+        assert_eq!(
+            par_illustration,
+            vec![10, 11],
+            "par l'illustration, chacune la sienne"
+        );
+    }
+
+    /// Une installation jetable : un classeur TCG et un classeur OCG.
+    fn installation() -> (tempfile::TempDir, Paths) {
+        let tmp = tempfile::tempdir().unwrap();
+        let paths = Paths::depuis_racine(tmp.path());
+        for (classeur, lignes) in [
+            (
+                "RA04",
+                vec![(
+                    984,
+                    "RA04-EN002",
+                    "Quarter Century Secret Rare",
+                    "BlueEyesWhiteDragon-RA04-EN-QCScR-1E.png",
+                )],
+            ),
+            (
+                "CORI-JP",
+                vec![
+                    (
+                        125,
+                        "CORI-JPS10",
+                        "Ultra Rare",
+                        "MelffyMommy-CORI-JP-UR.png",
+                    ),
+                    (170, "CORI-JP080", "Normal Rare", ""),
+                    (171, "CORI-ENS10", "Grand Master Rare", ""),
+                ],
+            ),
+        ] {
+            std::fs::create_dir_all(paths.dossier_classeur(classeur)).unwrap();
+            let conn = rusqlite::Connection::open(paths.classeur_db(classeur)).unwrap();
+            conn.execute_batch(ygo_db::schema::DDL_CLASSEUR).unwrap();
+            for (rowid, set_code, rarity, fichier) in lignes {
+                conn.execute(
+                    "INSERT INTO cards (rowid, name, set_code, rarity, card_image_id, card_image_url,
+                                        possessed, quantite, qualite, edition)
+                     VALUES (?1, 'Carte', ?2, ?3, ?1, ?4, 1, 1, 'NM', '1st')",
+                    rusqlite::params![
+                        rowid,
+                        set_code,
+                        rarity,
+                        if fichier.is_empty() {
+                            String::new()
+                        } else {
+                            format!("https://ms.yugipedia.com//a/ab/{fichier}")
+                        }
+                    ],
+                )
+                .unwrap();
+            }
+        }
+        (tmp, paths)
+    }
+
+    /// Scanflip écarte les classeurs OCG et le dit ; Application les garde,
+    /// codes de la base compris — et se relit sans un refus.
+    #[test]
+    fn chaque_format_choisit_ses_classeurs() {
+        let (_tmp, paths) = installation();
+        let classeurs = vec!["CORI-JP".to_owned(), "RA04".to_owned()];
+
+        let scanflip = preparer(&paths, &classeurs, Format::Scanflip, Langue::Francais).unwrap();
+        assert_eq!(scanflip.bilan.format, Format::Scanflip);
+        assert_eq!(scanflip.bilan.ecartes, vec!["CORI-JP".to_owned()]);
+        assert_eq!(scanflip.lignes.len(), 1);
+        assert_eq!(scanflip.lignes[0].code, "RA04-FR002");
+        assert!(scanflip.bilan.ocg.is_empty());
+
+        let application =
+            preparer(&paths, &classeurs, Format::Application, Langue::Francais).unwrap();
+        assert_eq!(application.bilan.format, Format::Application);
+        assert!(application.bilan.ecartes.is_empty());
+        assert_eq!(application.bilan.ocg, vec!["CORI-JP".to_owned()]);
+        let codes: Vec<&str> = application.lignes.iter().map(|l| l.code.as_str()).collect();
+        assert_eq!(
+            codes,
+            vec!["CORI-JPS10", "CORI-JP080", "CORI-ENS10", "RA04-EN002"]
+        );
+        assert!(
+            application.bilan.raretes_refusees.is_empty(),
+            "les règles de Scanflip ne concernent pas ce fichier"
+        );
+        assert_eq!(
+            application.lignes[0]
+                .complement
+                .as_ref()
+                .map(|c| c.illustration.as_str()),
+            Some("MelffyMommy-CORI-JP-UR.png")
+        );
+
+        // Et l'aller-retour dans la même installation est un point fixe.
+        let octets = scanflip::ecrire_octets(&application.lignes).unwrap();
+        let lecture = scanflip::lire_octets(&octets).unwrap();
+        assert!(lecture.application);
+        let rapport = import::planifier(
+            &lecture.lignes,
+            &import::bases_pour(&paths, &lecture.lignes),
+        );
+        assert!(rapport.refusees.is_empty(), "{:?}", rapport.refusees);
+        assert!(rapport.resolues.is_empty() && rapport.redirigees.is_empty());
+        let mut rowids: Vec<i64> = rapport.ecritures.iter().map(|e| e.rowid).collect();
+        rowids.sort_unstable();
+        assert_eq!(rowids, vec![125, 170, 171, 984]);
     }
 }

@@ -79,6 +79,31 @@
 //! l'utilisateur voit quel code son fichier portait et lequel a été retenu.
 //! Deviner en silence serait pire que refuser.
 //!
+//! # Un fichier venu d'une autre installation — 2026-10-18
+//!
+//! L'export d'une installation, réimporté dans une autre, refusait deux
+//! lignes sur 1 317 (relevé sur le classeur réel de l'utilisateur) :
+//!
+//! - **`CORI-JP080` « Normal Rare »** : la rareté n'a pas de code Scanflip,
+//!   l'export l'a écrite en toutes lettres, et l'import ne cherchait que dans
+//!   le référentiel. Un libellé **que le classeur porte** est désormais un
+//!   candidat, écrit tel quel ([`libelles_possibles`] ne change pas).
+//! - **`CORI-FRS10` « Mommy Melffy »** : dans l'installation de départ, la
+//!   ligne était `CORI-ENS10` — un tirage anglais rangé dans le classeur
+//!   japonais —, que l'export a traduit ; l'autre installation l'appelle
+//!   `CORI-JPS10`. Quand rien ne répond, le code est essayé **dans la langue
+//!   du classeur OCG** ([`dans_la_langue`]), et retenu seulement si le nom
+//!   de la carte le confirme. La résolution est nommée dans le rapport, comme
+//!   celle des sous-jeux ([`Motif`]).
+//!
+//! Le format « Application » ([`crate::scanflip::Complement`]) va plus loin :
+//! il porte la rareté exacte et l'illustration de chaque ligne. Le rang reste
+//! la règle, mais quand l'illustration désigne **une autre ligne du même
+//! tirage** — deux installations qui ne numérotent pas leurs artworks pareil
+//! —, c'est l'illustration qui l'emporte ([`Rapport::redirigees`]). Une
+//! illustration que la base ne connaît plus (scan remplacé par une passe) ne
+//! fait rien refuser : le rang décide alors, comme pour une ligne Scanflip.
+//!
 //! # Ce que l'import ne fait pas
 //!
 //! Il n'écrit que sur les lignes qu'il a appariées. Une carte possédée dans
@@ -92,10 +117,10 @@ use ygo_core::rarity::reference;
 
 use crate::error::{AppError, Result};
 use crate::exemplaires::Etat;
-use crate::scanflip::{Edition, Ligne};
+use crate::scanflip::{Complement, Edition, Ligne};
 
 /// Une ligne de classeur, réduite à ce que l'appariement regarde.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct LigneBase {
     /// `rowid` SQLite — l'identité d'une ligne, comme partout ailleurs.
     pub rowid: i64,
@@ -110,6 +135,11 @@ pub struct LigneBase {
     pub name: String,
     /// Nom français, quand la base en a un. Même usage.
     pub name_fr: Option<String>,
+    /// Adresse de l'image (`card_image_url`) — l'illustration que l'export
+    /// « Application » nomme.
+    pub image: String,
+    /// Tirage à cadre étendu (`extended_art`).
+    pub overframe: bool,
 }
 
 /// Pourquoi une ligne du CSV n'a pas trouvé sa place.
@@ -229,8 +259,18 @@ impl Ecriture {
     }
 }
 
-/// Une ligne dont le code manquait sa lettre de sous-jeu, et que le nom a
-/// permis de rattacher à un tirage précis.
+/// Pourquoi le code d'une ligne n'était pas celui de la base.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Motif {
+    /// Le code a perdu sa lettre de sous-jeu (`LDK2-FR01` pour `LDK2-ENJ01`).
+    SousJeu,
+    /// Le code est dans une autre langue que celle du classeur OCG
+    /// (`CORI-FRS10` pour `CORI-JPS10`).
+    LangueDuClasseur,
+}
+
+/// Une ligne dont le code ne désignait rien tel quel, et que le nom a permis
+/// de rattacher à un tirage précis.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Resolue {
     /// Numéro de ligne dans le fichier.
@@ -239,10 +279,12 @@ pub struct Resolue {
     pub classeur: String,
     /// Le code tel que le CSV l'écrit — `LDK2-FR01`.
     pub code_csv: String,
-    /// Le code retenu, en anglais — `LDK2-ENJ01`.
+    /// Le code retenu, celui de la base — `LDK2-ENJ01`.
     pub code_retenu: String,
     /// Le nom qui a servi à départager.
     pub nom: String,
+    /// Ce qui manquait au code.
+    pub motif: Motif,
 }
 
 /// Tout ce que l'import ferait, avant de l'avoir fait.
@@ -254,8 +296,13 @@ pub struct Rapport {
     pub refusees: Vec<Refusee>,
     /// Les fusions, y compris celles qui ne perdent rien.
     pub fusions: Vec<Fusion>,
-    /// Les codes sans lettre de sous-jeu rattachés grâce au nom.
+    /// Les codes rattachés grâce au nom : lettre de sous-jeu perdue, langue
+    /// autre que celle du classeur.
     pub resolues: Vec<Resolue>,
+    /// Les numéros des lignes « Application » posées d'après leur
+    /// illustration (ou leur cadre) sur une autre ligne que celle de leur
+    /// rang.
+    pub redirigees: Vec<usize>,
     /// Nombre de lignes CSV lues.
     pub lues: usize,
 }
@@ -317,10 +364,14 @@ pub fn vers_anglais(code: &str) -> String {
         return code.to_owned();
     };
     let (prefixe, reste) = code.split_at(tiret + 1);
-    let Some(langue) = LANGUES
-        .iter()
-        .find(|l| reste.len() >= 2 && reste[..2].eq_ignore_ascii_case(l))
-    else {
+    // `get` et non `[..2]` : une case retouchée à la main peut porter une
+    // lettre accentuée là, et couper un caractère en deux ferait paniquer
+    // l'import entier pour une seule ligne.
+    let Some(langue) = LANGUES.iter().find(|l| {
+        reste
+            .get(..2)
+            .is_some_and(|deux| deux.eq_ignore_ascii_case(l))
+    }) else {
         return code.to_owned();
     };
     let suffixe = reste.get(langue.len()..).unwrap_or("");
@@ -333,6 +384,89 @@ pub fn vers_anglais(code: &str) -> String {
         return code.to_owned();
     }
     format!("{prefixe}EN{suffixe}")
+}
+
+/// Le même code, dans la langue `langue` : `CORI-FRS10` en `JP` donne
+/// `CORI-JPS10`.
+///
+/// `None` quand le code n'a pas la forme `PRÉFIXE-LL[lettres]chiffres`, ou
+/// qu'il est déjà dans cette langue — il n'y a alors rien d'autre à essayer.
+///
+/// ```
+/// use ygo_app::import::dans_la_langue;
+/// assert_eq!(dans_la_langue("CORI-FRS10", "JP").as_deref(), Some("CORI-JPS10"));
+/// assert_eq!(dans_la_langue("CORI-EN080", "JP").as_deref(), Some("CORI-JP080"));
+/// assert_eq!(dans_la_langue("CORI-JP080", "JP"), None);
+/// assert_eq!(dans_la_langue("PROMO", "JP"), None);
+/// ```
+#[must_use]
+pub fn dans_la_langue(code: &str, langue: &str) -> Option<String> {
+    let tiret = code.rfind('-')?;
+    let (prefixe, reste) = code.split_at(tiret + 1);
+    let deux = reste.get(..2)?;
+    let suffixe = reste.get(2..)?;
+    if !deux.chars().all(|c| c.is_ascii_alphabetic()) || deux.eq_ignore_ascii_case(langue) {
+        return None;
+    }
+    let lettres = suffixe.chars().take_while(char::is_ascii_uppercase).count();
+    let chiffres = suffixe.get(lettres..)?;
+    if chiffres.is_empty() || !chiffres.chars().all(|c| c.is_ascii_digit()) {
+        return None;
+    }
+    Some(format!("{prefixe}{langue}{suffixe}"))
+}
+
+/// La langue d'un classeur **OCG**, d'après son nom : `CORI-JP` → `JP`.
+///
+/// `None` pour un classeur TCG : ses tirages sont en anglais en base, et
+/// [`vers_anglais`] y ramène déjà tous les autres codes.
+///
+/// ```
+/// use ygo_app::import::langue_du_classeur;
+/// assert_eq!(langue_du_classeur("CORI-JP").as_deref(), Some("JP"));
+/// assert_eq!(langue_du_classeur("CROS-KR").as_deref(), Some("KR"));
+/// assert_eq!(langue_du_classeur("RA04"), None);
+/// ```
+#[must_use]
+pub fn langue_du_classeur(classeur: &str) -> Option<String> {
+    if !ygo_core::config::a_suffixe_ocg(classeur) {
+        return None;
+    }
+    let (_, suffixe) = classeur.trim().rsplit_once('-')?;
+    Some(
+        suffixe
+            .chars()
+            .take_while(char::is_ascii_alphabetic)
+            .map(|c| c.to_ascii_uppercase())
+            .collect(),
+    )
+}
+
+/// L'illustration d'une ligne de classeur : le fichier que son adresse
+/// d'image désigne, décodé, révision archivée ramenée au fichier courant.
+///
+/// C'est la colonne `Illustration` de l'export « Application », et c'est ce
+/// que l'import compare : deux installations qui ont posé le même scan le
+/// nomment pareil, quel que soit le rang qu'elles lui donnent.
+///
+/// ```
+/// use ygo_app::import::illustration_de;
+/// assert_eq!(
+///     illustration_de("https://ms.yugipedia.com//4/4a/BlueEyesWhiteDragon-RA04-EN-QCScR-1E.png"),
+///     "BlueEyesWhiteDragon-RA04-EN-QCScR-1E.png"
+/// );
+/// assert_eq!(
+///     illustration_de("https://ms.yugipedia.com//archive/a/ab/20260101084736%21Terraforming-X-EN-C.png"),
+///     "Terraforming-X-EN-C.png"
+/// );
+/// assert_eq!(illustration_de("https://images.ygoprodeck.com/images/cards/89631139.jpg"), "89631139.jpg");
+/// assert_eq!(illustration_de(""), "");
+/// ```
+#[must_use]
+pub fn illustration_de(url: &str) -> String {
+    ygo_sources::yugipedia::nom_de_fichier(url.trim())
+        .map(|nom| ygo_sources::yugipedia::artwork::nom_courant(&nom).to_owned())
+        .unwrap_or_default()
 }
 
 /// Le préfixe et le numéro d'un code **dépourvu de lettre de sous-jeu**.
@@ -354,7 +488,9 @@ pub fn sans_sous_jeu(code: &str) -> Option<(&str, &str)> {
     if reste.len() < 3 {
         return None;
     }
-    let (langue, chiffres) = reste.split_at(2);
+    // `get` : couper une lettre accentuée en deux paniquerait (cf.
+    // [`vers_anglais`]).
+    let (langue, chiffres) = (reste.get(..2)?, reste.get(2..)?);
     if !langue.chars().all(|c| c.is_ascii_alphabetic()) {
         return None;
     }
@@ -491,9 +627,26 @@ pub fn index_par_nom(base: &[LigneBase]) -> HashMap<(String, String), String> {
 /// sans rang.
 #[must_use]
 pub fn index(base: &[LigneBase]) -> HashMap<(String, u32, String), i64> {
-    // Les lignes de chaque `(set_code, rareté)`, dans une carte ordonnée :
-    // le rang doit être le même à chaque exécution.
-    let mut groupes: BTreeMap<(&str, &str), Vec<(i64, i64)>> = BTreeMap::new();
+    let mut index = HashMap::new();
+    for ((set_code, rarity), lignes) in groupes(base) {
+        for (rang, l) in lignes.into_iter().enumerate() {
+            let rang = u32::try_from(rang).unwrap_or(u32::MAX);
+            index.insert((set_code.to_owned(), rang, rarity.to_owned()), l.rowid);
+        }
+    }
+    index
+}
+
+/// Les lignes de chaque `(set_code, rareté)`, **dans l'ordre des rangs** : la
+/// position d'une ligne dans son groupe est son rang.
+///
+/// C'est le seul endroit où cet ordre se décide ; [`index`] (donc l'export)
+/// et l'appariement par illustration le lisent ici. L'image d'abord : deux
+/// artworks gardent l'ordre que leur donnait l'ancien calcul. Le `rowid`
+/// ensuite, pour départager les lignes qu'une même image ne distingue pas.
+/// Carte ordonnée : le rang doit être le même à chaque exécution.
+fn groupes(base: &[LigneBase]) -> BTreeMap<(&str, &str), Vec<&LigneBase>> {
+    let mut groupes: BTreeMap<(&str, &str), Vec<&LigneBase>> = BTreeMap::new();
     for l in base {
         if l.set_code.is_empty() {
             continue;
@@ -501,20 +654,12 @@ pub fn index(base: &[LigneBase]) -> HashMap<(String, u32, String), i64> {
         groupes
             .entry((l.set_code.as_str(), l.rarity.as_str()))
             .or_default()
-            .push((l.card_image_id.unwrap_or(0), l.rowid));
+            .push(l);
     }
-    let mut index = HashMap::new();
-    for ((set_code, rarity), mut lignes) in groupes {
-        // L'image d'abord : deux artworks gardent ainsi l'ordre que leur
-        // donnait l'ancien calcul. Le `rowid` ensuite, pour départager les
-        // lignes qu'une même image ne distingue pas.
-        lignes.sort_unstable();
-        for (rang, (_, rowid)) in lignes.into_iter().enumerate() {
-            let rang = u32::try_from(rang).unwrap_or(u32::MAX);
-            index.insert((set_code.to_owned(), rang, rarity.to_owned()), rowid);
-        }
+    for lignes in groupes.values_mut() {
+        lignes.sort_unstable_by_key(|l| (l.card_image_id.unwrap_or(0), l.rowid));
     }
-    index
+    groupes
 }
 
 /// Les libellés qu'une case « Rareté » peut désigner en base.
@@ -564,6 +709,188 @@ pub fn libelles_possibles(ecriture: &str) -> Vec<String> {
     noms
 }
 
+/// Les libellés de base qu'une ligne du CSV peut désigner, du plus sûr au
+/// moins sûr.
+///
+/// 1. La « Rareté complète » de l'export « Application », quand le classeur
+///    a ce libellé — à la casse, aux accents et aux espaces près.
+/// 2. Un libellé **du classeur** écrit tel quel dans la case « Rareté ».
+///    C'est ce qu'écrit l'export pour une rareté sans code Scanflip
+///    (`Normal Rare`, relevé sur `CORI-JP080`).
+/// 3. Les libellés du référentiel ([`libelles_possibles`]).
+///
+/// Un libellé que le classeur n'a pas ne désignerait aucune ligne : seuls
+/// ceux du référentiel entrent sans y être.
+fn libelles_de(ligne: &Ligne, raretes: &HashMap<String, Vec<&str>>) -> Vec<String> {
+    let mut libelles: Vec<String> = Vec::new();
+    let mut ajouter = |libelle: &str| {
+        if !libelle.is_empty() && !libelles.iter().any(|l| l == libelle) {
+            libelles.push(libelle.to_owned());
+        }
+    };
+    let complete = ligne.complement.as_ref().map_or("", |c| c.rarete.trim());
+    for ecrit in [complete, ligne.rarete.trim()] {
+        if ecrit.is_empty() {
+            continue;
+        }
+        for libelle in raretes
+            .get(&reference::normaliser(ecrit))
+            .into_iter()
+            .flatten()
+        {
+            ajouter(libelle);
+        }
+    }
+    for libelle in libelles_possibles(&ligne.rarete) {
+        ajouter(&libelle);
+    }
+    libelles
+}
+
+/// La ligne qu'une ligne « Application » désigne dans son groupe
+/// `(set_code, rareté)`, et si ce n'est pas celle de son rang.
+///
+/// L'illustration d'abord — même fichier, puis même identifiant d'image —,
+/// le cadre ensuite, la proximité du rang pour finir. Sans illustration
+/// reconnue, le rang décide, sauf s'il désigne l'autre cadre alors qu'une
+/// ligne du bon cadre existe. Sans illustration ni rang, rien : le refus dit
+/// alors que l'artwork manque, comme pour une ligne Scanflip.
+fn choisir(groupe: &[&LigneBase], rang: u32, complement: &Complement) -> Option<(i64, bool)> {
+    use std::cmp::Reverse;
+    let rang = usize::try_from(rang).unwrap_or(usize::MAX);
+    let illustration = complement.illustration.trim();
+    let score = |l: &LigneBase| {
+        2 * u8::from(!illustration.is_empty() && illustration_de(&l.image) == illustration)
+            + u8::from(complement.id_image.is_some() && l.card_image_id == complement.id_image)
+    };
+    let cadre = |l: &LigneBase| l.overframe == complement.overframe;
+    let identifiee = groupe
+        .iter()
+        .enumerate()
+        .filter(|(_, l)| score(l) > 0)
+        .max_by_key(|(i, l)| {
+            (
+                score(l),
+                cadre(l),
+                Reverse(i.abs_diff(rang)),
+                Reverse(l.rowid),
+            )
+        })
+        .map(|(_, l)| l.rowid);
+    let au_rang = groupe.get(rang).copied();
+    let choisie = identifiee.or_else(|| {
+        let ligne = au_rang?;
+        if cadre(ligne) {
+            return Some(ligne.rowid);
+        }
+        groupe
+            .iter()
+            .enumerate()
+            .filter(|(_, l)| cadre(l))
+            .max_by_key(|(i, l)| (Reverse(i.abs_diff(rang)), Reverse(l.rowid)))
+            .map_or(Some(ligne.rowid), |(_, l)| Some(l.rowid))
+    })?;
+    Some((choisie, au_rang.map(|l| l.rowid) != Some(choisie)))
+}
+
+/// Ce que l'appariement sait d'un classeur, construit une fois par import.
+struct Contexte<'a> {
+    /// `(set_code, rang, rareté)` → ligne.
+    index: HashMap<(String, u32, String), i64>,
+    /// L'index de repli des sous-jeux.
+    noms: HashMap<(String, String), String>,
+    /// Les lignes de chaque `(set_code, rareté)`, dans l'ordre des rangs.
+    groupes: BTreeMap<(&'a str, &'a str), Vec<&'a LigneBase>>,
+    /// Les libellés de rareté du classeur, par forme normalisée.
+    raretes: HashMap<String, Vec<&'a str>>,
+    /// La langue d'un classeur OCG.
+    langue: Option<String>,
+    /// Toutes les lignes, pour confirmer un nom.
+    base: &'a [LigneBase],
+}
+
+impl<'a> Contexte<'a> {
+    fn nouveau(classeur: &str, base: &'a [LigneBase]) -> Self {
+        let mut raretes: HashMap<String, Vec<&'a str>> = HashMap::new();
+        for l in base {
+            if l.rarity.trim().is_empty() {
+                continue;
+            }
+            let libelles = raretes.entry(reference::normaliser(&l.rarity)).or_default();
+            if !libelles.contains(&l.rarity.as_str()) {
+                libelles.push(l.rarity.as_str());
+            }
+        }
+        Self {
+            index: index(base),
+            noms: index_par_nom(base),
+            groupes: groupes(base),
+            raretes,
+            langue: langue_du_classeur(classeur),
+            base,
+        }
+    }
+
+    /// La ligne de base que `ligne` désigne sous l'un des `codes`, et si
+    /// l'illustration l'a déplacée de son rang.
+    ///
+    /// Une ligne Scanflip se pose sur la clé exacte `(code, rang, rareté)`,
+    /// codes puis libellés dans l'ordre donné. Une ligne « Application » est
+    /// tranchée par le **premier groupe** `(code, rareté)` qui existe : sa
+    /// rareté exacte vient en tête, et un artwork introuvable dans ce groupe
+    /// ne se cherche pas dans une rareté voisine.
+    fn apparier(&self, ligne: &Ligne, codes: &[&str], libelles: &[String]) -> Option<(i64, bool)> {
+        let Some(complement) = &ligne.complement else {
+            return codes.iter().find_map(|code| {
+                libelles.iter().find_map(|libelle| {
+                    self.index
+                        .get(&((*code).to_owned(), ligne.artwork, libelle.clone()))
+                        .map(|rowid| (*rowid, false))
+                })
+            });
+        };
+        let groupe = codes.iter().find_map(|code| {
+            libelles
+                .iter()
+                .find_map(|libelle| self.groupes.get(&(*code, libelle.as_str())))
+        })?;
+        choisir(groupe, ligne.artwork, complement)
+    }
+
+    /// Le refus qui nomme la dimension manquante pour ces `codes`.
+    fn refus(&self, codes: &[&str], artwork: u32) -> Refus {
+        let sets: HashSet<&str> = self.index.keys().map(|(s, _, _)| s.as_str()).collect();
+        let sets_rangs: HashSet<(&str, u32)> = self
+            .index
+            .keys()
+            .map(|(s, r, _)| (s.as_str(), *r))
+            .collect();
+        if !codes.iter().any(|c| sets.contains(c)) {
+            Refus::SetCodeAbsent
+        } else if !codes.iter().any(|c| sets_rangs.contains(&(c, artwork))) {
+            Refus::ArtworkAbsent
+        } else {
+            Refus::RareteAbsente
+        }
+    }
+
+    /// Un tirage `code` porte-t-il le nom de la ligne — anglais ou
+    /// français, comparé par [`normaliser_nom`] ?
+    fn nom_confirme(&self, code: &str, ligne: &Ligne) -> bool {
+        let noms: Vec<String> = std::iter::once(ligne.nom.as_str())
+            .chain(ligne.complement.iter().map(|c| c.nom_anglais.as_str()))
+            .map(normaliser_nom)
+            .filter(|n| !n.is_empty())
+            .collect();
+        !noms.is_empty()
+            && self.base.iter().filter(|l| l.set_code == code).any(|l| {
+                std::iter::once(&l.name)
+                    .chain(l.name_fr.iter())
+                    .any(|n| noms.contains(&normaliser_nom(n)))
+            })
+    }
+}
+
 /// Ce que l'import ferait — sans toucher à quoi que ce soit.
 ///
 /// `bases` associe à chaque code de classeur ses lignes. Un classeur absent
@@ -574,15 +901,10 @@ pub fn planifier(lignes: &[Ligne], bases: &HashMap<String, Vec<LigneBase>>) -> R
         lues: lignes.len(),
         ..Rapport::default()
     };
-    // Un index par classeur, construit une fois.
-    let index_par_classeur: HashMap<&String, _> = bases
+    // Ce que l'appariement sait de chaque classeur, construit une fois.
+    let contextes: HashMap<&String, Contexte> = bases
         .iter()
-        .map(|(code, base)| (code, index(base)))
-        .collect();
-    // Et son index de repli, pour les codes privés de leur lettre.
-    let noms_par_classeur: HashMap<&String, _> = bases
-        .iter()
-        .map(|(code, base)| (code, index_par_nom(base)))
+        .map(|(code, base)| (code, Contexte::nouveau(code, base)))
         .collect();
 
     // Les lignes retenues, groupées par ligne de base visée. `BTreeMap`
@@ -599,11 +921,19 @@ pub fn planifier(lignes: &[Ligne], bases: &HashMap<String, Vec<LigneBase>>) -> R
             artwork: ligne.artwork,
             refus,
         };
-        let Some(index) = index_par_classeur.get(&ligne.extension) else {
+        let resoudre = |code_retenu: String, motif| Resolue {
+            numero: ligne.numero,
+            classeur: ligne.extension.clone(),
+            code_csv: ligne.code.clone(),
+            code_retenu,
+            nom: ligne.nom.clone(),
+            motif,
+        };
+        let Some(contexte) = contextes.get(&ligne.extension) else {
             rapport.refusees.push(refuser(Refus::ClasseurAbsent));
             continue;
         };
-        let libelles = libelles_possibles(&ligne.rarete);
+        let libelles = libelles_de(ligne, &contexte.raretes);
         if libelles.is_empty() {
             rapport.refusees.push(refuser(Refus::RareteInconnue));
             continue;
@@ -617,17 +947,10 @@ pub fn planifier(lignes: &[Ligne], bases: &HashMap<String, Vec<LigneBase>>) -> R
             vec![anglais.as_str(), ligne.code.as_str()]
         };
 
-        let poser = |index: &HashMap<(String, u32, String), i64>, codes: &[&str]| {
-            codes.iter().find_map(|code| {
-                libelles.iter().find_map(|libelle| {
-                    index
-                        .get(&((*code).to_owned(), ligne.artwork, libelle.clone()))
-                        .copied()
-                })
-            })
-        };
-
-        if let Some(rowid) = poser(index, &codes) {
+        if let Some((rowid, redirigee)) = contexte.apparier(ligne, &codes, &libelles) {
+            if redirigee {
+                rapport.redirigees.push(ligne.numero);
+            }
             groupes
                 .entry((ligne.extension.clone(), rowid))
                 .or_default()
@@ -638,19 +961,29 @@ pub fn planifier(lignes: &[Ligne], bases: &HashMap<String, Vec<LigneBase>>) -> R
         // Repli des sous-jeux : le code n'a pas de lettre, le nom en
         // désigne une. Cf. tête de module.
         let repli = sans_sous_jeu(&ligne.code).and_then(|(_, numero)| {
-            let noms = noms_par_classeur.get(&ligne.extension)?;
-            noms.get(&(numero.to_owned(), normaliser_nom(&ligne.nom)))
+            contexte
+                .noms
+                .get(&(numero.to_owned(), normaliser_nom(&ligne.nom)))
                 .cloned()
         });
-        if let Some(code_retenu) = repli {
-            if let Some(rowid) = poser(index, &[code_retenu.as_str()]) {
-                rapport.resolues.push(Resolue {
-                    numero: ligne.numero,
-                    classeur: ligne.extension.clone(),
-                    code_csv: ligne.code.clone(),
-                    code_retenu,
-                    nom: ligne.nom.clone(),
-                });
+        // Repli de la langue : un classeur OCG, un code d'une autre langue,
+        // et le nom pour confirmer. Cf. tête de module.
+        let repli = repli.map(|code| (code, Motif::SousJeu)).or_else(|| {
+            let langue = contexte.langue.as_deref()?;
+            codes
+                .iter()
+                .find_map(|code| dans_la_langue(code, langue))
+                .filter(|code| contexte.nom_confirme(code, ligne))
+                .map(|code| (code, Motif::LangueDuClasseur))
+        });
+        if let Some((code_retenu, motif)) = repli {
+            if let Some((rowid, redirigee)) =
+                contexte.apparier(ligne, &[code_retenu.as_str()], &libelles)
+            {
+                if redirigee {
+                    rapport.redirigees.push(ligne.numero);
+                }
+                rapport.resolues.push(resoudre(code_retenu, motif));
                 groupes
                     .entry((ligne.extension.clone(), rowid))
                     .or_default()
@@ -658,33 +991,19 @@ pub fn planifier(lignes: &[Ligne], bases: &HashMap<String, Vec<LigneBase>>) -> R
                 continue;
             }
             // Le tirage existe, mais pas dans ce rang ou cette rareté : le
-            // refus doit parler du code retenu, pas du code amputé.
-            let sets_rangs: HashSet<(&str, u32)> =
-                index.keys().map(|(s, r, _)| (s.as_str(), *r)).collect();
-            let refus = if sets_rangs.contains(&(code_retenu.as_str(), ligne.artwork)) {
-                Refus::RareteAbsente
-            } else {
-                Refus::ArtworkAbsent
+            // refus doit parler du code retenu, pas du code du fichier.
+            let refus = match contexte.refus(&[code_retenu.as_str()], ligne.artwork) {
+                Refus::SetCodeAbsent => Refus::ArtworkAbsent,
+                autre => autre,
             };
             rapport.refusees.push(refuser(refus));
             continue;
         }
 
         // Rien trouvé : dire laquelle des trois dimensions manque.
-        let sets: HashSet<&str> = index.keys().map(|(s, _, _)| s.as_str()).collect();
-        let sets_rangs: HashSet<(&str, u32)> =
-            index.keys().map(|(s, r, _)| (s.as_str(), *r)).collect();
-        let refus = if !codes.iter().any(|c| sets.contains(c)) {
-            Refus::SetCodeAbsent
-        } else if !codes
-            .iter()
-            .any(|c| sets_rangs.contains(&(c, ligne.artwork)))
-        {
-            Refus::ArtworkAbsent
-        } else {
-            Refus::RareteAbsente
-        };
-        rapport.refusees.push(refuser(refus));
+        rapport
+            .refusees
+            .push(refuser(contexte.refus(&codes, ligne.artwork)));
     }
 
     for ((classeur, rowid), lignes) in groupes {
@@ -742,7 +1061,11 @@ pub fn lignes_de_base(paths: &Paths, classeur: &str) -> Result<Vec<LigneBase>> {
     let conn = ygo_db::connexion::ouvrir_lecture_seule(chemin)
         .map_err(|e| AppError::Creation(format!("{classeur} : {e}")))?;
     let mut requete = conn
-        .prepare("SELECT rowid, set_code, rarity, card_image_id, name, name_fr FROM cards")
+        .prepare(
+            "SELECT rowid, set_code, rarity, card_image_id, name, name_fr,
+                    card_image_url, extended_art
+               FROM cards",
+        )
         .map_err(|e| AppError::Creation(format!("{classeur} : {e}")))?;
     let lignes = requete
         .query_map([], |l| {
@@ -753,6 +1076,8 @@ pub fn lignes_de_base(paths: &Paths, classeur: &str) -> Result<Vec<LigneBase>> {
                 card_image_id: l.get(3)?,
                 name: l.get::<_, Option<String>>(4)?.unwrap_or_default(),
                 name_fr: l.get(5)?,
+                image: l.get::<_, Option<String>>(6)?.unwrap_or_default(),
+                overframe: l.get::<_, Option<i64>>(7)?.unwrap_or(0) != 0,
             })
         })
         .and_then(Iterator::collect::<rusqlite::Result<Vec<_>>>)
@@ -866,6 +1191,7 @@ mod tests {
             quantite: 1,
             artwork,
             reprint: String::new(),
+            complement: None,
         }
     }
 
@@ -878,6 +1204,7 @@ mod tests {
                 card_image_id: Some(*img),
                 name: String::new(),
                 name_fr: None,
+                ..LigneBase::default()
             })
             .collect()
     }
@@ -893,6 +1220,7 @@ mod tests {
                 card_image_id: Some(*img),
                 name: (*n).to_owned(),
                 name_fr: (!nf.is_empty()).then(|| (*nf).to_owned()),
+                ..LigneBase::default()
             })
             .collect()
     }
@@ -1304,6 +1632,7 @@ mod tests {
                         card_image_id: b.card_image_id,
                         name: b.name,
                         name_fr: b.name_fr,
+                        ..LigneBase::default()
                     })
                     .collect();
                 (k, lignes)
@@ -1644,6 +1973,7 @@ mod tests {
                         card_image_id: b.card_image_id,
                         name: b.name,
                         name_fr: b.name_fr,
+                        ..LigneBase::default()
                     })
                     .collect();
                 (k, lignes)
@@ -1731,5 +2061,418 @@ mod tests {
             poses.is_empty(),
             "aucune des quatorze ne se pose sur une ligne déjà prise"
         );
+    }
+
+    /// Une ligne de base complète, pour les tests « Application ».
+    fn rangee(
+        rowid: i64,
+        set_code: &str,
+        rarity: &str,
+        img: i64,
+        fichier: &str,
+        overframe: bool,
+    ) -> LigneBase {
+        LigneBase {
+            rowid,
+            set_code: set_code.to_owned(),
+            rarity: rarity.to_owned(),
+            card_image_id: Some(img),
+            name: "Blue-Eyes White Dragon".to_owned(),
+            name_fr: Some("Dragon Blanc aux Yeux Bleus".to_owned()),
+            image: if fichier.is_empty() {
+                String::new()
+            } else {
+                format!("https://ms.yugipedia.com//a/ab/{fichier}")
+            },
+            overframe,
+        }
+    }
+
+    /// Une ligne de l'export « Application ».
+    fn ligne_application(
+        numero: usize,
+        code: &str,
+        rarete: &str,
+        artwork: u32,
+        complement: Complement,
+    ) -> Ligne {
+        Ligne {
+            complement: Some(complement),
+            ..ligne(numero, code, rarete, artwork)
+        }
+    }
+
+    /// `CORI-JP080` « Normal Rare » : la rareté n'a pas de code Scanflip,
+    /// l'export l'a écrite en toutes lettres, et le classeur la porte — elle
+    /// se pose sur sa ligne, pas sur la Common voisine.
+    #[test]
+    fn une_rarete_du_classeur_ecrite_en_toutes_lettres_trouve_sa_ligne() {
+        let bases = HashMap::from([(
+            "CORI-JP".to_owned(),
+            base(&[
+                (51, "CORI-JP080", "Common", 0),
+                (170, "CORI-JP080", "Normal Rare", -1_942_906_078),
+            ]),
+        )]);
+        assert!(
+            libelles_possibles("Normal Rare").is_empty(),
+            "le référentiel ne la connaît pas : c'est le classeur qui la donne"
+        );
+        for ecrit in ["Normal Rare", "normal rare", " NORMAL RARE "] {
+            let l = Ligne {
+                extension: "CORI-JP".into(),
+                ..ligne(114, "CORI-JP080", ecrit, 0)
+            };
+            let r = planifier(&[l], &bases);
+            assert!(r.refusees.is_empty(), "« {ecrit} » : {:?}", r.refusees);
+            assert_eq!(r.ecritures[0].rowid, 170, "« {ecrit} »");
+        }
+        // Une rareté que ni le référentiel ni le classeur ne connaissent
+        // reste refusée.
+        let l = Ligne {
+            extension: "CORI-JP".into(),
+            ..ligne(2, "CORI-JP080", "Rareté Martienne", 0)
+        };
+        assert_eq!(
+            planifier(&[l], &bases).refusees[0].refus,
+            Refus::RareteInconnue
+        );
+    }
+
+    /// `CORI-FRS10` « Mommy Melffy » : un tirage anglais du classeur
+    /// japonais, exporté traduit, que l'autre installation nomme
+    /// `CORI-JPS10`. La langue du classeur le retrouve, le nom le confirme,
+    /// et le rapport le dit.
+    #[test]
+    fn un_code_d_une_autre_langue_se_rattache_au_classeur_ocg_par_le_nom() {
+        let bases = HashMap::from([(
+            "CORI-JP".to_owned(),
+            base_nommee(&[
+                (
+                    125,
+                    "CORI-JPS10",
+                    "Ultra Rare",
+                    76_833_149,
+                    "Melffy Mommy",
+                    "Mommy Melffy",
+                ),
+                (
+                    126,
+                    "CORI-JPS10",
+                    "Secret Rare",
+                    76_833_149,
+                    "Melffy Mommy",
+                    "Mommy Melffy",
+                ),
+            ]),
+        )]);
+        let mommy = |numero, code: &str, nom: &str| Ligne {
+            extension: "CORI-JP".into(),
+            nom: nom.into(),
+            ..ligne(numero, code, "U", 0)
+        };
+        let r = planifier(
+            &[
+                mommy(115, "CORI-FRS10", "Mommy Melffy"),
+                // Le code natif de l'installation de départ, exporté tel quel.
+                mommy(116, "CORI-ENS10", "Melffy Mommy"),
+            ],
+            &bases,
+        );
+        assert!(r.refusees.is_empty(), "{:?}", r.refusees);
+        assert_eq!(r.ecritures.len(), 1);
+        assert_eq!(r.ecritures[0].rowid, 125, "l'Ultra Rare, pas la Secret");
+        assert_eq!(r.ecritures[0].quantite, 2);
+        assert_eq!(r.resolues.len(), 2);
+        assert!(r
+            .resolues
+            .iter()
+            .all(|x| x.motif == Motif::LangueDuClasseur && x.code_retenu == "CORI-JPS10"));
+        assert_eq!(r.resolues[0].code_csv, "CORI-FRS10");
+
+        // Un autre nom sous le même numéro : rien n'est deviné.
+        let r = planifier(&[mommy(117, "CORI-FRS10", "Melffy Rabby")], &bases);
+        assert_eq!(r.refusees.len(), 1);
+        assert_eq!(r.refusees[0].refus, Refus::SetCodeAbsent);
+        assert!(r.resolues.is_empty());
+
+        // Le tirage est retrouvé mais pas dans cette rareté : le refus le dit.
+        let l = Ligne {
+            rarete: "C".into(),
+            ..mommy(118, "CORI-FRS10", "Mommy Melffy")
+        };
+        let r = planifier(&[l], &bases);
+        assert_eq!(r.refusees[0].refus, Refus::RareteAbsente);
+    }
+
+    /// Un classeur TCG n'emprunte pas ce repli : ses tirages sont en anglais
+    /// en base, et `vers_anglais` y ramène déjà toutes les langues.
+    #[test]
+    fn la_langue_du_classeur_ne_vaut_que_pour_l_ocg() {
+        assert_eq!(langue_du_classeur("CORI-JP").as_deref(), Some("JP"));
+        assert_eq!(langue_du_classeur("cros-kr").as_deref(), Some("KR"));
+        assert_eq!(langue_du_classeur("RA04"), None);
+        assert_eq!(langue_du_classeur("JPEG"), None);
+        assert_eq!(
+            dans_la_langue("CORI-FRS10", "JP").as_deref(),
+            Some("CORI-JPS10")
+        );
+        assert_eq!(
+            dans_la_langue("LDK2-FRJ01", "EN").as_deref(),
+            Some("LDK2-ENJ01")
+        );
+        assert_eq!(
+            dans_la_langue("CORI-JPS10", "JP"),
+            None,
+            "déjà dans la langue"
+        );
+        assert_eq!(dans_la_langue("CORI-S10", "JP"), None);
+        assert_eq!(dans_la_langue("CORI-FRS", "JP"), None, "pas de numéro");
+        assert_eq!(dans_la_langue("CORI-Fé10", "JP"), None, "et pas de panique");
+
+        let bases = HashMap::from([(
+            "RA04".to_owned(),
+            base_nommee(&[(1, "RA04-EN002", "Ultra Rare", 1, "Blue-Eyes", "Dragon")]),
+        )]);
+        let mut l = ligne(2, "RA04-JPS02", "U", 0);
+        l.nom = "Dragon".into();
+        let r = planifier(&[l], &bases);
+        assert_eq!(r.refusees[0].refus, Refus::SetCodeAbsent);
+        assert!(r.resolues.is_empty());
+    }
+
+    /// Une case retouchée à la main peut porter une lettre accentuée au
+    /// milieu du code : l'import la refuse, il ne panique pas.
+    #[test]
+    fn un_code_accentue_ne_fait_pas_paniquer_l_import() {
+        assert_eq!(vers_anglais("RA04-Aé001"), "RA04-Aé001");
+        assert_eq!(vers_anglais("RA04-é"), "RA04-é");
+        assert_eq!(sans_sous_jeu("RA04-Aé1"), None);
+        let bases = HashMap::from([("RA04".to_owned(), base(&[(1, "RA04-EN001", "Common", 1)]))]);
+        let r = planifier(&[ligne(2, "RA04-Aé001", "C", 0)], &bases);
+        assert_eq!(r.refusees[0].refus, Refus::SetCodeAbsent);
+    }
+
+    /// Deux installations qui ne numérotent pas leurs artworks pareil :
+    /// l'illustration désigne la ligne, le rang n'est qu'un repli — et le
+    /// rapport compte les lignes déplacées.
+    #[test]
+    fn l_illustration_l_emporte_sur_le_rang() {
+        // Dans cette installation, le scan de base vient APRÈS l'AA.
+        let bases = HashMap::from([(
+            "RA04".to_owned(),
+            vec![
+                rangee(
+                    587,
+                    "RA04-EN108",
+                    "Quarter Century Secret Rare",
+                    -610_954_957,
+                    "BlueEyesWhiteDragon-RA04-EN-QCScR-1E-AA.png",
+                    false,
+                ),
+                rangee(
+                    976,
+                    "RA04-EN108",
+                    "Quarter Century Secret Rare",
+                    -1,
+                    "BlueEyesWhiteDragon-RA04-EN-QCScR-1E.png",
+                    false,
+                ),
+            ],
+        )]);
+        let base_scan = Complement {
+            rarete: "Quarter Century Secret Rare".into(),
+            illustration: "BlueEyesWhiteDragon-RA04-EN-QCScR-1E.png".into(),
+            ..Complement::default()
+        };
+        // L'installation de départ le rangeait en 0.
+        let r = planifier(
+            &[ligne_application(
+                2,
+                "RA04-EN108",
+                "QCR",
+                0,
+                base_scan.clone(),
+            )],
+            &bases,
+        );
+        assert!(r.refusees.is_empty(), "{:?}", r.refusees);
+        assert_eq!(
+            r.ecritures[0].rowid, 976,
+            "le scan de base, quel que soit son rang"
+        );
+        assert_eq!(r.redirigees, vec![2]);
+
+        // Rangée au bon rang : rien à signaler.
+        let r = planifier(
+            &[ligne_application(3, "RA04-EN108", "QCR", 1, base_scan)],
+            &bases,
+        );
+        assert_eq!(r.ecritures[0].rowid, 976);
+        assert!(r.redirigees.is_empty());
+
+        // L'identifiant d'image suffit quand le fichier manque.
+        let par_id = Complement {
+            rarete: "Quarter Century Secret Rare".into(),
+            id_image: Some(-610_954_957),
+            ..Complement::default()
+        };
+        let r = planifier(
+            &[ligne_application(4, "RA04-EN108", "QCR", 1, par_id)],
+            &bases,
+        );
+        assert_eq!(r.ecritures[0].rowid, 587);
+        assert_eq!(r.redirigees, vec![4]);
+    }
+
+    /// Une illustration que la base ne connaît pas — un scan remplacé par
+    /// une passe — ne fait rien refuser : le rang décide. Sans rang non plus,
+    /// la ligne est refusée comme une ligne Scanflip.
+    #[test]
+    fn une_illustration_inconnue_laisse_le_rang_decider() {
+        let bases = HashMap::from([(
+            "LDK2".to_owned(),
+            vec![
+                rangee(44, "LDK2-ENK01", "Common", 89_631_139, "", false),
+                rangee(131, "LDK2-ENK01", "Common", 89_631_139, "", false),
+            ],
+        )]);
+        let inconnue = Complement {
+            rarete: "Common".into(),
+            illustration: "BlueEyesWhiteDragon-LDK2-EN-C-1E-2.png".into(),
+            id_image: Some(-123),
+            ..Complement::default()
+        };
+        let r = planifier(
+            &[
+                ligne_application(2, "LDK2-ENK01", "C", 0, inconnue.clone()),
+                ligne_application(3, "LDK2-ENK01", "C", 1, inconnue.clone()),
+            ],
+            &bases,
+        );
+        assert!(r.refusees.is_empty(), "{:?}", r.refusees);
+        let rowids: Vec<i64> = r.ecritures.iter().map(|e| e.rowid).collect();
+        assert_eq!(rowids, vec![44, 131], "chacune à son rang");
+        assert!(r.redirigees.is_empty());
+
+        let r = planifier(
+            &[ligne_application(4, "LDK2-ENK01", "C", 2, inconnue)],
+            &bases,
+        );
+        assert_eq!(r.refusees[0].refus, Refus::ArtworkAbsent);
+    }
+
+    /// La « Rareté complète » désigne la ligne exacte : `C` recouvre Common
+    /// et Short Print, et seule la rareté exacte sait laquelle.
+    #[test]
+    fn la_rarete_complete_prime_sur_le_code_scanflip() {
+        let bases = HashMap::from([(
+            "SDLI".to_owned(),
+            base(&[
+                (1, "SDLI-EN001", "Common", 1),
+                (2, "SDLI-EN001", "Short Print", 1),
+            ]),
+        )]);
+        let scanflip = ligne(2, "SDLI-EN001", "C", 0);
+        assert_eq!(planifier(&[scanflip], &bases).ecritures[0].rowid, 1);
+        let exacte = ligne_application(
+            3,
+            "SDLI-EN001",
+            "C",
+            0,
+            Complement {
+                rarete: "Short Print".into(),
+                ..Complement::default()
+            },
+        );
+        let r = planifier(&[exacte], &bases);
+        assert_eq!(r.ecritures[0].rowid, 2);
+        assert!(r.redirigees.is_empty(), "c'est son rang dans SA rareté");
+    }
+
+    /// Sans illustration reconnue, le cadre départage : le rang désigne la
+    /// ligne au cadre normal, la ligne du fichier est Overframe.
+    #[test]
+    fn le_cadre_departage_quand_l_illustration_se_tait() {
+        let bases = HashMap::from([(
+            "LOCH-JP".to_owned(),
+            vec![
+                rangee(10, "LOCH-JP013", "Ultra Rare", 1, "", false),
+                rangee(11, "LOCH-JP013", "Ultra Rare", 2, "", true),
+            ],
+        )]);
+        let overframe = Complement {
+            rarete: "Ultra Rare".into(),
+            overframe: true,
+            ..Complement::default()
+        };
+        let l = Ligne {
+            extension: "LOCH-JP".into(),
+            ..ligne_application(2, "LOCH-JP013", "U", 0, overframe.clone())
+        };
+        let r = planifier(&[l], &bases);
+        assert_eq!(r.ecritures[0].rowid, 11);
+        assert_eq!(r.redirigees, vec![2]);
+        let l = Ligne {
+            extension: "LOCH-JP".into(),
+            ..ligne_application(3, "LOCH-JP013", "U", 1, overframe)
+        };
+        let r = planifier(&[l], &bases);
+        assert_eq!(r.ecritures[0].rowid, 11);
+        assert!(r.redirigees.is_empty());
+    }
+
+    /// Le fichier réel de l'utilisateur (1 317 lignes, son vrai classeur)
+    /// contre les classeurs de « Projet Clean » : les deux lignes refusées
+    /// jusqu'ici passent, chacune sur sa ligne.
+    #[test]
+    fn les_deux_refus_du_fichier_reel_passent() {
+        let bases = HashMap::from([(
+            "CORI-JP".to_owned(),
+            base_nommee(&[
+                (
+                    51,
+                    "CORI-JP080",
+                    "Common",
+                    0,
+                    "Protective Stone Gardenscaping",
+                    "Jardin des Talispierres",
+                ),
+                (
+                    170,
+                    "CORI-JP080",
+                    "Normal Rare",
+                    -1_942_906_078,
+                    "Protective Stone Gardenscaping",
+                    "Jardin des Talispierres",
+                ),
+                (
+                    125,
+                    "CORI-JPS10",
+                    "Ultra Rare",
+                    76_833_149,
+                    "Melffy Mommy",
+                    "Mommy Melffy",
+                ),
+                (
+                    126,
+                    "CORI-JPS10",
+                    "Secret Rare",
+                    76_833_149,
+                    "Melffy Mommy",
+                    "Mommy Melffy",
+                ),
+            ]),
+        )]);
+        // Les deux lignes telles que le fichier les écrit.
+        let csv = "\u{feff}Langue,Extension,Code,Nom de la carte,Rareté,1st Edition,Unlimited,Limited / Autre,Quantité,N° Artwork,Reprint\r\n\
+                   Japonais (Japon),CORI-JP,CORI-JP080,Jardin des Talispierres,Normal Rare,,M,,1,,\r\n\
+                   Français (France),CORI-JP,CORI-FRS10,Mommy Melffy,U,M,,,1,,\r\n";
+        let lecture = scanflip::lire_octets(csv.as_bytes()).unwrap();
+        let r = planifier(&lecture.lignes, &bases);
+        assert!(r.refusees.is_empty(), "{:?}", r.refusees);
+        let rowids: Vec<i64> = r.ecritures.iter().map(|e| e.rowid).collect();
+        assert_eq!(rowids, vec![125, 170]);
+        assert_eq!(r.ecritures[1].edition, Some(Edition::Illimitee));
     }
 }

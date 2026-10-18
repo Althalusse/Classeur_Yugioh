@@ -252,6 +252,10 @@ USAGE
         [--detail]                    liste les lignes refusées et les fusions
   ygo-cli exporter <installation> <fichier.csv>
                                    exporte les cartes possédées au format Scanflip
+                                   (sans les classeurs OCG)
+        [--application]               format Application : tous les classeurs,
+                                      codes tels qu'en base, illustration de
+                                      chaque ligne — pour une autre installation
         [--anglais]                   codes et libellé en anglais (défaut : français)
         [--classeur CODE]             un seul classeur
   ygo-cli inventaire <installation>
@@ -2547,6 +2551,27 @@ async fn cmd_importer(
         rapport.refusees.len(),
         rapport.ecritures.len()
     );
+    if lecture.application {
+        println!("Format Application : rareté exacte et illustration comparées.");
+    }
+    for r in &rapport.resolues {
+        let motif = match r.motif {
+            ygo_app::import::Motif::SousJeu => "lettre de sous-jeu retrouvée par le nom",
+            ygo_app::import::Motif::LangueDuClasseur => "langue du classeur, confirmée par le nom",
+        };
+        if detail || r.motif == ygo_app::import::Motif::LangueDuClasseur {
+            println!(
+                "  ligne {:4}  {} → {} · {} ({motif})",
+                r.numero, r.code_csv, r.code_retenu, r.nom
+            );
+        }
+    }
+    if !rapport.redirigees.is_empty() {
+        println!(
+            "{} ligne(s) posée(s) d'après leur illustration, sur une autre ligne que leur N° Artwork",
+            rapport.redirigees.len()
+        );
+    }
 
     if !rapport.refusees.is_empty() {
         println!("\nRefusées :");
@@ -2608,6 +2633,11 @@ fn cmd_exporter(installation: &Path, fichier: &Path, args: &[String]) -> anyhow:
     } else {
         ygo_app::export::Langue::Francais
     };
+    let format = if args.iter().any(|a| a == "--application") {
+        ygo_app::export::Format::Application
+    } else {
+        ygo_app::export::Format::Scanflip
+    };
     let seul = valeur(args, "--classeur").map(|c| c.to_uppercase());
 
     let paths = Paths::depuis_racine(installation);
@@ -2616,25 +2646,29 @@ fn cmd_exporter(installation: &Path, fichier: &Path, args: &[String]) -> anyhow:
         classeurs.retain(|c| c == code);
         anyhow::ensure!(!classeurs.is_empty(), "classeur {code} introuvable");
     }
-    let possedees = ygo_app::export::possedees_de(&paths, &classeurs)?;
-    // Les rangs se lisent sur la base entière des classeurs, pas sur les
-    // seules cartes possédées : c'est la même numérotation que l'import.
-    let rangs = ygo_app::export::rangs(&ygo_app::export::bases_de(&paths, &classeurs)?);
-    let lignes = ygo_app::export::lignes(&possedees, langue, &rangs);
-    ygo_app::scanflip::ecrire(fichier, &lignes)?;
-    let bilan = ygo_app::export::bilan(&lignes);
+    let export = ygo_app::export::preparer(&paths, &classeurs, format, langue)?;
+    ygo_app::scanflip::ecrire(fichier, &export.lignes)?;
+    let bilan = export.bilan;
 
     println!(
-        "{} ligne(s), {} exemplaire(s), {} classeur(s) → {}",
+        "{} ligne(s), {} exemplaire(s), {} classeur(s), format {} → {}",
         bilan.lignes,
         bilan.exemplaires,
-        classeurs.len(),
+        classeurs.len() - bilan.ecartes.len(),
+        format.libelle(),
         fichier.display()
     );
+    if !bilan.ecartes.is_empty() {
+        println!(
+            "{} classeur(s) OCG non exporté(s) : {} — Scanflip ne connaît pas l'OCG.\n\
+             --application les exporte, pour une autre installation.",
+            bilan.ecartes.len(),
+            bilan.ecartes.join(", ")
+        );
+    }
     if !bilan.ocg.is_empty() {
         println!(
-            "{} classeur(s) OCG inclus : {} — codes natifs, langue de la carte.\n\
-             L'application les relit ; Scanflip ne connaît pas l'OCG.",
+            "{} classeur(s) OCG inclus : {} — codes natifs, langue de la carte.",
             bilan.ocg.len(),
             bilan.ocg.join(", ")
         );

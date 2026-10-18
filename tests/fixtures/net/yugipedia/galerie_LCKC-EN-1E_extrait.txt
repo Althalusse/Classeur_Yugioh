@@ -1,0 +1,11 @@
+{{Set page header}}
+
+{{Set gallery|
+LCKC-EN001; Blue-Eyes White Dragon; Ultra Rare 
+LCKC-EN001; Blue-Eyes White Dragon; Ultra Rare; B 
+LCKC-EN001; Blue-Eyes White Dragon; Ultra Rare; C
+LCKC-EN001; Blue-Eyes White Dragon; Ultra Rare; D 
+LCKC-EN002; La Jinn the Mystical Genie of the Lamp; Ultra Rare
+LCKC-EN046; Crush Card Virus; Ultra Rare
+LCKC-EN046; Crush Card Virus; Ultra Rare; B
+}}

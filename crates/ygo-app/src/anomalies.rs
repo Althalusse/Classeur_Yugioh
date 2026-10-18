@@ -230,6 +230,10 @@ pub enum Origine {
         /// Le suffixe du nom de fichier
         /// ([`ygo_sources::yugipedia::artwork::suffixe`]).
         suffixe: String,
+        /// Les **autres** numéros à qui ce scan appartient — d'après la
+        /// galerie du set, à défaut d'après les lignes du classeur
+        /// (2026-10-18). Vide : il est à ce numéro, ou on ne sait pas.
+        numeros: Vec<String>,
     },
 }
 
@@ -261,17 +265,38 @@ impl ArtworkPropose {
     ///     origine: Origine::Ygoprodeck,
     /// };
     /// assert_eq!(p.libelle(), "Art 2");
-    /// p.origine = Origine::Yugipedia { suffixe: String::new() };
+    /// p.origine = Origine::Yugipedia { suffixe: String::new(), numeros: vec![] };
     /// assert_eq!(p.libelle(), "Scan");
-    /// p.origine = Origine::Yugipedia { suffixe: "B".into() };
+    /// p.origine = Origine::Yugipedia { suffixe: "B".into(), numeros: vec![] };
     /// assert_eq!(p.libelle(), "Scan B");
+    /// p.origine = Origine::Yugipedia { suffixe: "AA".into(), numeros: vec!["RA04-EN108".into()] };
+    /// assert_eq!(p.libelle(), "Scan AA · RA04-EN108");
     /// ```
     #[must_use]
     pub fn libelle(&self) -> String {
         match &self.origine {
             Origine::Ygoprodeck => format!("Art {}", self.art_index),
-            Origine::Yugipedia { suffixe } if suffixe.is_empty() => "Scan".to_owned(),
-            Origine::Yugipedia { suffixe } => format!("Scan {suffixe}"),
+            Origine::Yugipedia { suffixe, numeros } => {
+                let mut libelle = if suffixe.is_empty() {
+                    "Scan".to_owned()
+                } else {
+                    format!("Scan {suffixe}")
+                };
+                if !numeros.is_empty() {
+                    libelle.push_str(&format!(" · {}", numeros.join(", ")));
+                }
+                libelle
+            }
+        }
+    }
+
+    /// Les autres numéros à qui ce scan appartient — vide pour une
+    /// illustration YGOPRODeck, ou un scan de ce numéro.
+    #[must_use]
+    pub fn autres_numeros(&self) -> &[String] {
+        match &self.origine {
+            Origine::Yugipedia { numeros, .. } => numeros,
+            Origine::Ygoprodeck => &[],
         }
     }
 

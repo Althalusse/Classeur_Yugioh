@@ -35,6 +35,7 @@
 //! logique, c'est perdre celles qu'on n'a pas su reconnaître.
 
 pub mod artwork;
+pub mod galerie;
 pub mod structure;
 
 use std::collections::{HashMap, HashSet};
@@ -100,8 +101,15 @@ const BALISE: &str = "{{Set list";
 /// d'origine : même résultat sur tout wikitext réel, sans le décalage
 /// possible.
 pub fn extraire_blocs(wikitext: &str) -> Vec<&str> {
+    extraire_blocs_de(wikitext, BALISE)
+}
+
+/// [`extraire_blocs`] pour une autre balise : `{{Set gallery` ([`galerie`]).
+/// Même compteur d'accolades, mêmes bornes — une seule règle pour les deux
+/// sortes de pages.
+pub fn extraire_blocs_de<'a>(wikitext: &'a str, balise: &str) -> Vec<&'a str> {
     let octets = wikitext.as_bytes();
-    let balise = BALISE.as_bytes();
+    let balise = balise.as_bytes();
     let mut blocs = Vec::new();
     let mut depart = 0usize;
 
@@ -142,8 +150,8 @@ pub fn extraire_blocs(wikitext: &str) -> Vec<&str> {
         blocs.push(bloc);
         // Le Python reprend exactement à `j`. La borne basse est une sécurité
         // sans effet observable : `j` dépasse toujours `debut` puisque la
-        // balise fait dix caractères, et sans elle une balise en toute fin de
-        // texte boucterait indéfiniment.
+        // balise fait au moins dix caractères, et sans elle une balise en
+        // toute fin de texte bouclerait indéfiniment.
         depart = j.max(debut + 1);
     }
     blocs

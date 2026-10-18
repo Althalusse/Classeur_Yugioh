@@ -8,17 +8,24 @@
 //!
 //! # Qui fait autorité sur quoi
 //!
-//! C'est la clé de voûte du module, et elle tient en trois lignes :
+//! C'est la clé de voûte du module, et elle tient en quatre lignes :
 //!
 //! | source | autorité sur |
 //! |---|---|
 //! | Set list Yugipedia | la **structure** — quels numéros, quelles raretés, lesquels sont en variante |
 //! | YGOPRODeck / YGOJSON | les **métadonnées** et les illustrations normales |
 //! | fichiers Yugipedia | les **images des seuls tirages en variante** |
+//! | galerie du set (`Set Card Galleries`) | **quel fichier va à quel numéro** |
 //!
 //! La passe ne crée jamais un numéro que le classeur ignore : les fabriquer
 //! demanderait des statistiques et un nom français qu'aucune source ne donne
 //! pour eux. Ils sont comptés et journalisés.
+//!
+//! La galerie passe **après** elle ([`crate::galerie::realigner`]) : la passe
+//! range les illustrations par rang dans un tirage, la galerie dit à quel
+//! numéro chacune appartient (`RA04-EN002` et `RA04-EN108`, même rareté,
+//! illustrations différentes) et reprend les lignes qui portent celle d'un
+//! autre numéro. Un choix de l'utilisateur n'est jamais repris.
 //!
 //! # Le piège central : un fichier sans suffixe
 //!

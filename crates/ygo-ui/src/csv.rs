@@ -34,6 +34,14 @@
 //! Le champ de saisie **reste** : coller un chemin est parfois plus rapide
 //! que naviguer, et un chemin reçu par message se colle sans détour.
 //!
+//! # Deux formats d'export — 2026-10-18
+//!
+//! « Scanflip » (ses onze colonnes, sans les classeurs OCG) ou
+//! « Application » (tout, tel qu'en base, pour une autre installation) :
+//! l'utilisateur choisit, et le texte sous le choix dit ce que le fichier
+//! contiendra — y compris les classeurs qu'il laisse de côté. L'import, lui,
+//! ne demande rien : il reconnaît le format à ses colonnes.
+//!
 //! # Ce que le panneau ne fait pas
 //!
 //! Il n'écrit pas de classeur et ne recharge pas l'écran qui l'héberge : il
@@ -87,8 +95,12 @@ pub struct PanneauCsv {
     face: Face,
     chemin_import: String,
     chemin_export: String,
+    /// Le format de l'export.
+    format: ygo_app::export::Format,
     /// Le rapport du dernier import analysé — c'est lui qu'on applique.
     rapport: Option<ygo_app::import::Rapport>,
+    /// Le fichier analysé porte les colonnes de l'export « Application ».
+    application: bool,
     /// Une boîte de dialogue ouverte sur un fil, et ce qu'elle remplira.
     dialogue: Option<Dialogue>,
 }
@@ -131,13 +143,18 @@ pub fn est_csv(chemin: &std::path::Path) -> bool {
 }
 
 /// Le nom de fichier proposé à l'export : la date du jour suffit à ne pas
-/// écraser celui d'hier.
+/// écraser celui d'hier, et le format se lit dans le nom — un export
+/// « Application » ne part pas chez Scanflip par mégarde.
 #[must_use]
-pub fn destination_par_defaut(paths: &Paths) -> String {
+pub fn destination_par_defaut(paths: &Paths, format: ygo_app::export::Format) -> String {
+    let prefixe = match format {
+        ygo_app::export::Format::Scanflip => "collection",
+        ygo_app::export::Format::Application => "collection_application",
+    };
     paths
         .export()
         .join(format!(
-            "collection_{}.csv",
+            "{prefixe}_{}.csv",
             chrono::Local::now().format("%Y-%m-%d")
         ))
         .display()
@@ -231,8 +248,10 @@ impl PanneauCsv {
             id,
             face: Face::Fermee,
             chemin_import: String::new(),
-            chemin_export: destination_par_defaut(paths),
+            chemin_export: destination_par_defaut(paths, ygo_app::export::Format::default()),
+            format: ygo_app::export::Format::default(),
             rapport: None,
+            application: false,
             dialogue: None,
         }
     }
@@ -301,13 +320,29 @@ impl PanneauCsv {
             Ok(lecture) => {
                 let bases = ygo_app::import::bases_pour(paths, &lecture.lignes);
                 self.rapport = Some(ygo_app::import::planifier(&lecture.lignes, &bases));
+                self.application = lecture.application;
                 None
             }
             Err(e) => {
                 self.rapport = None;
+                self.application = false;
                 Some((e.to_string(), true))
             }
         }
+    }
+
+    /// Change le format de l'export.
+    ///
+    /// Le chemin proposé suit le format tant que l'utilisateur ne l'a pas
+    /// retouché : un nom choisi à la main n'est jamais écrasé.
+    pub fn choisir_format(&mut self, format: ygo_app::export::Format, paths: &Paths) {
+        if format == self.format {
+            return;
+        }
+        if self.chemin_export == destination_par_defaut(paths, self.format) {
+            self.chemin_export = destination_par_defaut(paths, format);
+        }
+        self.format = format;
     }
 
     /// Ouvre la boîte de dialogue du système, sur un fil.
@@ -324,7 +359,7 @@ impl PanneauCsv {
             _ => self.chemin_import.clone(),
         };
         std::thread::spawn(move || {
-            let mut boite = rfd::FileDialog::new().add_filter("CSV Scanflip", &["csv"]);
+            let mut boite = rfd::FileDialog::new().add_filter("CSV", &["csv"]);
             if let Some(dossier) = dossier_de_depart(&ecrit) {
                 boite = boite.set_directory(dossier);
             }
@@ -413,8 +448,8 @@ impl PanneauCsv {
                 });
                 ui.add_space(4.0);
                 ui.label(
-                    "Choisissez un CSV Scanflip, déposez-le sur la fenêtre, \
-                          ou écrivez son chemin :",
+                    "Choisissez un CSV — Scanflip ou Application —, déposez-le \
+                          sur la fenêtre, ou écrivez son chemin :",
                 );
                 // Le bouton d'abord : c'est la voie courte, et l'œil la
                 // trouve avant d'avoir jugé le champ de saisie.
@@ -461,6 +496,12 @@ impl PanneauCsv {
                         "{} ligne(s) de classeur seraient écrites.",
                         rapport.ecritures.len()
                     ));
+                    if self.application {
+                        ui.small(
+                            "Fichier au format Application : la rareté exacte et \
+                             l'illustration de chaque ligne sont comparées.",
+                        );
+                    }
 
                     // Les classeurs absents d'abord : les créer change tout
                     // le reste du rapport, autant le proposer avant que
@@ -497,28 +538,56 @@ impl PanneauCsv {
                         }
                     }
 
-                    // Ce que le repli des sous-jeux a rattaché. Deviner
+                    // Ce que les replis ont rattaché par le nom. Deviner
                     // en silence serait pire que refuser : l'utilisateur
                     // doit pouvoir vérifier chaque rattachement.
-                    if !rapport.resolues.is_empty() {
+                    for (motif, titre, explication) in [
+                        (
+                            ygo_app::import::Motif::SousJeu,
+                            "sans lettre de sous-jeu",
+                            "Votre fichier écrit « LDK2-FR01 » là où le set numérote \
+                             chaque sous-deck à part (J, K, S, Y). Le nom de la carte \
+                             a désigné un tirage et un seul.",
+                        ),
+                        (
+                            ygo_app::import::Motif::LangueDuClasseur,
+                            "dans une autre langue que leur classeur OCG",
+                            "Votre fichier écrit « CORI-FRS10 » là où ce classeur \
+                             japonais a « CORI-JPS10 ». Le même numéro dans la langue \
+                             du classeur porte le nom de la carte : c'est lui.",
+                        ),
+                    ] {
+                        let lignes: Vec<_> = rapport
+                            .resolues
+                            .iter()
+                            .filter(|r| r.motif == motif)
+                            .collect();
+                        if lignes.is_empty() {
+                            continue;
+                        }
                         ui.add_space(8.0);
                         egui::CollapsingHeader::new(format!(
-                            "{} code(s) sans lettre de sous-jeu, retrouvé(s) par le nom",
-                            rapport.resolues.len()
+                            "{} code(s) {titre}, retrouvé(s) par le nom",
+                            lignes.len()
                         ))
+                        .id_salt(titre)
                         .show(ui, |ui| {
-                            ui.small(
-                                "Votre fichier écrit « LDK2-FR01 » là où le set numérote \
-                                 chaque sous-deck à part (J, K, S, Y). Le nom de la carte \
-                                 a désigné un tirage et un seul.",
-                            );
-                            for r in &rapport.resolues {
+                            ui.small(explication);
+                            for r in lignes {
                                 ui.small(format!(
                                     "ligne {} · {} → {} · {}",
                                     r.numero, r.code_csv, r.code_retenu, r.nom
                                 ));
                             }
                         });
+                    }
+                    if !rapport.redirigees.is_empty() {
+                        ui.add_space(8.0);
+                        ui.small(format!(
+                            "{} ligne(s) posée(s) d'après leur illustration : leur \
+                             N° Artwork désignait une autre ligne de ce classeur.",
+                            rapport.redirigees.len()
+                        ));
                     }
 
                     if !rapport.refusees.is_empty() {
@@ -619,6 +688,23 @@ impl PanneauCsv {
                     });
                 });
                 ui.add_space(4.0);
+                // Le format d'abord : il décide du nom proposé et de ce que
+                // le fichier contiendra.
+                let classeurs = paths.classeurs_existants();
+                ui.horizontal(|ui| {
+                    ui.label("Format :");
+                    for format in ygo_app::export::Format::tous() {
+                        if ui.radio(self.format == format, format.libelle()).clicked() {
+                            self.choisir_format(format, paths);
+                        }
+                    }
+                });
+                let (_, ecartes) = ygo_app::export::classeurs_du_format(self.format, &classeurs);
+                for ligne in description_format(self.format, &ecartes) {
+                    ui.small(ligne);
+                }
+                ui.add_space(6.0);
+
                 ui.label("Fichier de destination :");
                 let mut choisi = None;
                 ui.horizontal(|ui| {
@@ -634,51 +720,35 @@ impl PanneauCsv {
                 if let Some(chemin) = choisi {
                     self.chemin_export = chemin.display().to_string();
                 }
-                ui.add_space(6.0);
-
-                let classeurs = paths.classeurs_existants();
-                let ocg: Vec<&String> = classeurs
-                    .iter()
-                    .filter(|c| ygo_core::config::a_suffixe_ocg(c))
-                    .collect();
-                if !ocg.is_empty() {
-                    ui.small(format!(
-                        "Classeurs OCG inclus ({}) : codes natifs, langue de la carte. \
-                         L'application les relit ; Scanflip ne connaît pas l'OCG.",
-                        ocg.iter()
-                            .map(|c| c.as_str())
-                            .collect::<Vec<_>>()
-                            .join(", ")
-                    ));
-                    ui.add_space(4.0);
-                }
+                ui.add_space(4.0);
 
                 let langue = if francais {
                     ygo_app::export::Langue::Francais
                 } else {
                     ygo_app::export::Langue::Anglais
                 };
-                ui.small(format!(
-                    "Langue du fichier : {} (elle suit la case FR de l'en-tête).",
-                    langue.libelle()
-                ));
+                ui.small(match self.format {
+                    ygo_app::export::Format::Scanflip => format!(
+                        "Langue du fichier : {} (elle suit la case FR de l'en-tête).",
+                        langue.libelle()
+                    ),
+                    ygo_app::export::Format::Application => format!(
+                        "Noms et colonne « Langue » : {} (case FR de l'en-tête) ; les codes \
+                         restent ceux de la base.",
+                        langue.libelle()
+                    ),
+                });
                 ui.add_space(8.0);
 
                 if ui.button("Écrire le fichier").clicked() {
                     let chemin = PathBuf::from(self.chemin_export.trim());
-                    // Les rangs se lisent sur la base entière des
-                    // classeurs, pas sur les seules cartes possédées :
-                    // c'est la même numérotation que l'import.
-                    let resultat = ygo_app::export::bases_de(paths, &classeurs)
-                        .and_then(|bases| {
-                            let rangs = ygo_app::export::rangs(&bases);
-                            ygo_app::export::possedees_de(paths, &classeurs)
-                                .map(|p| ygo_app::export::lignes(&p, langue, &rangs))
-                        })
-                        .and_then(|lignes| {
-                            ygo_app::scanflip::ecrire(&chemin, &lignes)
-                                .map(|()| ygo_app::export::bilan(&lignes))
-                        });
+                    let resultat =
+                        ygo_app::export::preparer(paths, &classeurs, self.format, langue).and_then(
+                            |export| {
+                                ygo_app::scanflip::ecrire(&chemin, &export.lignes)
+                                    .map(|()| export.bilan)
+                            },
+                        );
                     match resultat {
                         Ok(bilan) => {
                             retour.message = Some((message_export(&bilan, &chemin), false));
@@ -693,25 +763,66 @@ impl PanneauCsv {
     }
 }
 
+/// Ce qu'un format d'export mettra dans le fichier, en deux ou trois
+/// lignes — celles que le panneau montre sous le choix.
+///
+/// `ecartes` : les classeurs que ce format laisse de côté
+/// ([`ygo_app::export::classeurs_du_format`]).
+#[must_use]
+pub fn description_format(format: ygo_app::export::Format, ecartes: &[String]) -> Vec<String> {
+    match format {
+        ygo_app::export::Format::Scanflip => {
+            let mut v = vec![
+                "Pour Scanflip : ses onze colonnes, codes et noms dans la langue de l'en-tête."
+                    .to_owned(),
+            ];
+            if !ecartes.is_empty() {
+                v.push(format!(
+                    "Non exportés ({}) : Scanflip ne connaît pas l'OCG. Le format \
+                     Application les inclut.",
+                    ecartes.join(", ")
+                ));
+            }
+            v
+        }
+        ygo_app::export::Format::Application => vec![
+            "Pour une autre installation de l'application (sauvegarde, nouvelle version) : \
+             tous les classeurs, codes tels qu'en base."
+                .to_owned(),
+            "En plus des colonnes de Scanflip : rareté exacte, nom anglais, fichier de \
+             l'illustration, Overframe — chaque carte retrouve sa ligne. Pas destiné à Scanflip."
+                .to_owned(),
+        ],
+    }
+}
+
 /// Ce que l'export a produit, dit en une phrase.
 ///
-/// Fonction pure, pour que les deux avertissements — raretés hors règles,
-/// lignes sans état — soient vérifiables sans fenêtre. Ce sont eux qui
-/// font la différence entre un fichier qui passera chez Scanflip et un
-/// fichier dont des lignes seront rejetées sans explication.
+/// Fonction pure, pour que les avertissements — classeurs écartés, raretés
+/// hors règles, lignes sans état — soient vérifiables sans fenêtre. Ce sont
+/// eux qui font la différence entre un fichier qui passera chez Scanflip et
+/// un fichier dont des lignes seront rejetées sans explication.
 #[must_use]
 pub fn message_export(bilan: &ygo_app::export::Bilan, chemin: &std::path::Path) -> String {
     let mut texte = format!(
-        "Export écrit — {} ligne(s), {} exemplaire(s) → {}",
+        "Export {} écrit — {} ligne(s), {} exemplaire(s) → {}",
+        bilan.format.libelle(),
         bilan.lignes,
         bilan.exemplaires,
         chemin.display()
     );
-    if !bilan.ocg.is_empty() {
+    if !bilan.ecartes.is_empty() {
         texte.push_str(&format!(
-            " · OCG inclus ({}) : relus par l'application, inconnus de Scanflip",
-            bilan.ocg.join(", ")
+            " · classeurs OCG non exportés ({}) : Scanflip ne les connaît pas — le format \
+             Application les inclut",
+            bilan.ecartes.join(", ")
         ));
+    }
+    if !bilan.ocg.is_empty() {
+        texte.push_str(&format!(" · OCG inclus ({})", bilan.ocg.join(", ")));
+        if bilan.format == ygo_app::export::Format::Scanflip {
+            texte.push_str(" : inconnus de Scanflip");
+        }
     }
     if !bilan.raretes_refusees.is_empty() {
         texte.push_str(&format!(
@@ -887,19 +998,65 @@ mod tests {
         assert!(p.dialogue.is_none(), "le panneau accepte un nouveau clic");
     }
 
-    /// La destination proposée vit dans `export/` et porte la date.
+    /// La destination proposée vit dans `export/`, porte la date, et dit
+    /// le format.
     #[test]
     fn la_destination_par_defaut_est_datee() {
+        use ygo_app::export::Format;
         let (_tmp, paths) = paths();
-        let d = destination_par_defaut(&paths);
+        let d = destination_par_defaut(&paths, Format::Scanflip);
         assert!(d.ends_with(".csv"), "{d}");
         assert!(d.contains("collection_"), "{d}");
+        assert!(!d.contains("application"), "{d}");
         assert!(
             d.starts_with(&paths.export().display().to_string()),
             "elle vit dans export/ : {d}"
         );
         let annee = chrono::Local::now().format("%Y").to_string();
         assert!(d.contains(&annee), "{d}");
+        let a = destination_par_defaut(&paths, Format::Application);
+        assert!(a.contains("collection_application_"), "{a}");
+        assert_ne!(a, d);
+    }
+
+    /// Le chemin proposé suit le format — sauf s'il a été retouché.
+    #[test]
+    fn le_chemin_suit_le_format_tant_qu_on_n_y_touche_pas() {
+        use ygo_app::export::Format;
+        let (_tmp, paths) = paths();
+        let mut p = PanneauCsv::nouveau("essai", &paths);
+        assert_eq!(p.format, Format::Scanflip);
+        p.choisir_format(Format::Application, &paths);
+        assert_eq!(p.format, Format::Application);
+        assert_eq!(
+            p.chemin_export,
+            destination_par_defaut(&paths, Format::Application)
+        );
+        p.choisir_format(Format::Scanflip, &paths);
+        assert_eq!(
+            p.chemin_export,
+            destination_par_defaut(&paths, Format::Scanflip)
+        );
+
+        p.chemin_export = "C:\\mon_export.csv".to_owned();
+        p.choisir_format(Format::Application, &paths);
+        assert_eq!(p.chemin_export, "C:\\mon_export.csv", "un nom choisi reste");
+        assert_eq!(p.format, Format::Application);
+    }
+
+    /// La description dit ce que le format laisse de côté.
+    #[test]
+    fn la_description_du_format_nomme_les_classeurs_ecartes() {
+        use ygo_app::export::Format;
+        let ocg = vec!["CORI-JP".to_owned(), "LOCR-JP".to_owned()];
+        let s = description_format(Format::Scanflip, &ocg).join(" ");
+        assert!(s.contains("CORI-JP, LOCR-JP"), "{s}");
+        assert!(s.contains("Application les inclut"), "{s}");
+        let sans = description_format(Format::Scanflip, &[]).join(" ");
+        assert!(!sans.contains("Non exportés"), "{sans}");
+        let a = description_format(Format::Application, &[]).join(" ");
+        assert!(a.contains("tous les classeurs"), "{a}");
+        assert!(a.contains("illustration"), "{a}");
     }
 
     /// Le message d'export dit les deux choses qui feront échouer un
@@ -911,27 +1068,40 @@ mod tests {
         let propre = ygo_app::export::Bilan {
             lignes: 550,
             exemplaires: 554,
-            sans_etat: 0,
-            ocg: Vec::new(),
-            raretes_refusees: Vec::new(),
+            ..ygo_app::export::Bilan::default()
         };
         let m = message_export(&propre, chemin);
+        assert!(m.contains("Export Scanflip écrit"), "{m}");
         assert!(m.contains("550 ligne(s)"), "{m}");
         assert!(!m.contains("ATTENTION"), "rien à signaler : {m}");
         assert!(!m.contains("sans état"), "{m}");
+        assert!(!m.contains("non exportés"), "{m}");
 
         let bancal = ygo_app::export::Bilan {
             lignes: 10,
             exemplaires: 10,
             sans_etat: 3,
-            ocg: vec!["LOCR-JP".to_owned()],
+            ecartes: vec!["CORI-JP".to_owned()],
             raretes_refusees: vec!["GMR".to_owned()],
+            ..ygo_app::export::Bilan::default()
         };
         let m = message_export(&bancal, chemin);
-        assert!(m.contains("OCG inclus (LOCR-JP)"), "{m}");
+        assert!(m.contains("non exportés (CORI-JP)"), "{m}");
         assert!(m.contains("ATTENTION"), "{m}");
         assert!(m.contains("GMR"), "elle nomme la rareté fautive : {m}");
         assert!(m.contains("3 ligne(s) sans état"), "{m}");
+
+        let application = ygo_app::export::Bilan {
+            format: ygo_app::export::Format::Application,
+            lignes: 1325,
+            exemplaires: 1351,
+            ocg: vec!["CORI-JP".to_owned(), "LOCR-JP".to_owned()],
+            ..ygo_app::export::Bilan::default()
+        };
+        let m = message_export(&application, chemin);
+        assert!(m.contains("Export Application écrit"), "{m}");
+        assert!(m.contains("OCG inclus (CORI-JP, LOCR-JP)"), "{m}");
+        assert!(!m.contains("Scanflip"), "rien n'y concerne Scanflip : {m}");
     }
 
     /// Un dépôt sans CSV ne réveille pas le panneau ; un dépôt avec CSV

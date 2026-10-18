@@ -1,0 +1,51 @@
+{{Set page header}}
+
+== Super Rares ==
+{{Set gallery|rarity=Super Rare|
+RA04-EN005; Mystic Piper
+RA04-EN006; Esper Girl
+RA04-EN105; Transaction Rollback
+}}
+
+== Ultra Rares ==
+{{Set gallery|rarity=Ultra Rare|
+RA04-EN005; Mystic Piper
+RA04-EN006; Esper Girl
+RA04-EN105; Transaction Rollback
+}}
+
+== Platinum Secret Rares ==
+{{Set gallery|rarity=Platinum Secret Rare|
+RA04-EN005; Mystic Piper
+RA04-EN006; Esper Girl
+RA04-EN007; Gagaga Magician
+RA04-EN106; Dark Magician (Arkana) //description::(Arkana)
+RA04-EN106; Dark Magician;; AA2 //description::(6th artwork)
+RA04-EN106; Dark Magician;; AA //description::(7th artwork)
+RA04-EN106; Dark Magician;; AA3 //description::(8th artwork)
+RA04-EN106; Dark Magician;; AA4 //description::(9th artwork)
+RA04-EN108; Blue-Eyes White Dragon //description::(7th artwork)
+RA04-EN108; Blue-Eyes White Dragon;; AA //description::(8th artwork)
+RA04-EN296; Runick Fountain
+}}
+
+== Quarter Century Secret Rares ==
+{{Set gallery|rarity=Quarter Century Secret Rare|
+RA04-EN001; Dark Magician; QCScR
+RA04-EN002; Blue-Eyes White Dragon; QCScR
+RA04-EN003; Red-Eyes Darkness Metal Dragon; QCScR
+RA04-EN004; Effect Veiler; QCScR
+RA04-EN106; Dark Magician (Arkana);; AA //description::(Arkana)
+RA04-EN106; Dark Magician;; AA2 //description::(6th artwork)
+RA04-EN106; Dark Magician;; AA3 //description::(7th artwork)
+RA04-EN106; Dark Magician;; AA4 //description::(8th artwork)
+RA04-EN106; Dark Magician;; AA5 //description::(9th artwork)
+RA04-EN108; Blue-Eyes White Dragon;; AA //description::(7th artwork)
+RA04-EN108; Blue-Eyes White Dragon;; AA2 //description::(8th artwork)
+RA04-EN296; Runick Fountain
+}}
+
+== Collector's Rares ==
+{{Set gallery|rarity=Collector's Rare|
+RA04-EN105; Transaction Rollback
+}}
