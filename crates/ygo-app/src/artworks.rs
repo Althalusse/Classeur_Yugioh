@@ -707,7 +707,7 @@ pub fn lire_inventaire(conn: &Connection) -> Result<(Vec<LigneInventaire>, Strin
 /// Portage de `_classeur_a_colonne`. Un classeur assez ancien peut n'avoir
 /// aucune colonne `extended_art` ; toute la passe doit alors s'en passer sans
 /// échouer.
-fn colonne_existe(conn: &Connection, colonne: &str) -> Result<bool> {
+pub(crate) fn colonne_existe(conn: &Connection, colonne: &str) -> Result<bool> {
     Ok(conn
         .prepare("SELECT 1 FROM pragma_table_info('cards') WHERE name = ?1")?
         .exists([colonne])?)

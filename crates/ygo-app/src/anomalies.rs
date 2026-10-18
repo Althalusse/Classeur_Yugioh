@@ -216,19 +216,71 @@ pub fn trier(anomalies: &mut [Anomalie]) {
 // Regroupement pour l'écran — une décision par numéro, pas par rareté
 // ─────────────────────────────────────────────────────────────────────────────
 
+/// D'où vient un artwork proposé — 2026-10-17.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub enum Origine {
+    /// Une illustration qu'YGOPRODeck connaît pour la carte : la **même**
+    /// image pour toutes les raretés.
+    #[default]
+    Ygoprodeck,
+    /// Un scan Yugipedia du tirage : une image **par rareté**
+    /// (cf. [`crate::scans`]). Le suffixe dit laquelle des illustrations du
+    /// tirage — `""` pour le tirage nu, `B`, `AA`, `EA`…
+    Yugipedia {
+        /// Le suffixe du nom de fichier
+        /// ([`ygo_sources::yugipedia::artwork::suffixe`]).
+        suffixe: String,
+    },
+}
+
 /// Un artwork proposé pour un numéro, avec la proposition de chaque rareté.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ArtworkPropose {
     /// Le rang affiché — « Art 2 ».
     pub art_index: u32,
     /// L'illustration proposée ; la même pour toutes les raretés du groupe.
+    /// Pour un scan Yugipedia, l'identité de la **colonne**
+    /// (`yugipedia-colonne:<suffixe>`) — chaque rareté y a son fichier.
     pub image_uuid: String,
     /// Une anomalie par rareté pour laquelle cet artwork est proposé, dans
     /// l'ordre des raretés du [`Numero`].
     pub par_rarete: Vec<Anomalie>,
+    /// Sa source.
+    pub origine: Origine,
 }
 
 impl ArtworkPropose {
+    /// Le nom de la colonne à l'écran.
+    ///
+    /// ```
+    /// use ygo_app::anomalies::{ArtworkPropose, Origine};
+    /// let mut p = ArtworkPropose {
+    ///     art_index: 2,
+    ///     image_uuid: String::new(),
+    ///     par_rarete: Vec::new(),
+    ///     origine: Origine::Ygoprodeck,
+    /// };
+    /// assert_eq!(p.libelle(), "Art 2");
+    /// p.origine = Origine::Yugipedia { suffixe: String::new() };
+    /// assert_eq!(p.libelle(), "Scan");
+    /// p.origine = Origine::Yugipedia { suffixe: "B".into() };
+    /// assert_eq!(p.libelle(), "Scan B");
+    /// ```
+    #[must_use]
+    pub fn libelle(&self) -> String {
+        match &self.origine {
+            Origine::Ygoprodeck => format!("Art {}", self.art_index),
+            Origine::Yugipedia { suffixe } if suffixe.is_empty() => "Scan".to_owned(),
+            Origine::Yugipedia { suffixe } => format!("Scan {suffixe}"),
+        }
+    }
+
+    /// Est-ce un scan Yugipedia ?
+    #[must_use]
+    pub fn est_un_scan(&self) -> bool {
+        matches!(self.origine, Origine::Yugipedia { .. })
+    }
+
     /// L'anomalie de cette rareté, si l'artwork est proposé pour elle.
     #[must_use]
     pub fn pour(&self, rarete: &str) -> Option<&Anomalie> {
@@ -323,6 +375,7 @@ pub fn regrouper(anomalies: Vec<Anomalie>) -> Vec<Numero> {
                 art_index: a.art_index,
                 image_uuid: a.art_b_image_uuid.clone(),
                 par_rarete: vec![a],
+                origine: Origine::Ygoprodeck,
             }),
         }
     }

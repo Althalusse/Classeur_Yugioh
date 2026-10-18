@@ -57,6 +57,7 @@ pub mod possession;
 pub mod raretes;
 pub mod replis;
 pub mod scanflip;
+pub mod scans;
 pub mod selecteur;
 pub mod statistiques;
 pub mod suppression;

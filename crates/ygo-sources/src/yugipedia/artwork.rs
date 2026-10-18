@@ -338,7 +338,7 @@ fn suffixe_variante(jeton: &str) -> Option<(&'static str, &str)> {
 /// recherche est ici insensible à la casse **ASCII** sur la chaîne d'origine —
 /// même résultat sur tout nom de fichier réel, sans le décalage possible.
 pub fn decouper_fichier(nom_fichier: &str, prefixe_set: &str) -> Option<(String, InfosFichier)> {
-    decouper(nom_fichier, prefixe_set).map(|(segment, infos, _)| (segment, infos))
+    decouper(nom_fichier, prefixe_set).map(|d| (d.segment, d.infos))
 }
 
 /// Rang d'illustration d'un fichier, quand Yugipedia imprime **plusieurs
@@ -382,11 +382,56 @@ pub fn decouper_fichier(nom_fichier: &str, prefixe_set: &str) -> Option<(String,
 /// ```
 #[must_use]
 pub fn illustration(nom_fichier: &str, prefixe_set: &str) -> u32 {
-    decouper(nom_fichier, prefixe_set).map_or(1, |(_, _, rang)| rang)
+    decouper(nom_fichier, prefixe_set).map_or(1, |d| d.rang)
 }
 
-/// Le découpage complet : segment de nom, infos, et rang d'illustration.
-fn decouper(nom_fichier: &str, prefixe_set: &str) -> Option<(String, InfosFichier, u32)> {
+/// Ce qui distingue un fichier de ses frères **du même tirage et de la même
+/// rareté** : la variante et le rang d'illustration, tels que Yugipedia les
+/// écrit, en majuscules et dans l'ordre du nom.
+///
+/// # Pourquoi — 2026-10-17
+///
+/// « Modifier l'artwork… » range les scans d'un tirage en colonnes, une par
+/// illustration, chaque colonne ayant une image par rareté. Deux fichiers de
+/// la même colonne ne diffèrent que par la rareté ou l'édition :
+/// `…-UR-1E-B.png` et `…-UR-UE-B.png` sont la même illustration B. Le
+/// suffixe est cette clé de colonne.
+///
+/// L'édition et les jetons de contexte (`OP`, `DT`…) n'en font pas partie ;
+/// tout jeton qui suit la rareté et n'est ni l'un ni l'autre en fait partie,
+/// **sans interprétation** : `J` et `K` restent `J` et `K` (les Polymerization
+/// des decks de Joey et de Kaiba, `LDK2`), là où [`illustration`] y lirait
+/// des rangs. Une colonne s'affiche sous le nom que Yugipedia lui donne.
+///
+/// ```
+/// use ygo_sources::yugipedia::artwork::suffixe;
+/// assert_eq!(suffixe("BlueEyesWhiteDragon-LCKC-EN-UR-1E.png", "LCKC"), "");
+/// assert_eq!(suffixe("BlueEyesWhiteDragon-LCKC-EN-UR-UE-B.png", "LCKC"), "B");
+/// assert_eq!(suffixe("DarkMagician-RA04-EN-QCScR-1E-AA2.png", "RA04"), "AA2");
+/// assert_eq!(suffixe("Polymerization-LDK2-EN-C-1E-J.png", "LDK2"), "J");
+/// assert_eq!(suffixe("X-LOCR-JP-UR-EA.png", "LOCR"), "EA");
+/// assert_eq!(suffixe("RA05-BoosterEN.png", "RA05"), "", "pas une carte");
+/// ```
+#[must_use]
+pub fn suffixe(nom_fichier: &str, prefixe_set: &str) -> String {
+    decouper(nom_fichier, prefixe_set).map_or_else(String::new, |d| d.suffixe)
+}
+
+/// Le découpage complet d'un nom de fichier.
+struct Decoupage {
+    /// Le nom de carte, tel qu'écrit devant le préfixe.
+    segment: String,
+    /// Langue, rareté, édition, variante.
+    infos: InfosFichier,
+    /// Rang d'illustration (cf. [`illustration`]).
+    rang: u32,
+    /// Variante et rang, tels qu'écrits (cf. [`suffixe`]).
+    suffixe: String,
+}
+
+/// Le découpage complet : segment de nom, infos, rang d'illustration et
+/// suffixe.
+fn decouper(nom_fichier: &str, prefixe_set: &str) -> Option<Decoupage> {
     let base = sans_extension(nom_fichier);
     let marqueur = format!("-{prefixe_set}-");
     let idx = position_ascii_insensible(base.as_bytes(), marqueur.as_bytes())?;
@@ -413,10 +458,13 @@ fn decouper(nom_fichier: &str, prefixe_set: &str) -> Option<(String, InfosFichie
     // Position du jeton retenu comme rareté : le rang d'illustration ne se
     // lit qu'après elle.
     let mut position_rarete: Option<usize> = None;
+    // Variante et jetons qui suivent la rareté, dans l'ordre (cf. `suffixe`).
+    let mut distinctifs: Vec<String> = Vec::new();
     for (position, jeton) in reste.iter().enumerate() {
         let majuscule = jeton.to_ascii_uppercase();
         if let Some((famille, chiffres)) = suffixe_variante(jeton) {
             variante = format!("{famille}{chiffres}");
+            distinctifs.push(variante.to_ascii_uppercase());
             continue;
         }
         if EDITIONS.contains(&majuscule.as_str()) {
@@ -430,6 +478,8 @@ fn decouper(nom_fichier: &str, prefixe_set: &str) -> Option<(String, InfosFichie
             // Le jeton d'origine, casse comprise : `PScR` et `StR` en dépendent.
             rarete = (*jeton).to_owned();
             position_rarete = Some(position);
+        } else {
+            distinctifs.push(majuscule);
         }
     }
     let rang = match (reste.split_last(), position_rarete) {
@@ -437,17 +487,121 @@ fn decouper(nom_fichier: &str, prefixe_set: &str) -> Option<(String, InfosFichie
         _ => None,
     };
 
-    Some((
-        base.get(..idx)?.to_owned(),
-        InfosFichier {
+    Some(Decoupage {
+        segment: base.get(..idx)?.to_owned(),
+        infos: InfosFichier {
             fichier: nom_fichier.to_owned(),
             langue,
             rarete_abbr: rarete,
             edition,
             variante,
         },
-        rang.unwrap_or(1),
-    ))
+        rang: rang.unwrap_or(1),
+        suffixe: distinctifs.join("-"),
+    })
+}
+
+/// L'hôte des fichiers Yugipedia, tel que l'API l'écrit dans ses adresses.
+///
+/// La double barre qui suit n'est pas une faute de frappe : c'est la forme
+/// que rend `imageinfo` comme `allimages`
+/// (`https://ms.yugipedia.com//0/01/…`), et celle que portent les 139 225
+/// `print_image_url` de `cardinfo.db`.
+pub const HOTE_FICHIERS: &str = "https://ms.yugipedia.com/";
+
+/// L'adresse d'un fichier Yugipedia, déduite de son seul nom.
+///
+/// # Pourquoi — 2026-10-17
+///
+/// « Modifier l'artwork… » regarde d'abord les scans **déjà sur le disque**,
+/// dans `img/small`. Un fichier n'y est que par son nom ; pour le poser dans
+/// une ligne, il faut aussi son adresse, sans attendre l'API.
+///
+/// MediaWiki la fabrique sans rien stocker : les deux répertoires sont le
+/// premier caractère, puis les deux premiers, de l'empreinte MD5 du nom
+/// (espaces en `_`). Vérifié sur cinq adresses de `cardinfo.db`, cinq
+/// identiques.
+///
+/// Le nom est pris **tel qu'il figure dans une adresse**, encodage compris :
+/// le dernier segment de l'adresse rendue redonne ainsi exactement le nom du
+/// fichier local (cf. `ygo_images::plan::nom_de_fichier`). L'empreinte, elle,
+/// se calcule sur le nom décodé.
+///
+/// ```
+/// use ygo_sources::yugipedia::artwork::url_fichier;
+/// assert_eq!(
+///     url_fichier("BrainControl-EGO1-EN-C-1E.png"),
+///     "https://ms.yugipedia.com//0/01/BrainControl-EGO1-EN-C-1E.png"
+/// );
+/// assert_eq!(
+///     url_fichier("BlueEyesWhiteDragon-LCKC-EN-UR-UE-C.png"),
+///     "https://ms.yugipedia.com//2/2b/BlueEyesWhiteDragon-LCKC-EN-UR-UE-C.png"
+/// );
+/// ```
+#[must_use]
+pub fn url_fichier(nom: &str) -> String {
+    use md5::{Digest, Md5};
+    let cle = decoder_pourcent(nom).replace(' ', "_");
+    let empreinte = Md5::digest(cle.as_bytes());
+    let octet = empreinte.first().copied().unwrap_or(0);
+    format!("{HOTE_FICHIERS}/{:x}/{octet:02x}/{nom}", octet >> 4)
+}
+
+/// Le nom **courant** d'un fichier, quand l'adresse vise une révision
+/// archivée.
+///
+/// Une adresse `…/archive/…/20260101084736%21ShellofChaos-….png` montre une
+/// ancienne version du fichier : MediaWiki préfixe son nom de l'horodatage
+/// de la révision et d'un `!`. Relevé le 2026-10-17 dans deux classeurs réels
+/// (`Shell of Chaos`, `Terraforming`), où `set_prints.print_image_url` pointe
+/// vers une telle révision.
+///
+/// ```
+/// use ygo_sources::yugipedia::artwork::nom_courant;
+/// assert_eq!(nom_courant("20260101084736%21ShellofChaos-X-EN-C.png"), "ShellofChaos-X-EN-C.png");
+/// assert_eq!(nom_courant("20251208134507!Terraforming-X-EN-C.png"), "Terraforming-X-EN-C.png");
+/// assert_eq!(nom_courant("Terraforming-X-EN-C.png"), "Terraforming-X-EN-C.png");
+/// ```
+#[must_use]
+pub fn nom_courant(nom: &str) -> &str {
+    let chiffres = nom.bytes().take_while(u8::is_ascii_digit).count();
+    if chiffres != 14 {
+        return nom;
+    }
+    let reste = nom.get(chiffres..).unwrap_or(nom);
+    reste
+        .strip_prefix("%21")
+        .or_else(|| reste.strip_prefix('!'))
+        .filter(|r| !r.is_empty())
+        .unwrap_or(nom)
+}
+
+/// Décode les séquences `%XX` d'un nom tiré d'une adresse.
+///
+/// Une séquence invalide reste telle quelle : un nom ne doit jamais se perdre
+/// au décodage.
+fn decoder_pourcent(texte: &str) -> String {
+    let octets = texte.as_bytes();
+    let mut sortie: Vec<u8> = Vec::with_capacity(octets.len());
+    let mut i = 0;
+    while let Some(&octet) = octets.get(i) {
+        let valeur = (octet == b'%')
+            .then(|| octets.get(i + 1..i + 3))
+            .flatten()
+            .and_then(|hex| std::str::from_utf8(hex).ok())
+            .and_then(|hex| u8::from_str_radix(hex, 16).ok());
+        match valeur {
+            Some(v) => {
+                sortie.push(v);
+                i += 3;
+            }
+            None => {
+                sortie.push(octet);
+                i += 1;
+            }
+        }
+    }
+    String::from_utf8_lossy(&sortie).into_owned()
 }
 
 /// Le nom de fichier porte-t-il un jeton de contexte (`OP`, `DT`, `PR`…) ?
@@ -1279,6 +1433,79 @@ mod tests {
         assert_eq!(langue_set_code("RA05"), "");
         // Deux lettres qui ne sont pas une langue connue : rien.
         assert_eq!(langue_set_code("RA05-XX134"), "");
+    }
+
+    /// L'adresse déduite du nom est celle que `cardinfo.db` porte, octet pour
+    /// octet, sur les cinq relevées le 2026-10-17.
+    #[test]
+    fn l_adresse_d_un_fichier_se_deduit_de_son_nom() {
+        for attendue in [
+            "https://ms.yugipedia.com//2/2b/BlueEyesWhiteDragon-LCKC-EN-UR-UE-C.png",
+            "https://ms.yugipedia.com//3/3a/CrushCardVirus-LCKC-EN-UR-UE.png",
+            "https://ms.yugipedia.com//0/08/DrollLockBird-RA02-EN-SR-1E.png",
+            "https://ms.yugipedia.com//0/01/BrainControl-EGO1-EN-C-1E.png",
+            "https://ms.yugipedia.com//1/19/AstrographSorcerertheStarMagician-LOCH-JP-PScR.png",
+        ] {
+            let nom = attendue.rsplit('/').next().unwrap();
+            assert_eq!(url_fichier(nom), attendue);
+        }
+        // Un nom encodé garde son encodage dans l'adresse — le dernier
+        // segment redonne le fichier local —, l'empreinte porte sur le nom
+        // décodé.
+        let encode = url_fichier("GhostOgre%26SnowRabbit-RA05-EN-UR-1E.png");
+        assert!(encode.ends_with("/GhostOgre%26SnowRabbit-RA05-EN-UR-1E.png"));
+        let brut = url_fichier("GhostOgre&SnowRabbit-RA05-EN-UR-1E.png");
+        assert_eq!(
+            encode.rsplit('/').nth(1),
+            brut.rsplit('/').nth(1),
+            "même répertoire"
+        );
+    }
+
+    #[test]
+    fn le_decodage_garde_ce_qu_il_ne_comprend_pas() {
+        assert_eq!(decoder_pourcent("A%26B"), "A&B");
+        assert_eq!(decoder_pourcent("A%2"), "A%2");
+        assert_eq!(decoder_pourcent("A%ZZB"), "A%ZZB");
+        assert_eq!(decoder_pourcent("100%"), "100%");
+        assert_eq!(decoder_pourcent(""), "");
+    }
+
+    /// Le suffixe ne garde que ce qui distingue deux illustrations : ni
+    /// l'édition, ni le contexte, ni la rareté.
+    #[test]
+    fn le_suffixe_est_la_cle_de_l_illustration() {
+        assert_eq!(
+            suffixe("BlueEyesWhiteDragon-LCKC-EN-UR-1E-B.png", "LCKC"),
+            "B"
+        );
+        assert_eq!(
+            suffixe("BlueEyesWhiteDragon-LCKC-EN-UR-UE-B.png", "LCKC"),
+            "B"
+        );
+        assert_eq!(
+            suffixe("BlueEyesWhiteDragon-LDK2-EN-C-1E-3.png", "LDK2"),
+            "3"
+        );
+        assert_eq!(
+            suffixe("RedEyesDarkDragoon-RA05-EN-UR-1E-EA.png", "RA05"),
+            "EA"
+        );
+        assert_eq!(
+            suffixe("X-LOCR-JP-OP-ScR.png", "LOCR"),
+            "",
+            "contexte écarté"
+        );
+        assert_eq!(
+            suffixe("Token-LDK2-EN-UR-LE-KaibaBlueEyesWhiteDragon.png", "LDK2"),
+            "KAIBABLUEEYESWHITEDRAGON"
+        );
+        assert_eq!(suffixe("X-RA02-EN-ScR-1E-AA-2.png", "RA02"), "AA-2");
+        // Le découpage historique n'a pas bougé.
+        let (_, infos) = decouper_fichier("X-RA02-EN-ScR-1E-AA.png", "RA02").unwrap();
+        assert_eq!(infos.variante, "AA");
+        assert_eq!(infos.edition, "1E");
+        assert_eq!(infos.rarete_abbr, "ScR");
     }
 
     #[test]

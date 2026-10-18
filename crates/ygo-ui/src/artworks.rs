@@ -48,14 +48,35 @@
 //! aperçu téléchargé ici est l'image définitive, obtenue plus tôt. Ceux qui
 //! manquent sont demandés au fil de téléchargement, par lots, **en commençant
 //! par le numéro qu'on regarde**.
+//!
+//! # « Modifier l'artwork… » regarde Yugipedia d'abord — 2026-10-17
+//!
+//! Ouvert sur une carte, l'écran ne proposait que des illustrations
+//! YGOPRODeck, et téléchargeait leurs aperçus dès l'ouverture — « il tape
+//! dans l'autre API ». Il propose désormais, dans l'ordre :
+//!
+//! 1. les **scans Yugipedia** du tirage que l'installation a déjà : images en
+//!    place, `set_prints`, `img/small` — sans réseau
+//!    ([`ygo_app::scans::scans_locaux`]) ;
+//! 2. ceux que Yugipedia déclare, cherchés sur un fil à part, une requête au
+//!    plus le plus souvent, gardée 30 jours ([`ygo_app::scans::scans_distants`]) ;
+//! 3. les illustrations YGOPRODeck, **seulement** si Yugipedia ne connaît
+//!    aucun scan du tirage — sinon derrière une case à cocher, et sans
+//!    aperçu demandé tant qu'elle ne l'est pas.
+//!
+//! Un scan est celui d'une rareté : la grande image d'une colonne de scans
+//! suit la rareté survolée ou choisie, comme l'image en place. Et la carte
+//! ouverte peut **prendre** un scan au lieu d'en recevoir une ligne de plus
+//! — « Mettre sur cette carte », annulable.
 
 use std::collections::{BTreeSet, HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::mpsc::{Receiver, Sender};
 
 use eframe::egui;
-use ygo_app::anomalies::{self, Anomalie, Correction, Numero};
+use ygo_app::anomalies::{self, Anomalie, ArtworkPropose, Correction, Numero};
 use ygo_app::attestation::{attestation, Attestation, SetList};
+use ygo_app::scans::{self, Carte, ImageAvant, Scan};
 use ygo_core::config::{Config, SourceImage};
 use ygo_core::paths::Paths;
 use ygo_images::plan::Cible;
@@ -95,6 +116,9 @@ pub enum Portee {
         classeur: String,
         /// Le tirage.
         set_code: String,
+        /// La ligne cliquée : son image est celle « en place », et c'est elle
+        /// que « Mettre sur cette carte » change.
+        rowid: Option<i64>,
     },
     /// Tout un classeur.
     Classeur(String),
@@ -201,6 +225,10 @@ pub struct NumeroUi {
     /// Le fichier de chaque artwork proposé, dans l'ordre de
     /// `numero.artworks`.
     pub proposes: Vec<Option<String>>,
+    /// Pour une colonne de scans, le fichier de **chaque rareté** — un scan
+    /// est celui d'un tirage. Vide pour une illustration YGOPRODeck, la même
+    /// partout.
+    pub fichiers: Vec<HashMap<String, String>>,
     /// Les cases cochées.
     pub coches: BTreeSet<Case>,
     /// Pour chaque artwork proposé : son image est-elle **identique** à une
@@ -283,13 +311,42 @@ impl NumeroUi {
         }
     }
 
+    /// Le fichier qu'une colonne montre pour une rareté : le sien pour un
+    /// scan, l'unique image pour une illustration YGOPRODeck.
+    #[must_use]
+    pub fn fichier(&self, i: usize, rarete: &str) -> Option<String> {
+        match self.fichiers.get(i) {
+            Some(par_rarete) if !par_rarete.is_empty() => par_rarete
+                .get(rarete)
+                .cloned()
+                .or_else(|| self.proposes.get(i).cloned().flatten()),
+            _ => self.proposes.get(i).cloned().flatten(),
+        }
+    }
+
     /// Compare chaque artwork proposé aux images en place, là où ce n'est
     /// pas encore fait.
+    ///
+    /// Un scan n'est pas comparé : il est celui d'**une** rareté, et ce qui
+    /// est déjà dans le classeur est marqué comme tel, case par case
+    /// ([`ygo_app::scans::tableau`]). La comparaison d'octets ne sert qu'aux
+    /// doublons d'identifiant d'YGOPRODeck.
     pub fn comparer(&mut self, dossier: &Path) {
         let en_place: BTreeSet<String> = self.en_place.values().flatten().cloned().collect();
         self.identiques.resize(self.proposes.len(), None);
         for (i, propose) in self.proposes.iter().enumerate() {
             if self.identiques.get(i).copied().flatten().is_some() {
+                continue;
+            }
+            if self
+                .numero
+                .artworks
+                .get(i)
+                .is_some_and(ArtworkPropose::est_un_scan)
+            {
+                if let Some(v) = self.identiques.get_mut(i) {
+                    *v = Some(false);
+                }
                 continue;
             }
             let Some(propose) = propose else {
@@ -345,6 +402,46 @@ fn cle(n: &Numero) -> (String, String) {
     (n.classeur.clone(), n.set_code.clone())
 }
 
+/// Où en est la recherche Yugipedia d'une carte.
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum Recherche {
+    /// Pas de recherche : l'écran ne regarde pas une carte.
+    Aucune,
+    /// La requête est partie.
+    EnCours,
+    /// Yugipedia a répondu.
+    Faite,
+    /// Pas de réponse — réseau absent, le plus souvent.
+    Echec(String),
+}
+
+/// Ce que le tableau des scans a laissé hors de la grille, pour le dire.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+struct ResumeScans {
+    /// Yugipedia connaît-il le tirage ?
+    connu: bool,
+    /// Les illustrations que le classeur a déjà en entier.
+    completes: Vec<String>,
+    /// Les scans laissés à un autre numéro du classeur.
+    ecartes: usize,
+    /// Les illustrations YGOPRODeck repliées.
+    ygoprodeck_caches: usize,
+}
+
+/// Ce que les cases cochées deviennent quand les colonnes bougent — un scan
+/// arrivé de Yugipedia s'insère entre deux colonnes : les cases suivent leur
+/// colonne, pas leur rang.
+fn recaser(coches: &BTreeSet<Case>, avant: &[String], apres: &[ArtworkPropose]) -> BTreeSet<Case> {
+    coches
+        .iter()
+        .filter_map(|(i, rarete)| {
+            let identite = avant.get(*i)?;
+            let j = apres.iter().position(|p| &p.image_uuid == identite)?;
+            Some((j, rarete.clone()))
+        })
+        .collect()
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // L'écran
 // ─────────────────────────────────────────────────────────────────────────────
@@ -384,6 +481,26 @@ pub struct EcranArtworks {
     reception: Receiver<(String, Option<SetList>)>,
     /// Montrer aussi les propositions que la Set list n'atteste pas.
     montrer_non_attestees: bool,
+    /// La carte regardée et toutes ses lignes — portée `Carte` seulement.
+    carte: Option<Carte>,
+    /// Les scans que Yugipedia a déclarés pour elle.
+    scans_distants: Vec<Scan>,
+    /// La recherche de ces scans.
+    recherche: Recherche,
+    /// Le fil de la recherche écrit ici…
+    envoi_scans: Sender<std::result::Result<Vec<Scan>, String>>,
+    /// …et l'écran lit là.
+    reception_scans: Receiver<std::result::Result<Vec<Scan>, String>>,
+    /// Montrer les illustrations YGOPRODeck alors que Yugipedia connaît le
+    /// tirage.
+    montrer_ygoprodeck: bool,
+    /// Ce que le dernier tableau des scans a laissé hors de la grille.
+    resume: ResumeScans,
+    /// Les lignes ajoutées pendant la séance, par `(uuid du scan, rareté)` :
+    /// elles seules se retirent d'ici.
+    ajouts: HashMap<(String, String), i64>,
+    /// La dernière image remplacée par « Mettre sur cette carte ».
+    remplacement: Option<ImageAvant>,
 }
 
 impl std::fmt::Debug for EcranArtworks {
@@ -403,8 +520,23 @@ impl EcranArtworks {
     /// relit `cardinfo.db` en entier, et l'ouverture doit être immédiate.
     #[must_use]
     pub fn ouvrir(paths: Paths, portee: Portee) -> Self {
+        Self::ouvrir_avec(paths, portee, true)
+    }
+
+    /// [`Self::ouvrir`], la recherche Yugipedia en option : les tests
+    /// jouent sa réponse sans réseau.
+    fn ouvrir_avec(paths: Paths, portee: Portee, reseau: bool) -> Self {
         let source = Config::charger(paths.app_config()).source_image();
         let (envoi, reception) = std::sync::mpsc::channel();
+        let (envoi_scans, reception_scans) = std::sync::mpsc::channel();
+        // Sur une carte, la recherche Yugipedia est réputée partie dès la
+        // première lecture : YGOPRODeck ne doit pas s'afficher — ni ses
+        // aperçus partir — le temps qu'elle réponde.
+        let recherche = if matches!(portee, Portee::Carte { .. }) {
+            Recherche::EnCours
+        } else {
+            Recherche::Aucune
+        };
         let mut ecran = Self {
             paths,
             portee,
@@ -425,9 +557,96 @@ impl EcranArtworks {
             envoi,
             reception,
             montrer_non_attestees: false,
+            carte: None,
+            scans_distants: Vec::new(),
+            recherche,
+            envoi_scans,
+            reception_scans,
+            montrer_ygoprodeck: false,
+            resume: ResumeScans::default(),
+            ajouts: HashMap::new(),
+            remplacement: None,
         };
         ecran.relire();
+        if let Portee::Carte { rowid, .. } = &ecran.portee {
+            // L'image en place est celle de la carte cliquée.
+            let rarete = rowid
+                .and_then(|r| ecran.carte.as_ref()?.ligne(r))
+                .map(|l| l.rarete.clone());
+            if rarete.is_some() {
+                ecran.rarete_choisie = rarete;
+            }
+            if reseau {
+                ecran.chercher_scans();
+            }
+        }
         ecran
+    }
+
+    /// Va demander à Yugipedia, sur un fil à part, les scans de la carte.
+    ///
+    /// Une requête `allimages` par nom de carte — une seule le plus souvent —,
+    /// au quota du client, et gardée 30 jours par son cache : rouvrir la
+    /// carte ne coûte rien.
+    fn chercher_scans(&mut self) {
+        let Some(carte) = self.carte.clone() else {
+            // Classeur illisible : il n'y a rien à chercher, et YGOPRODeck
+            // reprend sa place.
+            self.recherche = Recherche::Faite;
+            self.relire();
+            return;
+        };
+        self.recherche = Recherche::EnCours;
+        let envoi = self.envoi_scans.clone();
+        let lancement = std::thread::Builder::new()
+            .name("scans-yugipedia".to_owned())
+            .spawn(move || {
+                let reponse = match (
+                    ygo_sources::ClientHttp::new(),
+                    tokio::runtime::Builder::new_current_thread()
+                        .enable_all()
+                        .build(),
+                ) {
+                    (Ok(client), Ok(runtime)) => runtime
+                        .block_on(scans::scans_distants(&client, &carte))
+                        .map_err(|e| e.to_string()),
+                    (Err(e), _) => Err(e.to_string()),
+                    (_, Err(e)) => Err(e.to_string()),
+                };
+                // L'écran a pu être fermé entre-temps : la réponse se perd.
+                let _ = envoi.send(reponse);
+            });
+        if let Err(e) = lancement {
+            tracing::warn!(erreur = %e, "fil des scans Yugipedia non lancé");
+            self.recherche = Recherche::Echec(e.to_string());
+            self.relire();
+        }
+    }
+
+    /// Reprend la réponse de Yugipedia, et relit la carte avec.
+    fn recevoir_scans(&mut self) {
+        let mut recu = false;
+        while let Ok(reponse) = self.reception_scans.try_recv() {
+            match reponse {
+                Ok(distants) => {
+                    tracing::info!(
+                        carte = self.carte.as_ref().map_or("", |c| c.set_code.as_str()),
+                        scans = distants.len(),
+                        "scans Yugipedia de la carte"
+                    );
+                    self.scans_distants = distants;
+                    self.recherche = Recherche::Faite;
+                }
+                Err(e) => {
+                    tracing::warn!(erreur = %e, "scans Yugipedia injoignables");
+                    self.recherche = Recherche::Echec(e);
+                }
+            }
+            recu = true;
+        }
+        if recu {
+            self.relire();
+        }
     }
 
     /// Va chercher, sur un fil à part, la Set list des classeurs qui n'en ont
@@ -621,28 +840,47 @@ impl EcranArtworks {
     /// cases cochées sur les autres numéros disparaîtraient à chaque ajout.
     fn relire(&mut self) {
         let propositions = match &self.portee {
-            Portee::Carte { classeur, set_code } => {
-                anomalies::propositions_pour_carte(&self.paths, classeur, set_code)
-                    .unwrap_or_default()
-            }
+            Portee::Carte {
+                classeur, set_code, ..
+            } => anomalies::propositions_pour_carte(&self.paths, classeur, set_code)
+                .unwrap_or_default(),
             Portee::Classeur(code) => anomalies::lire(&self.paths, Some(code)).unwrap_or_default(),
             Portee::Tout => anomalies::lire(&self.paths, None).unwrap_or_default(),
         };
-        let anciennes: HashMap<(String, String), BTreeSet<Case>> = self
+        // Les cases cochées, avec l'identité de leur colonne : une colonne
+        // de scans arrivée de Yugipedia décale les rangs.
+        let courant = self.numeros.get(self.courant).map(|n| cle(&n.numero));
+        let anciennes: HashMap<(String, String), (BTreeSet<Case>, Vec<String>)> = self
             .numeros
             .drain(..)
-            .map(|n| (cle(&n.numero), n.coches))
+            .map(|n| {
+                let colonnes = n
+                    .numero
+                    .artworks
+                    .iter()
+                    .map(|p| p.image_uuid.clone())
+                    .collect();
+                (cle(&n.numero), (n.coches, colonnes))
+            })
             .collect();
-        let courant = self.numeros.get(self.courant).map(|n| cle(&n.numero));
+
+        let mut numeros = anomalies::regrouper(propositions);
+        if let Portee::Carte {
+            classeur, set_code, ..
+        } = &self.portee
+        {
+            let (classeur, set_code) = (classeur.clone(), set_code.clone());
+            numeros = self.composer_carte(&classeur, &set_code, numeros);
+        }
 
         // Les illustrations en place, un classeur à la fois : une requête par
         // classeur, pas une par ligne.
         let mut tables: HashMap<String, HashMap<(String, String), String>> = HashMap::new();
-        for numero in anomalies::regrouper(propositions) {
+        for numero in numeros {
             let table = tables.entry(numero.classeur.clone()).or_insert_with(|| {
                 anomalies::artworks_en_place(&self.paths, &numero.classeur, self.source)
             });
-            let en_place = numero
+            let mut en_place: HashMap<String, Option<String>> = numero
                 .raretes
                 .iter()
                 .map(|r| {
@@ -652,12 +890,46 @@ impl EcranArtworks {
                     )
                 })
                 .collect();
+            // La carte cliquée montre **son** image, pas celle de la
+            // première ligne de sa rareté.
+            if let Some(ligne) = self.ligne_cliquee() {
+                if let Some(fichier) =
+                    anomalies::fichier_de(&ligne.url, ligne.image_id, self.source)
+                {
+                    en_place.insert(ligne.rarete.clone(), Some(fichier));
+                }
+            }
+            // Un scan se montre par une case **à prendre** : celle qui est
+            // déjà dans le classeur ne serait que l'image en place.
             let proposes = numero
                 .artworks
                 .iter()
                 .map(|p| {
-                    p.modele()
-                        .and_then(|a| anomalies::fichier_image(a, self.source))
+                    let modele = if p.est_un_scan() {
+                        p.par_rarete
+                            .iter()
+                            .find(|a| !a.corrige)
+                            .or_else(|| p.modele())
+                    } else {
+                        p.modele()
+                    };
+                    modele.and_then(|a| anomalies::fichier_image(a, self.source))
+                })
+                .collect();
+            let fichiers = numero
+                .artworks
+                .iter()
+                .map(|p| {
+                    if !p.est_un_scan() {
+                        return HashMap::new();
+                    }
+                    p.par_rarete
+                        .iter()
+                        .filter_map(|a| {
+                            anomalies::fichier_image(a, self.source)
+                                .map(|f| (a.missing_set_rarity.clone(), f))
+                        })
+                        .collect()
                 })
                 .collect();
             let attestation = attestation(
@@ -670,14 +942,14 @@ impl EcranArtworks {
                 attestation,
                 en_place,
                 proposes,
+                fichiers,
                 numero,
             };
             ui.comparer(&self.paths.img_small());
-            if let Some(coches) = anciennes.get(&cle(&ui.numero)) {
-                ui.coches = coches
-                    .iter()
+            if let Some((coches, colonnes)) = anciennes.get(&cle(&ui.numero)) {
+                ui.coches = recaser(coches, colonnes, &ui.numero.artworks)
+                    .into_iter()
                     .filter(|c| ui.proposition(c).is_some_and(|a| !a.corrige))
-                    .cloned()
                     .collect();
             }
             self.numeros.push(ui);
@@ -691,6 +963,98 @@ impl EcranArtworks {
         self.cache.oublier_manquants();
         self.recadrer();
         self.demander_set_lists();
+    }
+
+    /// La ligne que l'utilisateur a cliquée, quand l'écran s'est ouvert sur
+    /// une carte.
+    fn ligne_cliquee(&self) -> Option<&scans::LigneCarte> {
+        match &self.portee {
+            Portee::Carte {
+                rowid: Some(rowid), ..
+            } => self.carte.as_ref()?.ligne(*rowid),
+            _ => None,
+        }
+    }
+
+    /// Le numéro d'une carte : ses scans Yugipedia d'abord, les
+    /// illustrations YGOPRODeck ensuite — et seulement si Yugipedia ne
+    /// connaît pas le tirage, ou sur demande.
+    ///
+    /// `numeros` est ce que [`anomalies::regrouper`] a fait des propositions
+    /// YGOPRODeck : un numéro au plus.
+    fn composer_carte(
+        &mut self,
+        classeur: &str,
+        set_code: &str,
+        numeros: Vec<Numero>,
+    ) -> Vec<Numero> {
+        self.carte = scans::lire_carte(&self.paths, classeur, set_code)
+            .map_err(|e| tracing::warn!(classeur, carte = set_code, erreur = %e, "carte illisible"))
+            .ok()
+            .flatten();
+        let Some(carte) = self.carte.as_ref() else {
+            self.resume = ResumeScans::default();
+            return numeros;
+        };
+        let tous = scans::fusionner(
+            scans::scans_locaux(&self.paths, carte),
+            &self.scans_distants,
+        );
+        let tableau = scans::tableau(carte, &tous);
+        let ygoprodeck: Vec<ArtworkPropose> =
+            numeros.into_iter().flat_map(|n| n.artworks).collect();
+
+        // Tant que Yugipedia n'a pas répondu et que rien de local ne parle
+        // du tirage, on attend : c'est l'ordre demandé.
+        let attendre = self.recherche == Recherche::EnCours && !tableau.connu;
+        let montrer = self.montrer_ygoprodeck || (!tableau.connu && !attendre);
+        // Une illustration complète se range — sauf si l'écran vient d'en
+        // ajouter une case : elle doit rester là pour se retirer.
+        let (gardees, rangees): (Vec<ArtworkPropose>, Vec<ArtworkPropose>) =
+            tableau.completes.into_iter().partition(|c| {
+                c.par_rarete.iter().any(|a| {
+                    self.ajouts
+                        .contains_key(&(a.art_b_image_uuid.clone(), a.missing_set_rarity.clone()))
+                })
+            });
+        self.resume = ResumeScans {
+            connu: tableau.connu,
+            completes: rangees.iter().map(ArtworkPropose::libelle).collect(),
+            ecartes: tableau.ecartes,
+            ygoprodeck_caches: if montrer { 0 } else { ygoprodeck.len() },
+        };
+        let mut artworks = tableau.colonnes;
+        artworks.extend(gardees);
+        // Le rang de colonne du tableau est l'ordre de lecture.
+        artworks.sort_by_key(|p| p.art_index);
+        if montrer {
+            artworks.extend(ygoprodeck);
+        }
+        if artworks.is_empty() {
+            return Vec::new();
+        }
+        // Les raretés qui ont au moins une case, dans l'ordre du classeur.
+        let presentes: BTreeSet<&str> = artworks
+            .iter()
+            .flat_map(|p| p.par_rarete.iter().map(|a| a.missing_set_rarity.as_str()))
+            .collect();
+        let mut raretes: Vec<String> = carte
+            .raretes()
+            .into_iter()
+            .filter(|r| presentes.contains(r.as_str()))
+            .collect();
+        for r in presentes {
+            if !raretes.iter().any(|x| x == r) {
+                raretes.push(r.to_owned());
+            }
+        }
+        vec![Numero {
+            classeur: classeur.to_owned(),
+            set_code: carte.set_code.clone(),
+            nom: carte.nom.clone(),
+            raretes,
+            artworks,
+        }]
     }
 
     /// Montre ce numéro, s'il fait partie des propositions.
@@ -733,17 +1097,27 @@ impl EcranArtworks {
             let Some(numero) = self.numeros.get((self.courant + decalage) % n) else {
                 continue;
             };
-            for (p, fichier) in numero.numero.artworks.iter().zip(&numero.proposes) {
-                let (Some(fichier), Some(modele)) = (fichier, p.modele()) else {
-                    continue;
+            for p in &numero.numero.artworks {
+                // Une illustration YGOPRODeck est la même pour toutes les
+                // raretés : un aperçu suffit. Un scan est celui d'une
+                // rareté : chacune a le sien.
+                let modeles: Vec<&Anomalie> = if p.est_un_scan() {
+                    p.par_rarete.iter().collect()
+                } else {
+                    p.modele().into_iter().collect()
                 };
-                if !self.demandes.insert(fichier.clone()) {
-                    continue;
-                }
-                if let Some(cible) =
-                    anomalies::apercu_a_telecharger(&self.paths, modele, self.source)
-                {
-                    lot.push(cible);
+                for modele in modeles {
+                    let Some(fichier) = anomalies::fichier_image(modele, self.source) else {
+                        continue;
+                    };
+                    if !self.demandes.insert(fichier) {
+                        continue;
+                    }
+                    if let Some(cible) =
+                        anomalies::apercu_a_telecharger(&self.paths, modele, self.source)
+                    {
+                        lot.push(cible);
+                    }
                 }
             }
         }
@@ -847,7 +1221,8 @@ impl EcranArtworks {
 impl eframe::App for EcranArtworks {
     fn ui(&mut self, racine: &mut egui::Ui, _frame: &mut eframe::Frame) {
         self.recevoir_set_lists();
-        if !self.en_attente.is_empty() {
+        self.recevoir_scans();
+        if !self.en_attente.is_empty() || self.recherche == Recherche::EnCours {
             // Le fil ne connaît pas le contexte : on repasse voir.
             racine
                 .ctx()
@@ -888,21 +1263,38 @@ impl eframe::App for EcranArtworks {
 
 impl EcranArtworks {
     fn rien_a_montrer(&mut self, ui: &mut egui::Ui) {
+        let carte = matches!(self.portee, Portee::Carte { .. });
         ui.vertical_centered(|ui| {
             ui.add_space(96.0);
+            if carte && self.recherche == Recherche::EnCours {
+                ui.spinner();
+                ui.heading("Recherche des scans Yugipedia de ce tirage…");
+                return;
+            }
+            if carte && !self.resume.completes.is_empty() {
+                ui.heading("Toutes les illustrations Yugipedia sont dans le classeur.");
+                ui.label(format!(
+                    "Yugipedia connaît pour ce tirage : {}.",
+                    self.resume.completes.join(", ")
+                ));
+                if self.resume.ygoprodeck_caches > 0 {
+                    ui.label(
+                        "Cochez « Illustrations YGOPRODeck » en haut pour voir les autres \
+                         illustrations de la carte, qui ne sont pas forcément celles de ce set.",
+                    );
+                }
+                return;
+            }
             ui.heading("Aucun autre artwork connu.");
             // Le message d'une carte affirmait « la base ne référence pas
             // d'autre illustration » — une affirmation sur les données, là
             // où la cause est le plus souvent un scan qui n'a pas tourné.
-            ui.label(match &self.portee {
-                Portee::Carte { .. } => {
-                    "Aucune autre illustration connue pour ce tirage. Un scan peut en \
-                     révéler d'autres, attestées par un set voisin."
-                }
-                _ => {
-                    "Lancez un scan pour chercher les artworks alternatifs \
-                     que vos classeurs pourraient avoir."
-                }
+            ui.label(if carte {
+                "Aucune autre illustration connue pour ce tirage. Un scan peut en \
+                 révéler d'autres, attestées par un set voisin."
+            } else {
+                "Lancez un scan pour chercher les artworks alternatifs \
+                 que vos classeurs pourraient avoir."
             });
         });
     }
@@ -978,6 +1370,8 @@ impl EcranArtworks {
                             .weak(),
                         );
                     }
+                } else {
+                    self.etat_des_scans(ui);
                 }
 
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
@@ -1017,10 +1411,84 @@ impl EcranArtworks {
                 } else {
                     ui.visuals().weak_text_color()
                 };
-                ui.colored_label(couleur, message);
+                ui.horizontal(|ui| {
+                    ui.colored_label(couleur, message);
+                    if self.remplacement.is_some()
+                        && ui
+                            .small_button("Annuler")
+                            .on_hover_text("Rend à la carte l'image qu'elle avait")
+                            .clicked()
+                    {
+                        self.annuler_remplacement();
+                    }
+                });
             }
             ui.add_space(8.0);
         });
+    }
+
+    /// Sur une carte : où en est Yugipedia, ce qu'il a laissé hors de la
+    /// grille, et la case qui rappelle les illustrations YGOPRODeck.
+    fn etat_des_scans(&mut self, ui: &mut egui::Ui) {
+        match &self.recherche {
+            Recherche::EnCours => {
+                ui.add_space(8.0);
+                ui.spinner();
+                ui.label(egui::RichText::new("Yugipedia : recherche des scans…").weak());
+            }
+            Recherche::Echec(e) => {
+                ui.add_space(8.0);
+                ui.label(
+                    egui::RichText::new("Yugipedia injoignable — scans déjà en local seulement")
+                        .color(ui.visuals().warn_fg_color),
+                )
+                .on_hover_text(e.as_str());
+            }
+            Recherche::Faite | Recherche::Aucune => {}
+        }
+        let mut details: Vec<String> = Vec::new();
+        if !self.resume.completes.is_empty() && !self.numeros.is_empty() {
+            details.push(format!(
+                "déjà dans le classeur : {}",
+                self.resume.completes.join(", ")
+            ));
+        }
+        if self.resume.ecartes > 0 {
+            details.push(format!(
+                "{} scan(s) laissé(s) à un autre numéro",
+                self.resume.ecartes
+            ));
+        }
+        if !details.is_empty() {
+            ui.add_space(8.0);
+            ui.label(egui::RichText::new(details.join(" · ")).weak())
+                .on_hover_text(
+                    "Un nom de fichier Yugipedia ne dit pas son numéro : un scan qu'un autre \
+                     numéro du classeur porte déjà lui appartient, et n'est pas proposé ici.",
+                );
+        }
+        if self.resume.connu && (self.resume.ygoprodeck_caches > 0 || self.montrer_ygoprodeck) {
+            ui.add_space(8.0);
+            let libelle = if self.montrer_ygoprodeck {
+                "Illustrations YGOPRODeck".to_owned()
+            } else {
+                format!(
+                    "Illustrations YGOPRODeck ({})",
+                    self.resume.ygoprodeck_caches
+                )
+            };
+            if ui
+                .checkbox(&mut self.montrer_ygoprodeck, libelle)
+                .on_hover_text(
+                    "Les autres illustrations de la carte, telles qu'YGOPRODeck les connaît — \
+                     pas forcément imprimées dans ce set. Yugipedia ayant les scans du tirage, \
+                     elles sont repliées.",
+                )
+                .changed()
+            {
+                self.relire();
+            }
+        }
     }
 
     fn barre_du_bas(&mut self, racine: &mut egui::Ui) {
@@ -1091,10 +1559,9 @@ impl EcranArtworks {
                                 ui.vertical(|ui| {
                                     ui.label(egui::RichText::new(&n.numero.nom).strong());
                                     let resume = match n.numero.artworks.as_slice() {
-                                        [seul] => format!(
-                                            "{} · Art {}",
-                                            n.numero.set_code, seul.art_index
-                                        ),
+                                        [seul] => {
+                                            format!("{} · {}", n.numero.set_code, seul.libelle())
+                                        }
                                         plusieurs => format!(
                                             "{} · {} artworks proposés",
                                             n.numero.set_code,
@@ -1208,18 +1675,28 @@ impl EcranArtworks {
             }
         });
         etiquette_attestation(ui, n.attestation, true);
-        if n.numero.artworks.len() >= SEUIL_AVERTISSEMENT {
+        let illustrations_ygoprodeck = n
+            .numero
+            .artworks
+            .iter()
+            .filter(|p| !p.est_un_scan())
+            .count();
+        if illustrations_ygoprodeck >= SEUIL_AVERTISSEMENT {
             ui.colored_label(
                 ui.visuals().warn_fg_color,
                 format!(
-                    "{} artworks proposés : le scan propose toutes les illustrations connues de \
-                     la carte, pas seulement celles imprimées dans ce set. Vérifiez sur la carte \
-                     en main.",
-                    n.numero.artworks.len()
+                    "{illustrations_ygoprodeck} artworks YGOPRODeck proposés : le scan propose toutes \
+                     les illustrations connues de la carte, pas seulement celles imprimées dans ce \
+                     set. Vérifiez sur la carte en main."
                 ),
             );
         }
         ui.add_space(8.0);
+        // La carte cliquée : sa ligne, sa rareté, son cadre.
+        let clic: Option<(i64, String, bool)> = self
+            .ligne_cliquee()
+            .map(|l| (l.rowid, l.rarete.clone(), l.overframe));
+        let mut a_mettre: Option<(i64, Anomalie)> = None;
 
         // ── La rareté dont on montre l'image en place ────────────────────
         let premiere = n.numero.raretes.first().cloned().unwrap_or_default();
@@ -1264,22 +1741,57 @@ impl EcranArtworks {
                         for (i, p) in n.numero.artworks.iter().enumerate() {
                             ui.vertical(|ui| {
                                 ui.horizontal(|ui| {
-                                    if n.identique(i) {
+                                    if p.est_un_scan() {
+                                        etiquette(ui, "Yugipedia", true);
+                                    } else if n.identique(i) {
                                         etiquette_alerte(ui, "Identique");
                                     } else {
                                         etiquette(ui, "Proposé", true);
                                     }
-                                    ui.label(
-                                        egui::RichText::new(format!("Art {}", p.art_index)).small(),
-                                    );
+                                    ui.label(egui::RichText::new(p.libelle()).small());
                                 });
                                 ui.add_space(4.0);
-                                let fichier = n.proposes.get(i).cloned().flatten();
+                                // Un scan suit la rareté montrée, comme
+                                // l'image en place.
+                                let fichier = n.fichier(i, &montree);
                                 self.image(ui, fichier.as_deref(), hauteur, !n.identique(i));
                                 // Sous l'image, pas au-dessus : au-dessus, le
                                 // texte décalait l'image et les deux cartes
                                 // n'étaient plus à la même hauteur.
-                                if n.identique(i) {
+                                if p.est_un_scan() {
+                                    match p.pour(&montree) {
+                                        Some(a) if a.corrige => {
+                                            ui.small(
+                                                egui::RichText::new("✓ déjà dans le classeur")
+                                                    .weak(),
+                                            );
+                                        }
+                                        Some(_) => {}
+                                        None => {
+                                            ui.small(
+                                                egui::RichText::new(format!(
+                                                    "pas de scan en {montree}"
+                                                ))
+                                                .weak(),
+                                            );
+                                        }
+                                    }
+                                    if let Some((rowid, a)) =
+                                        a_poser_sur_la_carte(clic.as_ref(), p, &montree)
+                                    {
+                                        if ui
+                                            .button("Mettre sur cette carte")
+                                            .on_hover_text(
+                                                "Remplace l'image de la carte ouverte par ce \
+                                                 scan, sans ajouter de ligne. Exemplaires, état \
+                                                 et édition ne bougent pas.",
+                                            )
+                                            .clicked()
+                                        {
+                                            a_mettre = Some((rowid, a.clone()));
+                                        }
+                                    }
+                                } else if n.identique(i) {
                                     ui.label(
                                         egui::RichText::new(
                                             "Même image que celle en place,\nsous un autre identifiant.\n\
@@ -1329,10 +1841,31 @@ impl EcranArtworks {
                                 choisie = Some(r.clone());
                             }
                             for (i, p) in n.numero.artworks.iter().enumerate() {
+                                let ajout = p
+                                    .pour(r)
+                                    .filter(|_| p.est_un_scan())
+                                    .and_then(|a| {
+                                        self.ajouts
+                                            .get(&(a.art_b_image_uuid.clone(), r.clone()))
+                                    })
+                                    .is_some();
                                 match p.pour(r) {
                                     None => {
-                                        ui.label(egui::RichText::new("—").weak())
-                                            .on_hover_text("Pas proposé pour cette rareté");
+                                        ui.label(egui::RichText::new("—").weak()).on_hover_text(
+                                            if p.est_un_scan() {
+                                                "Pas de scan Yugipedia pour cette rareté"
+                                            } else {
+                                                "Pas proposé pour cette rareté"
+                                            },
+                                        );
+                                    }
+                                    // Un scan déjà dans le classeur qui n'a pas
+                                    // été ajouté ici : la ligne était là avant
+                                    // l'écran, il n'y touche pas.
+                                    Some(a) if a.corrige && p.est_un_scan() && !ajout => {
+                                        ui.label(
+                                            egui::RichText::new("✓ dans le classeur").weak(),
+                                        );
                                     }
                                     Some(a) if a.corrige => {
                                         ui.horizontal(|ui| {
@@ -1355,10 +1888,7 @@ impl EcranArtworks {
                                     Some(_) => {
                                         let case = (i, r.clone());
                                         let mut coche = n.coches.contains(&case);
-                                        if ui
-                                            .checkbox(&mut coche, format!("Art {}", p.art_index))
-                                            .changed()
-                                        {
+                                        if ui.checkbox(&mut coche, p.libelle()).changed() {
                                             bascules.push(case);
                                         }
                                     }
@@ -1405,8 +1935,15 @@ impl EcranArtworks {
         });
         ui.small(
             egui::RichText::new(
-                "Chaque case cochée ajoute une ligne au classeur, non possédée, avec l'image de sa \
-                 colonne — l'image YGOPRODeck, sans le rendu de la rareté.",
+                if n.numero.artworks.iter().any(ArtworkPropose::est_un_scan) {
+                    "Les scans Yugipedia viennent d'abord de ce qui est déjà sur le disque et dans \
+                     le classeur, puis de Yugipedia. Chaque case cochée ajoute une ligne au \
+                     classeur, non possédée, avec le scan de sa rareté ; « Mettre sur cette carte » \
+                     change plutôt l'image de la carte ouverte."
+                } else {
+                    "Chaque case cochée ajoute une ligne au classeur, non possédée, avec l'image \
+                     de sa colonne — l'image YGOPRODeck, sans le rendu de la rareté."
+                },
             )
             .weak(),
         );
@@ -1423,6 +1960,9 @@ impl EcranArtworks {
         }
         if let Some(a) = a_retirer {
             self.retirer(&a);
+        }
+        if let Some((rowid, a)) = a_mettre {
+            self.mettre_sur_la_carte(rowid, &a);
         }
     }
 
@@ -1451,13 +1991,27 @@ impl EcranArtworks {
     fn ajouter(&mut self, lot: &[Anomalie]) {
         let (mut posees, mut deja, mut sans_temoin, mut erreurs) = (0, 0, 0, 0);
         for a in lot {
-            match anomalies::corriger(&self.paths, a) {
-                Ok(Correction::Ajoutee { .. }) => posees += 1,
+            // `scans::ajouter` rend la main à `anomalies::corriger` pour tout
+            // ce qui n'est pas un scan.
+            match scans::ajouter(&self.paths, a) {
+                Ok(Correction::Ajoutee { rowid, .. }) => {
+                    posees += 1;
+                    if a.art_b_image_uuid.starts_with(scans::PREFIXE_SCAN) {
+                        self.ajouts.insert(
+                            (a.art_b_image_uuid.clone(), a.missing_set_rarity.clone()),
+                            rowid,
+                        );
+                    }
+                }
                 Ok(Correction::DejaPresente) => deja += 1,
                 Ok(Correction::SansTemoin | Correction::ClasseurAbsent) => sans_temoin += 1,
-                Err(_) => erreurs += 1,
+                Err(e) => {
+                    tracing::warn!(carte = %a.missing_set_code, erreur = %e, "artwork non ajouté");
+                    erreurs += 1;
+                }
             }
         }
+        self.remplacement = None;
         self.ecrit = posees > 0;
         let mut texte = format!("{posees} artwork(s) ajouté(s) au classeur");
         if deja > 0 {
@@ -1476,8 +2030,26 @@ impl EcranArtworks {
     }
 
     /// Retire un artwork posé.
+    ///
+    /// Un scan ne se retire que s'il a été ajouté **ici**, pendant la
+    /// séance : l'écran connaît sa ligne, et ne touche à aucune autre.
     fn retirer(&mut self, anomalie: &Anomalie) {
-        self.message = Some(match anomalies::annuler(&self.paths, anomalie) {
+        self.remplacement = None;
+        let cle_ajout = (
+            anomalie.art_b_image_uuid.clone(),
+            anomalie.missing_set_rarity.clone(),
+        );
+        let retrait = match self.ajouts.get(&cle_ajout).copied() {
+            Some(rowid) => {
+                let retrait = scans::retirer_ajout(&self.paths, &anomalie.set_code_prefix, rowid);
+                if matches!(retrait, Ok(true)) {
+                    self.ajouts.remove(&cle_ajout);
+                }
+                retrait
+            }
+            None => anomalies::annuler(&self.paths, anomalie),
+        };
+        self.message = Some(match retrait {
             Ok(true) => {
                 self.ecrit = true;
                 (
@@ -1499,6 +2071,69 @@ impl EcranArtworks {
         });
         self.relire();
     }
+
+    /// Pose un scan sur la carte cliquée, à la place de son image.
+    fn mettre_sur_la_carte(&mut self, rowid: i64, anomalie: &Anomalie) {
+        match scans::mettre_sur_la_carte(&self.paths, rowid, anomalie) {
+            Ok(Some(avant)) => {
+                self.ecrit = true;
+                self.remplacement = Some(avant);
+                self.message = Some((
+                    format!(
+                        "{} · {} : la carte montre désormais ce scan",
+                        anomalie.missing_set_code, anomalie.missing_set_rarity
+                    ),
+                    false,
+                ));
+            }
+            Ok(None) => {
+                self.message = Some((
+                    "La carte n'a pas été trouvée dans le classeur — rien n'a changé".to_owned(),
+                    true,
+                ));
+            }
+            Err(e) => self.message = Some((e.to_string(), true)),
+        }
+        self.relire();
+    }
+
+    /// Rend à la carte l'image qu'elle avait avant « Mettre sur cette
+    /// carte ».
+    fn annuler_remplacement(&mut self) {
+        let Some(avant) = self.remplacement.take() else {
+            return;
+        };
+        self.message = Some(match scans::retablir(&self.paths, &avant) {
+            Ok(true) => ("La carte a retrouvé son image".to_owned(), false),
+            Ok(false) => (
+                "La carte n'a pas été retrouvée — rien n'a changé".to_owned(),
+                true,
+            ),
+            Err(e) => (e.to_string(), true),
+        });
+        self.relire();
+    }
+}
+
+/// Le scan qu'une colonne peut poser sur la carte cliquée, s'il y en a un.
+///
+/// Il faut une carte cliquée, de la rareté montrée ; un scan de cette rareté
+/// que le classeur n'a pas encore ; et le même cadre : un scan `EA` ne va que
+/// sur une ligne Overframe, et un autre jamais sur elle.
+fn a_poser_sur_la_carte<'a>(
+    clic: Option<&(i64, String, bool)>,
+    colonne: &'a ArtworkPropose,
+    montree: &str,
+) -> Option<(i64, &'a Anomalie)> {
+    let (rowid, rarete, overframe) = clic?;
+    let anomalies::Origine::Yugipedia { suffixe } = &colonne.origine else {
+        return None;
+    };
+    if rarete != montree || suffixe.starts_with("EA") != *overframe {
+        return None;
+    }
+    let anomalie = colonne.pour(rarete).filter(|a| !a.corrige)?;
+    Some((*rowid, anomalie))
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1699,6 +2334,7 @@ mod tests {
         NumeroUi {
             en_place: HashMap::new(),
             proposes: vec![None; numero.artworks.len()],
+            fichiers: vec![HashMap::new(); numero.artworks.len()],
             coches: BTreeSet::new(),
             identiques: vec![None; numero.artworks.len()],
             attestation: Attestation::Inconnue,
@@ -1761,6 +2397,7 @@ mod tests {
             Portee::Carte {
                 classeur: "RA02".into(),
                 set_code: "RA02-EN047".into(),
+                rowid: None,
             },
             &[Attestation::NonAttestee],
         );
@@ -1915,5 +2552,291 @@ mod tests {
         assert_eq!(origine_image(Some("Maiden-SDWD.png")), "scan Yugipedia");
         assert_eq!(origine_image(Some("")), "scan Yugipedia");
         assert_eq!(origine_image(None), "pas d'image");
+    }
+
+    // ── « Modifier l'artwork… » : Yugipedia d'abord — 2026-10-17 ─────────
+
+    const IMAGE_YGOPRODECK: &str = "https://images.ygoprodeck.com/images/cards/89631139.jpg";
+
+    /// Une installation : le classeur `LCKC`, sa carte `LCKC-EN001` qui montre
+    /// l'image YGOPRODeck, et une illustration YGOPRODeck que le scan des
+    /// anomalies propose pour elle.
+    fn installation_carte() -> (tempfile::TempDir, Paths, i64) {
+        let tmp = tempfile::tempdir().unwrap();
+        let paths = Paths::depuis_racine(tmp.path());
+        paths.creer_dossiers().unwrap();
+        std::fs::create_dir_all(paths.img_small()).unwrap();
+        std::fs::create_dir_all(paths.dossier_classeur("LCKC")).unwrap();
+        let conn = ygo_db::connexion::ouvrir(paths.classeur_db("LCKC")).unwrap();
+        conn.execute_batch(ygo_db::schema::DDL_CLASSEUR).unwrap();
+        conn.execute_batch(&format!(
+            "INSERT INTO cards (card_uuid, card_image_uuid, set_code, rarity, set_name, name,
+                                card_image_url, card_image_small, card_image_id, quantite)
+             VALUES ('', '', 'LCKC-EN001', 'Ultra Rare', 'Legendary Collection Kaiba',
+                     'Blue-Eyes White Dragon', '{IMAGE_YGOPRODECK}', '', 89631139, 2);"
+        ))
+        .unwrap();
+        let rowid = conn.last_insert_rowid();
+        drop(conn);
+        // La table des anomalies naît à la première lecture.
+        anomalies::lire(&paths, None).unwrap();
+        let cardinfo = ygo_db::connexion::ouvrir(paths.cardinfo_db()).unwrap();
+        cardinfo
+            .execute_batch(
+                "INSERT INTO anomalies (name, art_a_image_uuid, art_b_image_uuid, art_index,
+                     set_code_prefix, missing_set_code, missing_set_rarity,
+                     image_url, image_url_small, image_id)
+                 VALUES ('Blue-Eyes White Dragon', 'a', 'b', 2, 'LCKC', 'LCKC-EN001',
+                         'Ultra Rare', 'https://images.ygoprodeck.com/images/cards/89631140.jpg',
+                         '', 89631140);",
+            )
+            .unwrap();
+        (tmp, paths, rowid)
+    }
+
+    fn carte(rowid: i64) -> Portee {
+        Portee::Carte {
+            classeur: "LCKC".into(),
+            set_code: "LCKC-EN001".into(),
+            rowid: Some(rowid),
+        }
+    }
+
+    fn scan(fichier: &str) -> Scan {
+        use ygo_sources::yugipedia::artwork;
+        Scan {
+            fichier: fichier.to_owned(),
+            url: artwork::url_fichier(fichier),
+            rarete: "UR".to_owned(),
+            edition: "1E".to_owned(),
+            suffixe: artwork::suffixe(fichier, "LCKC"),
+            cle: "blueeyeswhitedragon".to_owned(),
+        }
+    }
+
+    fn libelles(e: &EcranArtworks) -> Vec<String> {
+        e.numeros
+            .first()
+            .map(|n| {
+                n.numero
+                    .artworks
+                    .iter()
+                    .map(ArtworkPropose::libelle)
+                    .collect()
+            })
+            .unwrap_or_default()
+    }
+
+    /// Le cas signalé : la carte montre l'image YGOPRODeck, ses scans sont
+    /// sur le disque. L'écran les propose sans réseau, replie YGOPRODeck et
+    /// n'en demande aucun aperçu ; la réponse de Yugipedia complète, les
+    /// cases suivent leur colonne ; la carte prend un scan, puis le rend.
+    #[test]
+    fn une_carte_regarde_le_disque_puis_yugipedia_avant_ygoprodeck() {
+        let (_t, paths, rowid) = installation_carte();
+        for f in [
+            "BlueEyesWhiteDragon-LCKC-EN-UR-1E-B.png",
+            "BlueEyesWhiteDragon-LCKC-EN-UR-1E-C.png",
+        ] {
+            std::fs::write(paths.img_small().join(f), b"png").unwrap();
+        }
+        let mut e = EcranArtworks::ouvrir_avec(paths.clone(), carte(rowid), false);
+        assert_eq!(
+            e.rarete_choisie.as_deref(),
+            Some(UR),
+            "la rareté de la carte cliquée"
+        );
+        assert_eq!(libelles(&e), ["Scan B", "Scan C"]);
+        assert_eq!(e.resume.ygoprodeck_caches, 1, "Yugipedia connaît le tirage");
+        e.demander_les_apercus();
+        assert!(
+            e.apercus_demandes().is_empty(),
+            "tout est sur le disque, et rien n'est demandé à YGOPRODeck"
+        );
+
+        // L'utilisateur coche B ; Yugipedia répond avec le tirage nu, qui
+        // se range devant.
+        e.numeros[0].basculer((0, UR.to_owned()));
+        e.envoi_scans
+            .send(Ok(vec![scan("BlueEyesWhiteDragon-LCKC-EN-UR-1E.png")]))
+            .unwrap();
+        e.recevoir_scans();
+        assert_eq!(e.recherche, Recherche::Faite);
+        assert_eq!(libelles(&e), ["Scan", "Scan B", "Scan C"]);
+        assert_eq!(
+            e.numeros[0].coches,
+            [(1, UR.to_owned())].into_iter().collect(),
+            "la case cochée suit la colonne B"
+        );
+        // Son aperçu, lui, est à aller chercher — chez Yugipedia.
+        e.demander_les_apercus();
+        let demandes = e.apercus_demandes();
+        assert_eq!(demandes.len(), 1);
+        assert!(demandes[0]
+            .url_primaire
+            .starts_with("https://ms.yugipedia.com//"));
+        assert_eq!(demandes[0].url_repli, None);
+
+        // « Mettre sur cette carte » : le scan nu remplace l'image YGOPRODeck.
+        let clic = e
+            .ligne_cliquee()
+            .map(|l| (l.rowid, l.rarete.clone(), l.overframe))
+            .unwrap();
+        let (r, a) = a_poser_sur_la_carte(Some(&clic), &e.numeros[0].numero.artworks[0], UR)
+            .map(|(r, a)| (r, a.clone()))
+            .unwrap();
+        e.mettre_sur_la_carte(r, &a);
+        assert!(e.a_ecrit());
+        assert_eq!(e.resume.completes, ["Scan"]);
+        assert_eq!(libelles(&e), ["Scan B", "Scan C"]);
+        assert_eq!(
+            e.numeros[0].en_place[UR].as_deref(),
+            Some("BlueEyesWhiteDragon-LCKC-EN-UR-1E.png"),
+            "la carte montre le scan"
+        );
+        assert_eq!(
+            e.numeros[0].coches,
+            [(0, UR.to_owned())].into_iter().collect(),
+            "B toujours cochée"
+        );
+
+        e.annuler_remplacement();
+        assert!(e.remplacement.is_none());
+        assert_eq!(e.numeros[0].en_place[UR].as_deref(), Some("89631139.jpg"));
+        assert_eq!(libelles(&e), ["Scan", "Scan B", "Scan C"]);
+
+        // Sur demande, YGOPRODeck revient, après les scans.
+        e.montrer_ygoprodeck = true;
+        e.relire();
+        assert_eq!(libelles(&e), ["Scan", "Scan B", "Scan C", "Art 2"]);
+        assert_eq!(e.resume.ygoprodeck_caches, 0);
+    }
+
+    /// Ajouter un scan, puis le retirer : seule la ligne ajoutée ici part.
+    #[test]
+    fn un_scan_ajoute_ici_se_retire_d_ici() {
+        let (_t, paths, rowid) = installation_carte();
+        std::fs::write(
+            paths
+                .img_small()
+                .join("BlueEyesWhiteDragon-LCKC-EN-UR-1E-B.png"),
+            b"png",
+        )
+        .unwrap();
+        let mut e = EcranArtworks::ouvrir_avec(paths, carte(rowid), false);
+        let a = e.numeros[0].numero.artworks[0].pour(UR).unwrap().clone();
+        e.ajouter(std::slice::from_ref(&a));
+        assert!(e.a_ecrit());
+        assert_eq!(e.ajouts.len(), 1);
+        // B est dans le classeur, mais sa colonne reste : on peut la retirer.
+        assert_eq!(libelles(&e), ["Scan B"]);
+        assert!(e.numeros[0].numero.artworks[0].pour(UR).unwrap().corrige);
+        assert!(e.resume.completes.is_empty());
+
+        e.retirer(&a);
+        assert!(e.a_ecrit());
+        assert!(e.ajouts.is_empty());
+        assert_eq!(libelles(&e), ["Scan B"]);
+        assert!(
+            !e.numeros[0].numero.artworks[0].pour(UR).unwrap().corrige,
+            "B est de nouveau à prendre"
+        );
+    }
+
+    /// Rien sur le disque : l'écran attend Yugipedia avant de montrer
+    /// YGOPRODeck — et le montre quand Yugipedia ne connaît rien, ou ne
+    /// répond pas.
+    #[test]
+    fn sans_scan_ygoprodeck_attend_yugipedia_puis_reprend_sa_place() {
+        for reponse in [Ok(Vec::new()), Err("hors ligne".to_owned())] {
+            let (_t, paths, rowid) = installation_carte();
+            let mut e = EcranArtworks::ouvrir_avec(paths, carte(rowid), false);
+            assert!(e.numeros.is_empty(), "on attend Yugipedia");
+            e.demander_les_apercus();
+            assert!(
+                e.apercus_demandes().is_empty(),
+                "aucun aperçu YGOPRODeck d'avance"
+            );
+
+            e.envoi_scans.send(reponse).unwrap();
+            e.recevoir_scans();
+            assert_eq!(libelles(&e), ["Art 2"]);
+            assert!(!e.resume.connu);
+        }
+    }
+
+    #[test]
+    fn un_scan_ne_se_pose_que_sur_sa_rarete_et_son_cadre() {
+        let colonne = |suffixe: &str, corrige: bool| ArtworkPropose {
+            art_index: 1,
+            image_uuid: format!("yugipedia-colonne:{suffixe}"),
+            par_rarete: vec![anomalie(UR, "yugipedia:x.png", 1, corrige)],
+            origine: anomalies::Origine::Yugipedia {
+                suffixe: suffixe.to_owned(),
+            },
+        };
+        let normale = (7, UR.to_owned(), false);
+        assert_eq!(
+            a_poser_sur_la_carte(Some(&normale), &colonne("", false), UR).map(|(r, _)| r),
+            Some(7)
+        );
+        assert!(
+            a_poser_sur_la_carte(Some(&normale), &colonne("", false), SCR).is_none(),
+            "l'image montrée est d'une autre rareté"
+        );
+        assert!(
+            a_poser_sur_la_carte(Some(&normale), &colonne("", true), UR).is_none(),
+            "déjà dans le classeur"
+        );
+        assert!(a_poser_sur_la_carte(Some(&normale), &colonne("EA", false), UR).is_none());
+        let overframe = (7, UR.to_owned(), true);
+        assert!(a_poser_sur_la_carte(Some(&overframe), &colonne("EA", false), UR).is_some());
+        assert!(a_poser_sur_la_carte(Some(&overframe), &colonne("B", false), UR).is_none());
+        assert!(a_poser_sur_la_carte(None, &colonne("", false), UR).is_none());
+        // Une illustration YGOPRODeck ne se pose pas sur la carte.
+        let ygo = anomalies::regrouper(vec![anomalie(UR, "art2", 2, false)])
+            .remove(0)
+            .artworks
+            .remove(0);
+        assert!(a_poser_sur_la_carte(Some(&normale), &ygo, UR).is_none());
+    }
+
+    #[test]
+    fn les_cases_suivent_leur_colonne() {
+        let p = |id: &str| ArtworkPropose {
+            art_index: 1,
+            image_uuid: id.to_owned(),
+            par_rarete: Vec::new(),
+            origine: anomalies::Origine::Ygoprodeck,
+        };
+        let coches: BTreeSet<Case> = [(0, UR.to_owned()), (1, SCR.to_owned())].into();
+        let avant = ["b".to_owned(), "c".to_owned()];
+        assert_eq!(
+            recaser(&coches, &avant, &[p("a"), p("b"), p("c")]),
+            [(1, UR.to_owned()), (2, SCR.to_owned())].into()
+        );
+        assert_eq!(
+            recaser(&coches, &avant, &[p("c")]),
+            [(0, SCR.to_owned())].into(),
+            "une colonne disparue emporte sa case"
+        );
+    }
+
+    /// Une colonne de scans montre le fichier de la rareté demandée ; une
+    /// illustration YGOPRODeck, toujours le même.
+    #[test]
+    fn chaque_rarete_montre_son_scan() {
+        let mut n = numero(vec![anomalie(UR, "art2", 2, false)]);
+        n.proposes = vec![Some("rep.png".to_owned())];
+        n.fichiers = vec![[(UR.to_owned(), "ur.png".to_owned())].into_iter().collect()];
+        assert_eq!(n.fichier(0, UR).as_deref(), Some("ur.png"));
+        assert_eq!(
+            n.fichier(0, SCR).as_deref(),
+            Some("rep.png"),
+            "à défaut, le représentant"
+        );
+        n.fichiers = vec![HashMap::new()];
+        assert_eq!(n.fichier(0, UR).as_deref(), Some("rep.png"));
+        assert_eq!(n.fichier(9, UR), None);
     }
 }

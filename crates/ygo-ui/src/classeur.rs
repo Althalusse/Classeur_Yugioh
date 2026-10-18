@@ -91,8 +91,9 @@ pub struct EcranClasseur {
     retour: bool,
     /// Un passage aux options a été demandé.
     options: bool,
-    /// Le `set_code` de la carte dont on veut voir les artworks.
-    artworks: Option<String>,
+    /// La carte dont on veut voir les artworks : son `set_code`, et la ligne
+    /// cliquée — c'est elle que « Mettre sur cette carte » change.
+    artworks: Option<(String, i64)>,
     /// La fenêtre « Qualité… », quand elle est ouverte.
     qualite: Option<crate::exemplaires::Fenetre>,
     /// Ce que reçoit une carte qui entre dans la collection.
@@ -250,8 +251,9 @@ impl EcranClasseur {
         std::mem::take(&mut self.options)
     }
 
-    /// Reprend la carte dont on veut voir les artworks, s'il y en a une.
-    pub fn artworks_demandes(&mut self) -> Option<String> {
+    /// Reprend la carte dont on veut voir les artworks, s'il y en a une :
+    /// son `set_code` et le `rowid` de la ligne cliquée.
+    pub fn artworks_demandes(&mut self) -> Option<(String, i64)> {
         std::mem::take(&mut self.artworks)
     }
 
@@ -1641,10 +1643,13 @@ impl EcranClasseur {
             ui.separator();
             if ui
                 .button("Modifier l'artwork…")
-                .on_hover_text("Les autres illustrations connues pour cette carte")
+                .on_hover_text(
+                    "Les scans Yugipedia de ce tirage — ceux déjà sur le disque d'abord — et les \
+                     autres illustrations connues pour cette carte",
+                )
                 .clicked()
             {
-                self.artworks = Some(code.clone());
+                self.artworks = Some((code.clone(), rowid));
                 ui.close();
             }
             if ui

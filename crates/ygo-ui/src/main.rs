@@ -820,7 +820,7 @@ impl eframe::App for Application {
                 eframe::App::ui(classeur.as_mut(), ui, frame);
                 if classeur.options_demandees() {
                     self.ouvrir_options();
-                } else if let Some(set_code) = classeur.artworks_demandes() {
+                } else if let Some((set_code, rowid)) = classeur.artworks_demandes() {
                     // Détruire l'écran referme sa connexion en écriture :
                     // l'écran des artworks écrit dans la même base, et deux
                     // écrivains sur un classeur, jamais (règle R3).
@@ -828,6 +828,7 @@ impl eframe::App for Application {
                     self.ouvrir_artworks(Portee::Carte {
                         classeur: code,
                         set_code,
+                        rowid: Some(rowid),
                     });
                 } else if classeur.retour_demande() {
                     // Détruire l'écran referme sa connexion en écriture.

@@ -4774,7 +4774,7 @@ checksum = "e450f9b2ed1dff33c94c12589a87338689467b9c4f5d8a5710bd09a847d2c8a7"
 
 [[package]]
 name = "ygo-app"
-version = "2.0.5"
+version = "2.0.6"
 dependencies = [
  "chrono",
  "csv",
@@ -4795,7 +4795,7 @@ dependencies = [
 
 [[package]]
 name = "ygo-cli"
-version = "2.0.5"
+version = "2.0.6"
 dependencies = [
  "anyhow",
  "chrono",
@@ -4811,7 +4811,7 @@ dependencies = [
 
 [[package]]
 name = "ygo-core"
-version = "2.0.5"
+version = "2.0.6"
 dependencies = [
  "chrono",
  "serde",
@@ -4825,7 +4825,7 @@ dependencies = [
 
 [[package]]
 name = "ygo-db"
-version = "2.0.5"
+version = "2.0.6"
 dependencies = [
  "rusqlite",
  "tempfile",
@@ -4836,7 +4836,7 @@ dependencies = [
 
 [[package]]
 name = "ygo-images"
-version = "2.0.5"
+version = "2.0.6"
 dependencies = [
  "futures-util",
  "md-5",
@@ -4852,13 +4852,14 @@ dependencies = [
 
 [[package]]
 name = "ygo-sources"
-version = "2.0.5"
+version = "2.0.6"
 dependencies = [
  "crc32fast",
  "futures-util",
  "governor",
  "html-escape",
  "indexmap",
+ "md-5",
  "regex",
  "reqwest",
  "serde",
@@ -4873,7 +4874,7 @@ dependencies = [
 
 [[package]]
 name = "ygo-ui"
-version = "2.0.5"
+version = "2.0.6"
 dependencies = [
  "anyhow",
  "chrono",
