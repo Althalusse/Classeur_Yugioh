@@ -29,10 +29,12 @@
 //! | [`rarity`]  | `module/gestion_rarete/gestion_rarete_service.py` (chargement de `rarity_config.json`) |
 //! | [`tri`]     | `module/gestion_rarete/tri_carte.py` |
 //! | [`version`] | lecture de `bdd/last_update.txt` |
+//! | [`cardmarket`] | *(nouveau, sans équivalent Python)* lien vers la page Cardmarket d'une carte |
 //! | [`log`]     | `module/logger_app.py` |
 
 #![forbid(unsafe_code)]
 
+pub mod cardmarket;
 pub mod config;
 pub mod error;
 pub mod image_source;

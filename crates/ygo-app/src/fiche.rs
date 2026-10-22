@@ -136,6 +136,10 @@ pub struct Fiche {
     pub resolution: Resolution,
     /// Les textes disponibles, une entrée par langue.
     pub textes: Vec<Texte>,
+    /// Le lien et le prix Cardmarket — `None` tant que les fichiers publics
+    /// de Cardmarket n'ont pas été téléchargés et indexés
+    /// (cf. [`crate::cardmarket`]).
+    pub cardmarket: Option<crate::cardmarket::Offre>,
 }
 
 /// L'ordre dans lequel les langues sont proposées.
@@ -217,7 +221,8 @@ impl Fiche {
     /// #         attribute: "LIGHT".into(), race: "Dragon".into(), quantite: 0,
     /// #         qualite: None, edition: None, extended_art: false, card_image_id: 0,
     /// #         fichier_image: None,
-    /// #         resolution: ygo_app::fiche::Resolution::Uuid, textes: Vec::new() }
+    /// #         resolution: ygo_app::fiche::Resolution::Uuid, textes: Vec::new(),
+    /// #         cardmarket: None }
     /// # }
     /// assert_eq!(
     ///     f(Some(3000), Some(2500), Some(8)).statistiques(),
@@ -413,9 +418,31 @@ pub fn lire(
             &fiche.set_code,
         )?;
         fiche.resolution = voie;
-        if let Some(u) = uuid {
-            fiche.textes = textes(&info, &u)?;
+        if let Some(u) = &uuid {
+            fiche.textes = textes(&info, u)?;
         }
+        // Le lien Cardmarket : une lecture de l'index en mémoire et quatre
+        // petites requêtes. Un échec n'empêche pas la fiche.
+        let lignes =
+            crate::cardmarket::lignes_du_numero(&conn, &fiche.set_code).unwrap_or_default();
+        let (version, versions) = crate::cardmarket::versions_de_la_ligne(
+            &fiche.set_code,
+            &lignes,
+            fiche.rowid,
+            &fiche.rarete,
+        );
+        let demande = crate::cardmarket::Demande {
+            set_code: &fiche.set_code,
+            rarete: &version,
+            nom: &fiche.nom,
+            card_uuid: uuid.as_deref(),
+            raretes: &versions,
+        };
+        let offre = crate::cardmarket::offre(paths, &info, &demande).unwrap_or_else(|e| {
+            tracing::warn!(erreur = %e, set_code = %fiche.set_code, "Cardmarket : offre non calculée");
+            None
+        });
+        fiche.cardmarket = offre;
     }
     Ok(Some(fiche))
 }
@@ -487,6 +514,7 @@ fn lire_ligne(
         .and_then(crate::classeur::fichier_depuis_url),
         resolution: Resolution::Aucune,
         textes: Vec::new(),
+        cardmarket: None,
     };
     let card_uuid: String = l.get(16)?;
     Ok(Some((fiche, card_uuid)))
@@ -533,6 +561,7 @@ mod tests {
             fichier_image: None,
             resolution: Resolution::Uuid,
             textes,
+            cardmarket: None,
         }
     }
 

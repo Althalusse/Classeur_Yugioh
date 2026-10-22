@@ -52,3 +52,4 @@ pub mod polices;
 pub mod selecteur;
 pub mod statistiques;
 pub mod telechargements;
+pub mod valeur;

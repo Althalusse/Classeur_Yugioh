@@ -28,11 +28,13 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::time::{Duration, Instant, SystemTime};
 
 use crate::csv::{Face, PanneauCsv};
+use crate::valeur::{self, Calcul};
 use eframe::egui;
 use ygo_app::accueil::{self, Classeur, Ordre, OrigineCouverture};
+use ygo_app::cardmarket::{Valeur, Valorisation};
 use ygo_core::config::Config;
 use ygo_core::paths::Paths;
 
@@ -44,6 +46,9 @@ const HAUTEUR_COUVERTURE: f32 = 230.0;
 const HAUTEUR_TUILE: f32 = 336.0;
 /// Espacement entre tuiles.
 const ESPACE: f32 = 12.0;
+/// Tous les combien l'accueil regarde si l'index Cardmarket a changé — les
+/// prix du jour arrivent après le démarrage, sur le fil Cardmarket.
+const CONTROLE_INDEX: Duration = Duration::from_secs(20);
 
 /// La taille à donner à une image pour l'inscrire dans une zone **sans la
 /// déformer**.
@@ -158,6 +163,17 @@ pub struct EcranAccueil {
     /// Ce que le panneau a fait, à afficher.
     message_csv: Option<(String, bool)>,
 
+    /// La valeur des possédées de chaque classeur, au dernier chiffrage.
+    valeurs: Option<Valorisation>,
+    /// Le chiffrage en cours, sur son fil.
+    chiffrage: Calcul<Option<Valorisation>>,
+    /// Les quantités ont changé pendant un chiffrage : il est à refaire.
+    rechiffrer: bool,
+    /// La date de l'index Cardmarket au lancement du dernier chiffrage.
+    index_chiffre: Option<SystemTime>,
+    /// Le dernier coup d'œil à cette date.
+    controle_index: Instant,
+
     duree_lecture: Duration,
     duree_couvertures: Duration,
     depart: Instant,
@@ -227,12 +243,18 @@ impl EcranAccueil {
             csv: PanneauCsv::nouveau("accueil", &paths_corbeille),
             creations_csv: Vec::new(),
             message_csv: None,
+            valeurs: None,
+            chiffrage: Calcul::default(),
+            rechiffrer: false,
+            index_chiffre: None,
+            controle_index: Instant::now(),
             duree_lecture,
             duree_couvertures,
             depart,
             premier_rendu: None,
         };
         accueil::trier(&mut ecran.classeurs, ecran.ordre);
+        ecran.chiffrer();
         ecran
     }
 
@@ -337,6 +359,63 @@ impl EcranAccueil {
         // vient d'en retirer un : le bouton doit suivre.
         self.corbeille = ygo_app::suppression::contenu_corbeille(&self.paths).len();
         accueil::trier(&mut self.classeurs, self.ordre);
+        // Les quantités ont pu changer : la valeur aussi.
+        self.chiffrer();
+    }
+
+    /// Chiffre les possédées de chaque classeur, sur un fil. Un chiffrage
+    /// déjà en cours est refait à son retour : il a pu lire les quantités
+    /// d'avant.
+    fn chiffrer(&mut self) {
+        if self.chiffrage.en_cours() {
+            self.rechiffrer = true;
+            return;
+        }
+        let paths = self.paths.clone();
+        let codes: Vec<String> = self.classeurs.iter().map(|c| c.code.clone()).collect();
+        self.index_chiffre = ygo_app::cardmarket::date_de_l_index(&paths);
+        self.controle_index = Instant::now();
+        self.chiffrage = Calcul::lancer("ygo-valeurs", move || {
+            let debut = Instant::now();
+            let valeurs = ygo_app::cardmarket::valoriser(&paths, &codes).unwrap_or_else(|e| {
+                tracing::warn!(erreur = %e, "valeur des classeurs non calculée");
+                None
+            });
+            println!(
+                "accueil — valeur de {} classeur(s) en {:?}",
+                valeurs.as_ref().map_or(0, |v| v.classeurs.len()),
+                debut.elapsed()
+            );
+            valeurs
+        });
+    }
+
+    /// Relève le chiffrage s'il est arrivé ; le relance si l'index
+    /// Cardmarket a changé depuis (les prix du jour).
+    fn relever_les_valeurs(&mut self, ctx: &egui::Context) {
+        if let Some(valeurs) = self.chiffrage.relever() {
+            // Sans index, rien n'est effacé : un chiffrage précédent vaut
+            // mieux que des pastilles qui disparaissent.
+            if valeurs.is_some() {
+                self.valeurs = valeurs;
+            }
+            if std::mem::take(&mut self.rechiffrer) {
+                self.chiffrer();
+            }
+        }
+        if self.chiffrage.en_cours() {
+            ctx.request_repaint_after(Duration::from_millis(150));
+        } else if self.controle_index.elapsed() >= CONTROLE_INDEX {
+            self.controle_index = Instant::now();
+            if ygo_app::cardmarket::date_de_l_index(&self.paths) != self.index_chiffre {
+                self.chiffrer();
+            }
+        }
+    }
+
+    /// La valeur des possédées d'un classeur, si elle est chiffrée.
+    fn valeur_de(&self, code: &str) -> Option<Valeur> {
+        self.valeurs.as_ref()?.classeurs.get(code).copied()
     }
 }
 
@@ -373,6 +452,7 @@ impl eframe::App for EcranAccueil {
             println!("accueil — premier rendu à {ecoule:?}");
         }
         let paths = self.paths.clone();
+        self.relever_les_valeurs(racine.ctx());
         self.csv.capter_depot(racine.ctx(), &paths);
         self.barre_du_haut(racine);
         self.barre_du_bas(racine);
@@ -699,13 +779,25 @@ impl EcranAccueil {
             // « 550 possédée(s) (33,8 %) » s'écrivait par-dessus « Trier
             // par », et les deux devenaient illisibles.
             ui.add_space(2.0);
-            ui.label(format!(
+            let mut compteurs = format!(
                 "{} classeur(s) · {} cartes · {} possédée(s) ({:.1} %)",
                 self.classeurs.len(),
                 self.total,
                 self.possedees,
                 part(self.possedees, self.total)
-            ));
+            );
+            // La valeur de tous les classeurs, au bout de la ligne ; son
+            // détail au survol.
+            let total = self.valeurs.as_ref().map(|v| (v.total(), v.prix_du.as_str()));
+            match total.and_then(|(v, du)| Some((valeur::montant(&v)?, valeur::detail(&v, du)))) {
+                Some((montant, detail)) => {
+                    compteurs.push_str(&format!(" · {montant}"));
+                    ui.label(compteurs).on_hover_text(detail);
+                }
+                None => {
+                    ui.label(compteurs);
+                }
+            }
             if let Some((texte, erreur)) = self.message_csv.clone() {
                 ui.add_space(4.0);
                 ui.horizontal(|ui| {
@@ -933,11 +1025,19 @@ impl EcranAccueil {
             );
             ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
         }
-        reponse.on_hover_text(format!(
+        let mut aide = format!(
             "Ouvrir {} — {}",
             classeur.code,
             classeur.nom_affiche(self.francais)
-        ))
+        );
+        if let (Some(v), Some(valeurs)) = (self.valeur_de(&classeur.code), &self.valeurs) {
+            let detail = valeur::detail(&v, &valeurs.prix_du);
+            if !detail.is_empty() {
+                aide.push_str("\n\n");
+                aide.push_str(&detail);
+            }
+        }
+        reponse.on_hover_text(aide)
     }
 
     /// La couverture, inscrite sans déformation dans une zone de hauteur fixe.
@@ -958,6 +1058,7 @@ impl EcranAccueil {
                 egui::FontId::proportional(48.0),
                 ui.visuals().weak_text_color(),
             );
+            self.pastille(ui, rect, classeur);
             return;
         };
 
@@ -965,6 +1066,7 @@ impl EcranAccueil {
         if largeur <= 0.0 || hauteur <= 0.0 {
             ui.painter()
                 .rect_filled(rect, 4.0, ui.visuals().extreme_bg_color);
+            self.pastille(ui, rect, classeur);
             return;
         }
         let inscrit = egui::Rect::from_center_size(rect.center(), egui::vec2(largeur, hauteur));
@@ -974,6 +1076,33 @@ impl EcranAccueil {
         )
         .corner_radius(4.0)
         .paint_at(ui, inscrit);
+        self.pastille(ui, inscrit, classeur);
+    }
+
+    /// La valeur des possédées, en pastille dans le coin haut droit de
+    /// l'image : sur l'image et non sur la zone, qu'une couverture portrait
+    /// ne remplit pas en largeur. Fond sombre translucide, texte blanc —
+    /// lisible sur toute couverture, en thème clair comme sombre.
+    fn pastille(&self, ui: &egui::Ui, image: egui::Rect, classeur: &Classeur) {
+        let Some(texte) = self
+            .valeur_de(&classeur.code)
+            .and_then(|v| valeur::pastille(&v))
+        else {
+            return;
+        };
+        let galee = ui.painter().layout_no_wrap(
+            texte,
+            egui::FontId::proportional(12.5),
+            egui::Color32::WHITE,
+        );
+        let marge = egui::vec2(7.0, 2.5);
+        let taille = galee.size() + marge * 2.0;
+        let coin = egui::pos2(image.right() - 6.0, image.top() + 6.0);
+        let fond = egui::Rect::from_min_size(egui::pos2(coin.x - taille.x, coin.y), taille);
+        ui.painter()
+            .rect_filled(fond, taille.y / 2.0, egui::Color32::from_black_alpha(185));
+        ui.painter()
+            .galley(fond.min + marge, galee, egui::Color32::WHITE);
     }
 }
 

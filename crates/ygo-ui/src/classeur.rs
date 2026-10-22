@@ -131,6 +131,13 @@ pub struct EcranClasseur {
     /// Le détail des écarts est-il déplié ?
     detail_ecarts: bool,
 
+    /// Le prix d'un exemplaire de chaque ligne, chiffré une fois à
+    /// l'ouverture : la valeur se refait ensuite de mémoire, à chaque
+    /// quantité changée.
+    prix: Option<ygo_app::cardmarket::PrixDesLignes>,
+    /// Le chiffrage en cours, sur son fil.
+    chiffrage: crate::valeur::Calcul<Option<ygo_app::cardmarket::PrixDesLignes>>,
+
     /// Mesures, affichées en bas — c'est l'épreuve que l'arbitrage n'a pas faite.
     duree_chargement: Duration,
     duree_filtre: Duration,
@@ -195,6 +202,22 @@ impl EcranClasseur {
             classeur::nb_doubles_pages(visibles.len(), grille)
         );
 
+        // Les prix des lignes, sur un fil : l'écran s'affiche sans les
+        // attendre.
+        let chiffrage = {
+            let paths = paths.clone();
+            let code = code.clone();
+            crate::valeur::Calcul::lancer("ygo-prix-classeur", move || {
+                let debut = Instant::now();
+                let prix = ygo_app::cardmarket::prix_des_lignes(&paths, &code).unwrap_or_else(|e| {
+                    tracing::warn!(classeur = %code, erreur = %e, "prix des lignes non calculés");
+                    None
+                });
+                println!("{code} — prix des lignes en {:?}", debut.elapsed());
+                prix
+            })
+        };
+
         Ok(Self {
             paths,
             code,
@@ -230,9 +253,29 @@ impl EcranClasseur {
             largeur_navigation: 0.0,
             ecarts,
             detail_ecarts: false,
+            prix: None,
+            chiffrage,
             depart: Instant::now(),
             premier_rendu: None,
         })
+    }
+
+    /// Relève les prix des lignes s'ils sont arrivés.
+    fn relever_les_prix(&mut self, ctx: &egui::Context) {
+        if let Some(prix) = self.chiffrage.relever() {
+            self.prix = prix;
+        }
+        if self.chiffrage.en_cours() {
+            ctx.request_repaint_after(Duration::from_millis(150));
+        }
+    }
+
+    /// La valeur des possédées affichées, et celle du classeur entier : de
+    /// mémoire, aux quantités du moment.
+    fn valeurs(&self) -> Option<(ygo_app::cardmarket::Valeur, ygo_app::cardmarket::Valeur)> {
+        let prix = self.prix.as_ref()?;
+        let valeur = |cartes: &[Carte]| prix.valeur(cartes.iter().map(|c| (c.rowid, c.quantite)));
+        Some((valeur(&self.visibles), valeur(&self.toutes)))
     }
 
     /// Le code du set ouvert.
@@ -333,6 +376,7 @@ impl eframe::App for EcranClasseur {
         }
 
         self.raccourcis(racine.ctx());
+        self.relever_les_prix(racine.ctx());
         self.barre_du_haut(racine);
         self.bandeau_ecarts(racine);
         self.barre_du_bas(racine);
@@ -487,11 +531,36 @@ impl EcranClasseur {
                 ui.heading(&self.code);
                 ui.add_space(12.0);
                 let possedees = self.visibles.iter().filter(|c| c.quantite > 0).count();
-                ui.label(format!(
+                let mut compteurs = format!(
                     "{} carte(s) affichée(s) sur {} · {possedees} possédée(s)",
                     self.visibles.len(),
                     self.toutes.len()
-                ));
+                );
+                // La valeur des possédées affichées — celle du classeur
+                // entier sans filtre, comme la pastille de l'accueil.
+                let valeur = self.valeurs().and_then(|(affichees, classeur)| {
+                    let montant = crate::valeur::montant(&affichees)?;
+                    let prix_du = self.prix.as_ref().map_or("", |p| p.prix_du.as_str());
+                    let mut detail = String::new();
+                    if self.visibles.len() != self.toutes.len() {
+                        if let Some(tout) = crate::valeur::montant(&classeur) {
+                            detail.push_str(&format!(
+                                "Cartes affichées seulement — tout le classeur : {tout}\n"
+                            ));
+                        }
+                    }
+                    detail.push_str(&crate::valeur::detail(&affichees, prix_du));
+                    Some((montant, detail))
+                });
+                match valeur {
+                    Some((montant, detail)) => {
+                        compteurs.push_str(&format!(" · {montant}"));
+                        ui.label(compteurs).on_hover_text(detail);
+                    }
+                    None => {
+                        ui.label(compteurs);
+                    }
+                }
 
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     if ui.button("⚙").on_hover_text("Options").clicked() {

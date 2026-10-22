@@ -34,6 +34,7 @@ pub mod adoption;
 pub mod anomalies;
 pub mod artworks;
 pub mod attestation;
+pub mod cardmarket;
 pub mod classeur;
 pub mod controle;
 pub mod couverture;

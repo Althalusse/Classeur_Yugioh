@@ -156,6 +156,9 @@ async fn executer() -> anyhow::Result<bool> {
         "inventaire" => cmd_inventaire(&cible.context("chemin de l'installation attendu")?, reste),
         "etat" => cmd_etat(&cible.context("chemin de l'installation attendu")?, reste),
         "stats" => cmd_stats(&cible.context("chemin de l'installation attendu")?, reste),
+        "cardmarket" => {
+            cmd_cardmarket(&cible.context("chemin de l'installation attendu")?, reste).await
+        }
         "comparer" => {
             let reference = cible.context("base de référence attendue")?;
             let candidate = reste
@@ -272,6 +275,21 @@ USAGE
   ygo-cli stats <installation>     où en est chaque classeur, et sur quelles raretés
         [--raretes]                   la décomposition cumulée de la collection
         [--classeur CODE]             se limite à un classeur
+  ygo-cli cardmarket <installation>
+                                   lien et prix Cardmarket de chaque ligne de classeur
+                                   (fichiers publics dans bdd/cardmarket/, index refait
+                                   s'ils ont changé — sans réseau par défaut)
+        [--telecharger]               vérifie les fichiers (une fois par jour au plus)
+        [--forcer]                    avec --telecharger : vérifie même si c'est déjà fait
+                                      aujourd'hui (requête conditionnelle : 304 si inchangé)
+        [--reconstruire]              refait l'index même s'il est à jour
+        [--classeur CODE]             se limite à un classeur
+        [--code NUMÉRO]               un numéro de la base (COTD-JP005), toutes ses
+                                      raretés, sans passer par un classeur
+        [--possedees]                 ne compte que les cartes possédées
+        [--detail]                    une ligne par carte : lien, prix, raison
+        [--valeur]                    les 30 lignes possédées qui pèsent le plus dans
+                                      la valeur affichée par l'application
   ygo-cli comparer <référence> <candidate>
                                    compare deux cardinfo.db table par table
   ygo-cli --version
@@ -2904,6 +2922,251 @@ fn cmd_stats(installation: &Path, args: &[String]) -> anyhow::Result<bool> {
             );
         }
     }
+    Ok(true)
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// cardmarket
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Le lien et le prix Cardmarket de chaque ligne de classeur, et le bilan.
+///
+/// Sans `--telecharger`, aucune requête : on travaille sur les fichiers déjà
+/// dans `bdd/cardmarket/` — c'est ce qui permet de rejouer le calcul sur des
+/// fichiers figés.
+async fn cmd_cardmarket(installation: &Path, args: &[String]) -> anyhow::Result<bool> {
+    use ygo_app::cardmarket::{self as cm, Couverture, Demande};
+    use ygo_core::cardmarket::{Region, Sens};
+
+    let telecharger = args.iter().any(|a| a == "--telecharger");
+    let forcer = args.iter().any(|a| a == "--forcer");
+    let reconstruire = args.iter().any(|a| a == "--reconstruire");
+    let detail = args.iter().any(|a| a == "--detail");
+    let possedees_seules = args.iter().any(|a| a == "--possedees");
+    let lourdes = args.iter().any(|a| a == "--valeur");
+    let seul = valeur(args, "--classeur").map(|c| c.to_uppercase());
+    let paths = Paths::depuis_racine(installation);
+    println!("Installation : {}", installation.display());
+    println!("Dossier      : {}", cm::dossier(&paths).display());
+
+    if telecharger {
+        let client = ygo_sources::ClientHttp::new()?;
+        let bilan =
+            ygo_sources::cardmarket::telecharger(&client, &cm::dossier(&paths), forcer).await?;
+        for (fichier, issue) in &bilan.fichiers {
+            println!("  {:28} {issue:?}", fichier.nom());
+        }
+    }
+    let depart = std::time::Instant::now();
+    let etat = cm::reconstruire_si_besoin(&paths, reconstruire)?;
+    println!("Index        : {etat:?} ({:?})", depart.elapsed());
+    let Some(index) = cm::charge(&paths) else {
+        println!("Pas d'index : téléchargez d'abord les fichiers (--telecharger).");
+        return Ok(false);
+    };
+    let i = &index.index;
+    println!(
+        "Extensions   : {} rapprochées, {} non rapprochées ; {} produits avec un prix ; prix du {}",
+        i.extensions.len(),
+        i.non_rapprochees,
+        i.prix.len(),
+        i.empreinte.prix
+    );
+    for region in [Region::Tcg, Region::Ocg] {
+        let mut par_sens: BTreeMap<String, usize> = BTreeMap::new();
+        for e in i.extensions.iter().filter(|e| e.region == region) {
+            let cle = match e.sens {
+                Sens::DansLOrdre => "dans l'ordre",
+                Sens::Inverse => "à l'envers",
+                Sens::Melange => "mélangée",
+                Sens::Inconnu => "sans assez de prix",
+            };
+            *par_sens.entry(cle.to_owned()).or_default() += 1;
+        }
+        println!("  {region:?} : saisie {par_sens:?}");
+    }
+    if detail {
+        for e in i.extensions.iter().filter(|e| e.sens == Sens::Inverse) {
+            println!(
+                "    à l'envers : {} {} ({:?}) témoins {:?}",
+                e.id,
+                e.libelle.as_deref().unwrap_or("?"),
+                e.region,
+                e.temoins
+            );
+        }
+    }
+
+    if !paths.cardinfo_db().is_file() {
+        println!("cardinfo.db absente : pas de classeur à examiner.");
+        return Ok(true);
+    }
+    let cardinfo = connexion::ouvrir_lecture_seule(paths.cardinfo_db())?;
+
+    // `--code` : un numéro de la base, toutes ses raretés, sans classeur.
+    if let Some(code) = valeur(args, "--code") {
+        let mut q = cardinfo.prepare(
+            "SELECT DISTINCT sp.rarity, sp.card_uuid, COALESCE(ct.name, '') \
+             FROM set_prints sp LEFT JOIN card_texts ct \
+               ON ct.card_uuid = sp.card_uuid AND ct.language = 'en' \
+             WHERE sp.set_code = ?1 AND COALESCE(sp.rarity, '') <> '' ORDER BY sp.rarity",
+        )?;
+        let tirages = q
+            .query_map([code], |l| {
+                Ok((
+                    l.get::<_, String>(0)?,
+                    l.get::<_, String>(1)?,
+                    l.get::<_, String>(2)?,
+                ))
+            })?
+            .collect::<rusqlite::Result<Vec<_>>>()?;
+        if tirages.is_empty() {
+            println!("{code} : inconnu de cardinfo.db");
+            return Ok(false);
+        }
+        let raretes: Vec<String> = tirages.iter().map(|(r, ..)| r.clone()).collect();
+        for (rarete, uuid, nom) in &tirages {
+            let offre = index.offre(
+                &cardinfo,
+                &Demande {
+                    set_code: code,
+                    rarete,
+                    nom,
+                    card_uuid: Some(uuid),
+                    raretes: &raretes,
+                },
+            )?;
+            println!(
+                "{code} | {rarete} | {nom} | {} | {} | {} | {}",
+                offre.url("fr"),
+                offre.version.as_deref().unwrap_or("—"),
+                offre
+                    .prix_affiche()
+                    .unwrap_or_else(|| "pas de prix".to_owned()),
+                offre.raison.explication()
+            );
+        }
+        return Ok(true);
+    }
+    println!();
+    println!(
+        "{:12} {:>6} {:>8} {:>9} {:>11} {:>10} {:>14} {:>9}",
+        "classeur",
+        "lignes",
+        "directes",
+        "supposées",
+        "recherche+V",
+        "recherche",
+        "valeur",
+        "sans prix"
+    );
+    let mut total = Couverture::default();
+    let mut valeur_totale = cm::Valeur::default();
+    // (montant, ligne) des possédées chiffrées, pour `--valeur`.
+    let mut poids: Vec<(u64, String)> = Vec::new();
+    for code in paths.classeurs_existants() {
+        if seul.as_deref().is_some_and(|c| c != code) {
+            continue;
+        }
+        let conn = connexion::ouvrir_lecture_seule(paths.classeur_db(&code))?;
+        // Les mêmes offres que les fiches, et la valeur des possédées que
+        // l'accueil affiche.
+        let mut couverture = Couverture::default();
+        let mut valeur = cm::Valeur::default();
+        for l in cm::offres_du_classeur(&index, &cardinfo, &conn, false)? {
+            let unitaire = l.offre.prix_unitaire();
+            valeur.ajouter(l.quantite, unitaire);
+            if let (true, Some(p), Ok(q)) = (lourdes, unitaire, u64::try_from(l.quantite)) {
+                if q > 0 {
+                    poids.push((
+                        q.saturating_mul(u64::from(p)),
+                        format!(
+                            "{code:8} {:14} {:40} {:32} {q} × {} | {}",
+                            l.set_code,
+                            traquer(&l.version, 40),
+                            traquer(&l.nom, 32),
+                            cm::euros(p.into()),
+                            l.offre
+                                .prix_affiche()
+                                .unwrap_or_else(|| "pas de prix".to_owned()),
+                        ),
+                    ));
+                }
+            }
+            if possedees_seules && l.quantite <= 0 {
+                continue;
+            }
+            let offre = &l.offre;
+            couverture.compter(offre);
+            total.compter(offre);
+            if detail {
+                println!(
+                    "  {:14} {:44} {:36} {:>4} {} | {} | {}",
+                    l.set_code,
+                    traquer(&l.version, 44),
+                    traquer(&l.nom, 36),
+                    match offre.cible {
+                        cm::Cible::Produit(_) => "page",
+                        cm::Cible::Recherche { .. } => "rech",
+                        cm::Cible::Numero(_) => "num",
+                    },
+                    offre.version.as_deref().unwrap_or("—"),
+                    offre
+                        .prix_affiche()
+                        .unwrap_or_else(|| "pas de prix".to_owned()),
+                    offre.raison.explication()
+                );
+                println!("      {}", offre.url("fr"));
+            }
+        }
+        valeur_totale.cumuler(valeur);
+        println!(
+            "{:12} {:>6} {:>8} {:>9} {:>11} {:>10} {:>14} {:>9}",
+            code,
+            couverture.lignes,
+            couverture.directes_sures,
+            couverture.directes_supposees,
+            couverture.recherches_avec_version,
+            couverture.recherches,
+            cm::euros(valeur.centimes),
+            valeur.non_chiffres
+        );
+    }
+    println!(
+        "{:12} {:>6} {:>8} {:>9} {:>11} {:>10} {:>14} {:>9}",
+        "TOTAL",
+        total.lignes,
+        total.directes_sures,
+        total.directes_supposees,
+        total.recherches_avec_version,
+        total.recherches,
+        cm::euros(valeur_totale.centimes),
+        valeur_totale.non_chiffres
+    );
+    println!(
+        "Valeur des possédées : {} pour {} exemplaire(s) chiffré(s) · {} sans prix sûr",
+        cm::euros(valeur_totale.centimes),
+        valeur_totale.chiffres,
+        valeur_totale.non_chiffres
+    );
+    if lourdes {
+        poids.sort_by_key(|p| std::cmp::Reverse(p.0));
+        println!("Les lignes qui pèsent le plus :");
+        for (montant, ligne) in poids.iter().take(30) {
+            println!("  {:>12}  {ligne}", cm::euros(*montant));
+        }
+    }
+    if total.lignes > 0 {
+        let pct = |n: usize| 100.0 * n as f64 / total.lignes as f64;
+        println!(
+            "Lien direct : {:.1} % (dont supposé {:.1} %) · recherche avec version : {:.1} % · recherche seule : {:.1} %",
+            pct(total.directes_sures + total.directes_supposees),
+            pct(total.directes_supposees),
+            pct(total.recherches_avec_version),
+            pct(total.recherches)
+        );
+    }
+    println!("Raisons : {:?}", total.raisons);
     Ok(true)
 }
 

@@ -16,7 +16,9 @@ ygo-sources.workspace = true
 tokio.workspace = true
 anyhow.workspace = true
 tracing.workspace = true
-eframe = { version = "0.36", default-features = false, features = ["default_fonts", "glow", "wayland", "x11"] }
+# `links` : un clic sur un lien (Cardmarket, GitHub) l'ouvre dans le
+# navigateur par défaut (crate `webbrowser`). Sans lui, egui ignore le clic.
+eframe = { version = "0.36", default-features = false, features = ["default_fonts", "glow", "links", "wayland", "x11"] }
 egui_extras = { version = "0.36", features = ["image"] }
 chrono.workspace = true
 rfd.workspace = true

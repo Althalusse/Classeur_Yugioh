@@ -5,12 +5,12 @@ classeur : chaque tirage à sa place, avec sa rareté, son illustration et son
 édition, et pour chaque carte possédée, l'état de chaque exemplaire.
 
 Application de bureau pour **Windows**, écrite en **Rust** (interface egui).
-Version actuelle : **2.0.7**.
+Version actuelle : **2.0.8**.
 
-> Projet de fan, non officiel, sans lien avec Konami. *Yu-Gi-Oh!* et les
-> illustrations des cartes appartiennent à leurs ayants droit. Aucune image de
-> carte n'est distribuée avec l'application : elles sont téléchargées depuis les
-> sources publiques au moment où on les affiche.
+> Projet de fan, non officiel, sans lien avec Konami ni avec Cardmarket.
+> *Yu-Gi-Oh!* et les illustrations des cartes appartiennent à leurs ayants
+> droit. Aucune image de carte n'est distribuée avec l'application : elles sont
+> téléchargées depuis les sources publiques au moment où on les affiche.
 
 ---
 
@@ -40,6 +40,13 @@ Version actuelle : **2.0.7**.
   plusieurs numéros, la galerie Yugipedia du set dit lequel porte quel
   artwork ; « Modifier l'artwork… » propose ceux de la carte d'abord, et
   laisse choisir celui d'un autre numéro si c'est celui de la carte en main.
+- **Les prix Cardmarket** — sur la fiche de chaque carte, un bouton vers sa
+  page Cardmarket : la version exacte quand on sait laquelle c'est, sinon
+  toutes les versions de la carte dans son set (avec celle à ouvrir), ou la
+  recherche de son numéro ; la tendance, le plus bas et la moyenne des ventes
+  sur 30 jours. Et la **valeur estimée** des cartes possédées, sur chaque
+  classeur et pour toute la collection. Prix indicatifs, toutes langues,
+  éditions et états confondus.
 - **Noms français officiels** — jamais inventés : une carte sans nom français
   officiel garde son nom anglais.
 - **Statistiques**, **corbeille** (un classeur supprimé se restaure), **fiche
@@ -80,6 +87,7 @@ choisi dans Options › Application.
 | [YGOJSON](https://github.com/iconmaster5326/YGOJSON) | cartes, sets, tirages, textes multilingues | une archive par mise à jour |
 | [YGOPRODeck](https://ygoprodeck.com/api-guide/) | catalogue, statistiques, images par carte | ≤ 15 requêtes/s (limite : 20), données gardées en local, chaque image téléchargée **une seule fois** |
 | [Yugipedia](https://yugipedia.com/wiki/Yugipedia:API) | image de chaque tirage, listes officielles des sets | ≤ 1 requête/s, **une seule requête à la fois**, cache de 30 jours, requêtes regroupées par 50, User-Agent avec contact |
+| [Cardmarket](https://www.cardmarket.com) | catalogue et guide des prix publics (fichiers ouverts à tous, sans compte) | **une vérification par jour au plus**, requête conditionnelle (rien ne redescend si rien n'a changé) ; **aucune requête vers le site** : l'application construit les liens, vous les ouvrez |
 
 Ces règles sont tenues **pour l'ensemble du programme** (quotas et cache
 partagés par tous ses fils), parce que l'application est partagée : elles
@@ -122,7 +130,7 @@ collection (`tests/fixtures/`).
 |---|---|
 | `ygo-core` | règles métier pures — aucune entrée/sortie |
 | `ygo-db` | SQLite, schémas extraits des bases réelles |
-| `ygo-sources` | YGOJSON, YGOPRODeck, Yugipedia — client HTTP à quotas, cache disque |
+| `ygo-sources` | YGOJSON, YGOPRODeck, Yugipedia, fichiers publics Cardmarket — client HTTP à quotas, cache disque |
 | `ygo-images` | téléchargement, file d'attente, cache d'images |
 | `ygo-app` | orchestration — ne connaît aucun type d'interface |
 | `ygo-ui` | l'interface (egui / eframe) |

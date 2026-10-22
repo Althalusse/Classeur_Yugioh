@@ -1105,6 +1105,21 @@ impl Service {
                 |_| (),
             );
 
+        // Les prix Cardmarket : trois fichiers publics vérifiés au plus une
+        // fois par jour, puis l'index refait si un fichier ou la base a
+        // changé. Sur leur fil, comme le contrôle de version : ni l'interface
+        // ni les téléchargements n'ont à les attendre, et la fiche d'une
+        // carte se passe de prix tant qu'ils ne sont pas là.
+        let racine_cardmarket = racine.clone();
+        let travaux_cardmarket = travaux.clone();
+        std::thread::Builder::new()
+            .name("ygo-cardmarket".to_owned())
+            .spawn(move || actualiser_cardmarket(&racine_cardmarket, &travaux_cardmarket))
+            .map_or_else(
+                |e| tracing::error!(erreur = %e, "fil Cardmarket non démarré"),
+                |_| (),
+            );
+
         let envoi_appli = envoi_evenements.clone();
         let ctx_appli = ctx.clone();
         let racine_appli = racine.clone();
@@ -1500,6 +1515,40 @@ fn controler_version(
     let verdict = runtime.block_on(ygo_app::maj::verifier(&paths, &client));
     let _ = evenements.send(Evenement::Version { verdict });
     ctx.request_repaint();
+}
+
+/// Les fichiers Cardmarket, puis l'index : le fil du démarrage.
+///
+/// Les fichiers d'abord — ils ne touchent pas à la base. L'index ensuite,
+/// qui lit `cardinfo.db` : on attend qu'une mise à jour de la base en cours
+/// l'ait remplacée, sans quoi son renommage échouerait sous Windows (cf.
+/// [`Travaux`]). Rien n'est signalé à l'écran : la fiche relit l'index de
+/// lui-même dès qu'il change.
+fn actualiser_cardmarket(racine: &std::path::Path, travaux: &Travaux) {
+    let Some((runtime, client)) = outillage("cardmarket") else {
+        return;
+    };
+    let paths = Paths::depuis_racine(racine);
+    let dossier = ygo_app::cardmarket::dossier(&paths);
+    match runtime.block_on(ygo_sources::cardmarket::telecharger(
+        &client, &dossier, false,
+    )) {
+        Ok(bilan) => {
+            for echec in bilan.echecs() {
+                tracing::warn!(echec, "Cardmarket : fichier non vérifié");
+            }
+            tracing::info!(
+                nouveaux = bilan.a_change(),
+                "Cardmarket : fichiers vérifiés"
+            );
+        }
+        Err(e) => tracing::warn!(erreur = %e, "Cardmarket : fichiers non vérifiés"),
+    }
+    travaux.attendre_la_fin();
+    match ygo_app::cardmarket::reconstruire_si_besoin(&paths, false) {
+        Ok(etat) => tracing::info!(?etat, "Cardmarket : index"),
+        Err(e) => tracing::warn!(erreur = %e, "Cardmarket : index non construit"),
+    }
 }
 
 /// Le contrôle de version de l'application : une requête à GitHub, un

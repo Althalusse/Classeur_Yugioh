@@ -26,6 +26,7 @@
 //! chaque clic. Une fenêtre par-dessus ne touche à rien.
 
 use eframe::egui;
+use ygo_app::cardmarket::{euros, Cible, Offre, PrixOffre};
 use ygo_app::fiche::{Fiche, Resolution};
 
 use crate::images::{Cache, Cle};
@@ -38,6 +39,10 @@ use crate::images::{Cache, Cle};
 /// redevient déchiffrable, là où les 310 points d'une case du classeur n'en
 /// donnent qu'une bouillie grise.
 pub const LARGEUR_IMAGE: f32 = 420.0;
+
+/// Hauteur de l'illustration — celle d'une carte, 59 × 86 mm — et donc de
+/// la colonne de texte à côté.
+pub const HAUTEUR_IMAGE: f32 = LARGEUR_IMAGE * 86.0 / 59.0;
 
 /// Largeur de la colonne de texte, à côté de l'illustration.
 pub const LARGEUR_TEXTE: f32 = 460.0;
@@ -173,14 +178,7 @@ impl EtatFiche {
                 ui.horizontal_top(|ui| {
                     illustration(ui, cache, dossier_images, &fiche);
                     ui.add_space(16.0);
-                    ui.vertical(|ui| {
-                        ui.set_width(LARGEUR_TEXTE);
-                        entete(ui, &fiche);
-                        ui.add_space(8.0);
-                        choisie = onglets_de_langue(ui, &fiche, &langue, francais, cjk);
-                        ui.add_space(6.0);
-                        corps(ui, &fiche, &choisie);
-                    });
+                    choisie = colonne(ui, &fiche, &langue, francais, cjk).langue;
                 });
                 ui.add_space(10.0);
                 ui.separator();
@@ -247,7 +245,7 @@ pub const CROIX: &str = "✖";
 
 /// L'illustration, à une définition où le texte imprimé se lit.
 fn illustration(ui: &mut egui::Ui, cache: &mut Cache, dossier: &std::path::Path, fiche: &Fiche) {
-    let taille = egui::vec2(LARGEUR_IMAGE, LARGEUR_IMAGE * 86.0 / 59.0);
+    let taille = egui::vec2(LARGEUR_IMAGE, HAUTEUR_IMAGE);
     // Toujours la variante « possédée » : la fiche montre la carte, elle ne
     // rejoue pas l'atténuation du classeur. On vient précisément d'ouvrir
     // pour la regarder.
@@ -294,6 +292,319 @@ fn entete(ui: &mut egui::Ui, fiche: &Fiche) {
         ui.add_space(4.0);
         ui.label(egui::RichText::new(stats).monospace().small());
     }
+}
+
+/// Ce que dessine la colonne de droite. Les rectangles ne servent qu'aux
+/// tests, qui mesurent la vraie colonne.
+struct Colonne {
+    /// La langue retenue après un éventuel clic sur un onglet.
+    langue: String,
+    /// La colonne entière.
+    #[cfg_attr(not(test), allow(dead_code))]
+    rect: egui::Rect,
+    /// L'en-tête, les langues et le texte.
+    #[cfg_attr(not(test), allow(dead_code))]
+    texte: egui::Rect,
+    /// Le bloc Cardmarket, s'il y en a un.
+    #[cfg_attr(not(test), allow(dead_code))]
+    cardmarket: Option<egui::Rect>,
+}
+
+/// La colonne de droite, **à la hauteur de l'illustration** : Cardmarket en
+/// occupe le bas, l'en-tête, les langues et le texte le haut — le texte
+/// défile dans ce qui reste.
+///
+/// # Pourquoi de bas en haut
+///
+/// Sous un texte court restait une grande place vide ; sous un texte long,
+/// un bloc Cardmarket placé à la suite serait sorti de la fenêtre. Posé
+/// d'abord, contre le bas d'une colonne de hauteur fixe, il est toujours au
+/// même endroit, et le texte prend exactement la hauteur qu'il laisse. La
+/// colonne se remplit donc de bas en haut ; le haut, lui, se lit de haut en
+/// bas, comme avant.
+fn colonne(ui: &mut egui::Ui, fiche: &Fiche, langue: &str, francais: bool, cjk: bool) -> Colonne {
+    let taille = egui::vec2(LARGEUR_TEXTE, HAUTEUR_IMAGE);
+    let mut choisie = langue.to_owned();
+    let mut bloc = None;
+    let mut texte = egui::Rect::NOTHING;
+    let reponse =
+        ui.allocate_ui_with_layout(taille, egui::Layout::bottom_up(egui::Align::Min), |ui| {
+            ui.set_min_size(taille);
+            if let Some(offre) = &fiche.cardmarket {
+                bloc = Some(
+                    ui.scope(|ui| cardmarket(ui, offre, &fiche.set_code, francais))
+                        .response
+                        .rect,
+                );
+                ui.add_space(10.0);
+            }
+            texte = ui
+                .with_layout(egui::Layout::top_down(egui::Align::Min), |ui| {
+                    entete(ui, fiche);
+                    ui.add_space(8.0);
+                    choisie = onglets_de_langue(ui, fiche, langue, francais, cjk);
+                    ui.add_space(6.0);
+                    corps(ui, fiche, &choisie);
+                })
+                .response
+                .rect;
+        });
+    Colonne {
+        langue: choisie,
+        rect: reponse.response.rect,
+        texte,
+        cardmarket: bloc,
+    }
+}
+
+/// Cardmarket, en bas de la colonne : un bouton, les prix, leur date.
+///
+/// Le bouton ouvre la page de **la** version quand on sait laquelle c'est ;
+/// sinon toutes les versions de la carte dans son set — la recherche de
+/// Cardmarket, filtrée sur l'extension —, avec la version à ouvrir quand on
+/// la connaît : la page de résultats trie par popularité, pas par V.n. Quand
+/// la carte elle-même n'a pas été retrouvée (set non rapproché, nom
+/// différent), la recherche de son numéro (`CORI-JP001`). Le lien s'ouvre
+/// dans le navigateur ; l'application n'envoie aucune requête à
+/// `www.cardmarket.com`.
+///
+/// Appelée dans une mise en page de bas en haut (cf. [`colonne`]) : les
+/// lignes sont posées dans l'ordre inverse de la lecture.
+fn cardmarket(ui: &mut egui::Ui, offre: &Offre, set_code: &str, francais: bool) {
+    // La date et la portée des prix, quand il y en a un à dater.
+    if offre.prix != PrixOffre::Aucun {
+        ui.label(egui::RichText::new(note_des_prix(offre)).small().weak());
+        ui.add_space(2.0);
+    }
+    ui.label(ligne_de_prix(offre));
+    if let Some(texte) = indication(offre) {
+        ui.add_space(2.0);
+        ui.label(egui::RichText::new(texte).small());
+    }
+    ui.add_space(4.0);
+    let url = offre.url(ygo_core::cardmarket::langue_du_site(francais));
+    if ui
+        .button(texte_du_bouton(offre, set_code))
+        .on_hover_text(aide_du_lien(offre))
+        .clicked()
+    {
+        ui.ctx().open_url(egui::OpenUrl::new_tab(url));
+    }
+    ui.add_space(4.0);
+    ui.label(egui::RichText::new("Cardmarket").strong().small());
+    ui.separator();
+}
+
+/// Le texte du bouton : la version quand on la tient, sinon toutes les
+/// versions de la carte dans son set, sinon son numéro.
+///
+/// ```
+/// use ygo_app::cardmarket::{Cible, Offre, PrixOffre, Raison};
+/// use ygo_ui::fiche::texte_du_bouton;
+/// let mut o = Offre { cible: Cible::Produit(1), version: Some("V.3 · Ultimate Rare".into()),
+///     prix: PrixOffre::Aucun, raison: Raison::Ordonnee, extension: None,
+///     prix_du: String::new() };
+/// assert_eq!(texte_du_bouton(&o, "RA02-EN001"), "Voir sur Cardmarket · V.3 Ultimate Rare");
+/// o.version = None;
+/// assert_eq!(texte_du_bouton(&o, "RA02-EN001"), "Voir sur Cardmarket");
+/// o.cible = Cible::Recherche { nom: "Rescue Cat".into(), id_extension: Some(5604) };
+/// assert_eq!(texte_du_bouton(&o, "RA02-EN001"), "Voir toutes les versions · RA02");
+/// o.cible = Cible::Recherche { nom: "Rescue Cat".into(), id_extension: None };
+/// assert_eq!(texte_du_bouton(&o, "RA02-EN001"), "Chercher sur Cardmarket");
+/// o.cible = Cible::Numero("CORI-JP001".into());
+/// assert_eq!(texte_du_bouton(&o, "CORI-JP001"), "Chercher CORI-JP001 sur Cardmarket");
+/// ```
+#[must_use]
+pub fn texte_du_bouton(offre: &Offre, set_code: &str) -> String {
+    match &offre.cible {
+        Cible::Produit(_) => match &offre.version {
+            Some(version) => format!("Voir sur Cardmarket · {}", version.replacen(" · ", " ", 1)),
+            None => "Voir sur Cardmarket".to_owned(),
+        },
+        Cible::Recherche {
+            id_extension: Some(_),
+            ..
+        } => {
+            let set = set_code.split('-').next().unwrap_or("").trim();
+            if set.is_empty() {
+                "Voir toutes les versions".to_owned()
+            } else {
+                format!("Voir toutes les versions · {set}")
+            }
+        }
+        Cible::Recherche {
+            id_extension: None, ..
+        } => "Chercher sur Cardmarket".to_owned(),
+        Cible::Numero(numero) => format!("Chercher {numero} sur Cardmarket"),
+    }
+}
+
+/// Sous le bouton, quand il mène à toutes les versions : laquelle ouvrir si
+/// on le sait, sinon pourquoi on ne le sait pas. Rien quand le bouton mène
+/// à la bonne page.
+///
+/// ```
+/// use ygo_app::cardmarket::{Cible, Offre, PrixOffre, Raison};
+/// use ygo_ui::fiche::indication;
+/// let mut o = Offre {
+///     cible: Cible::Recherche { nom: "El Shaddoll Winda".into(), id_extension: Some(5989) },
+///     version: Some("V.6 · Quarter Century Secret Rare (illustration 2)".into()),
+///     prix: PrixOffre::Aucun, raison: Raison::IllustrationsSaisiesAPart, extension: None,
+///     prix_du: String::new() };
+/// assert_eq!(
+///     indication(&o).unwrap(),
+///     "Version à ouvrir : V.6 · Quarter Century Secret Rare (illustration 2)"
+/// );
+/// o.version = None;
+/// o.raison = Raison::CarteAbsente;
+/// assert_eq!(indication(&o).unwrap(), "Carte introuvable dans ce set chez Cardmarket");
+/// o.cible = Cible::Numero("CORI-JP001".into());
+/// o.raison = Raison::ExtensionInconnue;
+/// assert_eq!(
+///     indication(&o).unwrap(),
+///     "Set non rapproché d'une extension Cardmarket : recherche par numéro"
+/// );
+/// o.cible = Cible::Produit(1);
+/// assert_eq!(indication(&o), None);
+/// ```
+#[must_use]
+pub fn indication(offre: &Offre) -> Option<String> {
+    if offre.est_directe() {
+        return None;
+    }
+    Some(match (&offre.version, &offre.cible) {
+        (Some(version), _) => format!("Version à ouvrir : {version}"),
+        (None, Cible::Numero(_)) => format!(
+            "{} : recherche par numéro",
+            majuscule(&offre.raison.explication())
+        ),
+        (None, _) => majuscule(&offre.raison.explication()),
+    })
+}
+
+/// Les prix : tendance, plus bas, moyenne sur trente jours — ou la fourchette
+/// des versions de la carte quand on ne sait pas laquelle est la bonne.
+///
+/// ```
+/// use ygo_app::cardmarket::{Cible, Offre, Prix, PrixOffre, Raison};
+/// use ygo_ui::fiche::ligne_de_prix;
+/// let mut o = Offre { cible: Cible::Produit(1), version: None,
+///     prix: PrixOffre::Exact(Prix { tendance: Some(33), bas: Some(7), moyenne30: Some(41) }),
+///     raison: Raison::VersionUnique, extension: None, prix_du: String::new() };
+/// assert_eq!(ligne_de_prix(&o), "Tendance 0,33 € · Plus bas 0,07 € · Moyenne 30 j 0,41 €");
+/// o.prix = PrixOffre::Exact(Prix { tendance: None, bas: Some(7), moyenne30: None });
+/// assert_eq!(ligne_de_prix(&o), "Plus bas 0,07 €");
+/// o.prix = PrixOffre::Fourchette { min: 2, max: 399 };
+/// assert_eq!(ligne_de_prix(&o), "De 0,02 € à 3,99 € selon la version");
+/// o.prix = PrixOffre::Aucun;
+/// assert_eq!(ligne_de_prix(&o), "Pas de prix publié");
+/// o.raison = Raison::ExtensionInconnue;
+/// assert_eq!(ligne_de_prix(&o), "Prix à lire sur Cardmarket");
+/// ```
+#[must_use]
+pub fn ligne_de_prix(offre: &Offre) -> String {
+    const AUCUN: &str = "Pas de prix publié";
+    match offre.prix {
+        PrixOffre::Exact(p) => {
+            let parties: Vec<String> = [
+                ("Tendance", p.tendance),
+                ("Plus bas", p.bas),
+                ("Moyenne 30 j", p.moyenne30),
+            ]
+            .into_iter()
+            .filter_map(|(nom, centimes)| centimes.map(|c| format!("{nom} {}", euros(c.into()))))
+            .collect();
+            if parties.is_empty() {
+                AUCUN.to_owned()
+            } else {
+                parties.join(" · ")
+            }
+        }
+        PrixOffre::Fourchette { min, max } if min == max => {
+            format!("{} selon la version", euros(min.into()))
+        }
+        PrixOffre::Fourchette { min, max } => {
+            format!(
+                "De {} à {} selon la version",
+                euros(min.into()),
+                euros(max.into())
+            )
+        }
+        // La carte n'a pas été retrouvée : ses prix existent, on ne sait pas
+        // lesquels sont les siens.
+        PrixOffre::Aucun if offre.raison.carte_non_retrouvee() => {
+            "Prix à lire sur Cardmarket".to_owned()
+        }
+        PrixOffre::Aucun => AUCUN.to_owned(),
+    }
+}
+
+/// La date des prix, et ce qu'ils couvrent : sans cette mention, on lirait
+/// le prix d'une carte française en parfait état.
+///
+/// ```
+/// use ygo_app::cardmarket::{Cible, Offre, PrixOffre, Raison};
+/// use ygo_ui::fiche::note_des_prix;
+/// let mut o = Offre { cible: Cible::Produit(1), version: None, prix: PrixOffre::Aucun,
+///     raison: Raison::VersionUnique, extension: None,
+///     prix_du: "2026-10-22T02:44:58+0200".into() };
+/// assert_eq!(
+///     note_des_prix(&o),
+///     "Prix du 22/10/2026 · toutes langues, éditions et états confondus"
+/// );
+/// o.prix_du = String::new();
+/// assert_eq!(note_des_prix(&o), "Prix toutes langues, éditions et états confondus");
+/// ```
+#[must_use]
+pub fn note_des_prix(offre: &Offre) -> String {
+    const PORTEE: &str = "toutes langues, éditions et états confondus";
+    match date_courte(&offre.prix_du) {
+        Some(date) => format!("Prix du {date} · {PORTEE}"),
+        None => format!("Prix {PORTEE}"),
+    }
+}
+
+/// La première lettre en majuscule.
+fn majuscule(texte: &str) -> String {
+    let mut lettres = texte.chars();
+    match lettres.next() {
+        Some(premiere) => premiere.to_uppercase().chain(lettres).collect(),
+        None => String::new(),
+    }
+}
+
+/// L'info-bulle du lien : pourquoi ce lien, et de quand date le prix.
+///
+/// ```
+/// use ygo_app::cardmarket::{Cible, Offre, PrixOffre, Raison};
+/// let o = Offre { cible: Cible::Produit(1), version: None, prix: PrixOffre::Aucun,
+///     raison: Raison::VersionUnique, extension: Some("Rarity Collection 5".into()),
+///     prix_du: "2026-10-20T02:44:58+0200".into() };
+/// let aide = ygo_ui::fiche::aide_du_lien(&o);
+/// assert!(aide.contains("Rarity Collection 5"));
+/// assert!(aide.contains("20/10/2026"));
+/// ```
+#[must_use]
+pub fn aide_du_lien(offre: &ygo_app::cardmarket::Offre) -> String {
+    let mut lignes = Vec::new();
+    if let Some(ext) = &offre.extension {
+        lignes.push(format!("Extension Cardmarket : {ext}"));
+    }
+    lignes.push(offre.raison.explication());
+    if let Some(date) = date_courte(&offre.prix_du) {
+        lignes.push(format!(
+            "Prix du {date}, toutes langues, éditions et états confondus."
+        ));
+    }
+    lignes.join("\n")
+}
+
+/// `2026-10-20T02:44:58+0200` → `20/10/2026`.
+pub(crate) fn date_courte(horodatage: &str) -> Option<String> {
+    let jour = horodatage.get(..10)?;
+    let mut parties = jour.split('-');
+    let (a, m, j) = (parties.next()?, parties.next()?, parties.next()?);
+    Some(format!("{j}/{m}/{a}"))
 }
 
 /// Les langues que la fiche peut réellement **dessiner**.
@@ -362,6 +673,9 @@ fn onglets_de_langue(
 }
 
 /// Le nom du texte et son effet, dans la langue retenue.
+///
+/// L'effet défile dans la hauteur qui reste au-dessus de Cardmarket (cf.
+/// [`colonne`]).
 fn corps(ui: &mut egui::Ui, fiche: &Fiche, langue: &str) {
     let Some(texte) = fiche.texte_en(langue) else {
         ui.label(egui::RichText::new(message_sans_texte(fiche.resolution)).weak());
@@ -375,7 +689,7 @@ fn corps(ui: &mut egui::Ui, fiche: &Fiche, langue: &str) {
     }
     if let Some(effet) = &texte.effet {
         egui::ScrollArea::vertical()
-            .max_height(LARGEUR_IMAGE * 86.0 / 59.0 - 120.0)
+            .max_height(ui.available_height())
             .show(ui, |ui| {
                 ui.label(effet);
             });
@@ -494,6 +808,7 @@ mod tests {
             fichier_image: None,
             resolution: Resolution::Uuid,
             textes,
+            cardmarket: None,
         }
     }
 
@@ -693,6 +1008,76 @@ mod tests {
             Some(0x2716),
             "U+2715 et U+2717 ne sont dans aucune police d'egui"
         );
+    }
+
+    /// Une offre Cardmarket complète, pour les tests de la colonne.
+    fn offre() -> Offre {
+        Offre {
+            cible: Cible::Produit(875_196),
+            version: Some("V.4 · Secret Parallel Rare".into()),
+            prix: PrixOffre::Exact(ygo_app::cardmarket::Prix {
+                tendance: Some(15_113),
+                bas: Some(11_999),
+                moyenne30: Some(16_000),
+            }),
+            raison: ygo_app::cardmarket::Raison::Ordonnee,
+            extension: Some("Limit Over Collection: The Heroes".into()),
+            prix_du: "2026-10-22T02:44:58+0200".into(),
+        }
+    }
+
+    /// La vraie colonne, mesurée : `(colonne, texte, bloc Cardmarket)`.
+    fn mesurer(f: &Fiche) -> (egui::Rect, egui::Rect, Option<egui::Rect>) {
+        let mut mesure = None;
+        avec_polices(|ui| {
+            let c = colonne(ui, f, "fr", true, true);
+            mesure = Some((c.rect, c.texte, c.cardmarket));
+        });
+        mesure.unwrap()
+    }
+
+    /// Cardmarket tient le bas de la colonne, la colonne garde la hauteur de
+    /// l'illustration, et le texte ne passe jamais dessous — qu'il soit long
+    /// ou court.
+    ///
+    /// # Les défauts que ce test attrape
+    ///
+    /// Un bloc posé à la suite du texte, comme la première idée le voulait,
+    /// montait et descendait avec lui. Et un effet long qui ne défilerait
+    /// plus passerait sous le bloc sans que la colonne change de taille :
+    /// seule la mesure du texte lui-même le voit.
+    #[test]
+    fn cardmarket_tient_le_bas_de_la_colonne() {
+        let long = "Une ligne d'effet qui n'en finit pas. ".repeat(120);
+        for effet in [long.as_str(), "Court."] {
+            let mut f = fiche(vec![texte("fr", Some(effet))]);
+            f.cardmarket = Some(offre());
+            let (rect, texte, bloc) = mesurer(&f);
+            assert!(
+                (rect.height() - HAUTEUR_IMAGE).abs() < 1.0,
+                "la colonne fait {} points de haut au lieu de {HAUTEUR_IMAGE}",
+                rect.height()
+            );
+            let bloc = bloc.unwrap();
+            assert!(
+                (bloc.bottom() - rect.bottom()).abs() < 1.0,
+                "Cardmarket n'est pas en bas : {bloc:?} dans {rect:?}"
+            );
+            assert!(
+                texte.bottom() <= bloc.top() + 0.5,
+                "le texte passe sous Cardmarket : {texte:?} / {bloc:?}"
+            );
+        }
+    }
+
+    /// Sans fichiers Cardmarket, rien n'est réservé : la colonne garde sa
+    /// hauteur, et le texte en dispose.
+    #[test]
+    fn sans_cardmarket_rien_n_est_reserve() {
+        let f = fiche(vec![texte("fr", Some("Effet"))]);
+        let (rect, _, bloc) = mesurer(&f);
+        assert!(bloc.is_none());
+        assert!((rect.height() - HAUTEUR_IMAGE).abs() < 1.0);
     }
 
     /// Un `Ui` de test **avec ses polices** — voir la note de

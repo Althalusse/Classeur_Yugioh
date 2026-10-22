@@ -1,0 +1,80 @@
+{
+  "_doc": "Ordres des versions relevés sur les pages Cardmarket (captures de l'utilisateur, octobre 2026), par idExpansion Cardmarket. Chaque liste donne les versions d'UNE carte, dans les noms de cardinfo.db, de V.1 à V.n. Une paire de versions présente dans une liste vaut pour tout le set. Deux versions de même rareté se distinguent par une précision entre parenthèses, lue au fichier d'image de la ligne du classeur : « (illustration 2) » pour la deuxième illustration (suffixe Yugipedia -AA, -B, -2), « (Overframe) » pour l'illustration qui déborde du cadre (-EA). Quand une liste montre une illustration alternative juste après son originale (RA02, RA04), toute alternative du set suit son originale ; ailleurs, seules les versions relevées sont placées (RA05 range ses alternatives en tête). « illustrations_saisies_a_part » : sets dont l'ordre de création des produits ne dit pas lequel est l'illustration alternative — le rang V.n reste sûr, pas le produit. Les libellés disent comment Cardmarket écrit une version quand il ne l'écrit pas comme la base.",
+  "ordres": {
+    "5404": [["Super Rare", "Ultra Rare", "Secret Rare", "Platinum Secret Rare", "Quarter Century Secret Rare", "Collector's Rare", "Ultimate Rare"]],
+    "5604": [
+      ["Super Rare", "Ultra Rare", "Secret Rare", "Platinum Secret Rare", "Quarter Century Secret Rare", "Collector's Rare", "Ultimate Rare"],
+      ["Super Rare", "Super Rare (illustration 2)", "Ultra Rare", "Ultra Rare (illustration 2)", "Secret Rare", "Secret Rare (illustration 2)", "Platinum Secret Rare", "Platinum Secret Rare (illustration 2)", "Quarter Century Secret Rare", "Quarter Century Secret Rare (illustration 2)", "Collector's Rare", "Collector's Rare (illustration 2)", "Ultimate Rare", "Ultimate Rare (illustration 2)"]
+    ],
+    "5848": [["Super Rare", "Ultra Rare", "Secret Rare", "Platinum Secret Rare", "Quarter Century Secret Rare", "Collector's Rare", "Ultimate Rare"]],
+    "5989": [
+      ["Super Rare", "Ultra Rare", "Secret Rare", "Platinum Secret Rare", "Quarter Century Secret Rare", "Collector's Rare", "Ultimate Rare"],
+      ["Super Rare", "Ultra Rare", "Secret Rare", "Platinum Secret Rare", "Quarter Century Secret Rare", "Quarter Century Secret Rare (illustration 2)", "Collector's Rare", "Ultimate Rare"]
+    ],
+    "6424": [
+      ["Super Rare", "Ultra Rare", "Secret Rare", "Platinum Secret Rare", "Starlight Rare", "Ultimate Rare", "Collector's Rare"],
+      ["Ultra Rare (illustration 2)", "Starlight Rare (illustration 2)", "Super Rare", "Ultra Rare", "Secret Rare", "Platinum Secret Rare", "Starlight Rare", "Ultimate Rare", "Collector's Rare"]
+    ],
+    "6512": [
+      ["Super Rare", "Secret Rare", "Collector's Rare", "Prismatic Secret Rare"],
+      ["Super Rare", "Secret Rare", "Ultimate Rare", "Prismatic Secret Rare"],
+      ["Ultra Rare", "Secret Rare", "Ultra Rare (Overframe)", "Prismatic Secret Rare", "Grand Master Rare"]
+    ],
+    "6508": [
+      ["Super Rare", "Secret Rare", "Prismatic Secret Rare", "Collector's Rare"],
+      ["Super Rare", "Secret Rare", "Prismatic Secret Rare", "Ultimate Rare"],
+      ["Ultra Rare", "Secret Rare", "Ultra Rare (Overframe)", "Prismatic Secret Rare", "Grand Master Rare"]
+    ],
+    "6566": [["Secret Rare", "Ultimate Rare", "Prismatic Secret Rare"], ["Ultra Rare", "Secret Rare", "Prismatic Secret Rare"]],
+    "5440": [["Ultra Rare", "Collector's Rare", "Quarter Century Secret Rare"]],
+    "5311": [["Common", "Common Parallel Rare"]],
+    "4575": [["Common", "Common Parallel Rare"]],
+    "1371": [["Rare", "Starfoil Rare"]],
+    "1446": [["Mosaic Rare", "Rare"]],
+    "1489": [["Rare", "Shatterfoil Rare"]],
+    "1476": [["Common", "Starfoil Rare"]],
+    "1057": [["Secret Rare", "Ghost Rare"]],
+    "5166": [["Ultra Rare", "Secret Rare", "Prismatic Secret Rare", "Ultimate Rare", "Ghost Rare"]],
+    "4592": [["Secret Rare", "20th Secret Rare"], ["Super Parallel Rare", "Secret Rare"], ["Ultra Parallel Rare", "Secret Rare"]],
+    "5266": [
+      ["Ultra Rare", "Secret Rare", "Collector's Rare", "Ultimate Rare", "Extra Secret Rare", "Quarter Century Secret Rare", "Ghost Rare"],
+      ["Super Rare", "Secret Rare", "Collector's Rare", "Ultimate Rare", "Extra Secret Rare", "Quarter Century Secret Rare"]
+    ],
+    "5200": [["Common", "Super Rare", "Secret Rare"]],
+    "5036": [["Super Rare", "Secret Rare", "Ultimate Rare", "Prismatic Secret Rare"]],
+    "4626": [["Ultra Rare", "Secret Rare", "Collector's Rare"]],
+    "4562": [["Ultra Rare", "Premium Gold Rare", "Secret Rare", "Collector's Rare"]],
+    "4694": [["Ultra Rare", "Secret Rare", "Collector's Rare"]],
+    "6500": [["Common Parallel Rare", "Super Rare", "Secret Rare", "Prismatic Secret Rare"]],
+    "4644": [["Ultra Rare", "Secret Rare", "Ultimate Rare", "Ghost Rare"]],
+    "4605": [["Ultra Rare", "Secret Rare", "20th Secret Rare", "Ultimate Rare", "Ghost Rare"]],
+    "4540": [["Ultra Rare", "Secret Rare", "Ultimate Rare", "Prismatic Secret Rare", "Ghost Rare"]],
+    "4537": [["Ultra Rare", "Secret Rare", "Ultimate Rare", "Prismatic Secret Rare", "Ghost Rare"]],
+    "4727": [["Short Print", "Gold Rare", "Gold Secret Rare"], ["Common", "Gold Rare", "Gold Secret Rare"]],
+    "6374": [["Ultra Rare", "Collector's Rare", "Starlight Rare"], ["Super Rare", "Collector's Rare", "Starlight Rare"], ["Rare", "Super Rare"]],
+    "6365": [["Secret Rare", "Prismatic Secret Rare", "Ultimate Rare"]],
+    "6129": [["Ultimate Rare", "Prismatic Secret Rare"]],
+    "6069": [["Secret Rare", "Starlight Rare"]]
+  },
+  "illustrations_saisies_a_part": {
+    "5989": "El Shaddoll Winda : l'alternative Quarter Century (V.6) a été créée le 2025-04-04, quatre jours avant les sept autres versions (2025-04-08)."
+  },
+  "libelles": {
+    "defaut": {
+      "Collector's Rare": "Collectors Rare",
+      "Common Parallel Rare": "Parallel Rare",
+      "20th Secret Rare": "Special"
+    },
+    "ocg": {
+      "Ghost Rare": "Holographic Rare",
+      "Prismatic Secret Rare": "Starlight Rare",
+      "Short Print": "Common"
+    },
+    "par_extension": {
+      "6508": { "Prismatic Secret Rare": "Secret Parallel Rare", "Ultra Rare (Overframe)": "Ultra Parallel Rare" },
+      "6512": { "Prismatic Secret Rare": "Secret Parallel Rare", "Ultra Rare (Overframe)": "Ultra Rare" },
+      "6566": { "Prismatic Secret Rare": "Secret Parallel Rare" },
+      "4592": { "Ultra Parallel Rare": "Ultra Rare", "Super Parallel Rare": "Super Rare" }
+    }
+  }
+}

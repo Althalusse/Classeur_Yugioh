@@ -56,10 +56,12 @@
 //! | [`ygojson`] | archive `aggregate.zip` streamée, parsing des cartes et des sets |
 //! | [`ygoprodeck`] | statistiques, résolution et expansion des artworks |
 //! | [`version`] | `checkDBVer.php` |
+//! | [`cardmarket`] | catalogue et guide des prix Cardmarket — fichiers publics, une fois par jour |
 
 #![forbid(unsafe_code)]
 
 pub mod cache;
+pub mod cardmarket;
 pub mod error;
 pub mod github;
 pub mod http;
