@@ -425,6 +425,9 @@ pub enum Evenement {
         /// Lignes créées par les passes refaites : les illustrations qui
         /// manquaient à un tirage imprimé en plusieurs (`LCKC-EN001`).
         artworks: usize,
+        /// Lignes retirées : une rareté que ni Yugipedia ni la base
+        /// n'attestent (`force-SMW`, 2026-10-23).
+        raretes: usize,
     },
     /// Le contrôle complet est terminé.
     Controle {
@@ -705,11 +708,15 @@ impl Etat {
                 introuvables,
                 illustrations,
                 artworks,
+                raretes,
             } => {
                 self.en_cours.remove(CODE_NUMEROS_ABSENTS);
                 self.etape.remove(CODE_NUMEROS_ABSENTS);
                 let mut message = match (*numeros, *illustrations, *artworks) {
-                    (0, 0, 0) => "Classeurs vérifiés sur Yugipedia — rien à rattraper".to_owned(),
+                    (0, 0, 0) if *raretes == 0 => {
+                        "Classeurs vérifiés sur Yugipedia — rien à rattraper".to_owned()
+                    }
+                    (0, 0, 0) => "Classeurs vérifiés sur Yugipedia".to_owned(),
                     (0, _, _) => format!(
                         "Classeurs réalignés sur Yugipedia — {illustrations} image(s) \
                          corrigée(s) dans {classeurs} classeur(s)"
@@ -724,6 +731,12 @@ impl Etat {
                 }
                 if *artworks > 0 {
                     message.push_str(&format!(" ; {artworks} artwork(s) ajouté(s)"));
+                }
+                if *raretes > 0 {
+                    message.push_str(&format!(
+                        " ; {raretes} fausse(s) rareté(s) écartée(s) — inconnue(s) de Yugipedia \
+                         et de la base"
+                    ));
                 }
                 if *introuvables > 0 {
                     message.push_str(&format!(
@@ -1745,6 +1758,7 @@ fn executer_maj(
                 || numeros.introuvables > 0
                 || numeros.illustrations > 0
                 || numeros.artworks > 0
+                || numeros.raretes_ecartees > 0
             {
                 signaler(Evenement::NumerosAbsents {
                     numeros: numeros.numeros,
@@ -1753,6 +1767,7 @@ fn executer_maj(
                     introuvables: numeros.introuvables,
                     illustrations: numeros.illustrations,
                     artworks: numeros.artworks,
+                    raretes: numeros.raretes_ecartees,
                 });
             }
             confier_images(numeros.touches, images, signaler);
@@ -1970,6 +1985,7 @@ fn numeros_absents_partout(
         introuvables: bilan.introuvables,
         illustrations: bilan.illustrations,
         artworks: bilan.artworks,
+        raretes: bilan.raretes_ecartees,
     });
     confier_images(bilan.touches, images, signaler);
     bilan.echecs
@@ -1998,6 +2014,10 @@ pub fn message_controle(bilan: &Result<ygo_app::controle::Bilan, String>) -> Str
         (b.images_tirage, "image(s) de tirage posée(s)"),
         (b.replis, "image(s) reprise(s)"),
         (b.galerie, "scan(s) rendu(s) à leur numéro"),
+        (
+            b.fausses_raretes,
+            "fausse(s) rareté(s) écartée(s) (inconnue(s) de Yugipedia et de la base)",
+        ),
     ] {
         if n > 0 {
             parties.push(format!("{n} {quoi}"));
@@ -2019,6 +2039,12 @@ pub fn message_controle(bilan: &Result<ygo_app::controle::Bilan, String>) -> Str
         texte.push_str(&format!(
             " · {} doublon(s) gardé(s) car possédé(s)",
             b.doublons_bloques
+        ));
+    }
+    if b.raretes_a_verifier > 0 {
+        texte.push_str(&format!(
+            " · {} rareté(s) inconnue(s) de Yugipedia gardée(s) car possédée(s) — à vérifier",
+            b.raretes_a_verifier
         ));
     }
     if b.introuvables > 0 {
@@ -2492,6 +2518,7 @@ mod tests {
             introuvables: 2,
             illustrations: 0,
             artworks: 0,
+            raretes: 0,
         });
         let dernier = etat.dernier().unwrap();
         assert!(
@@ -2500,6 +2527,28 @@ mod tests {
         );
         assert!(dernier.contains("2 introuvable(s)"), "{dernier}");
         assert!(!etat.actif());
+    }
+
+    /// Le réalignement qui n'a fait qu'écarter une fausse rareté
+    /// (`force-SMW`, RA05) le dit — et ne dit pas « rien à rattraper ».
+    #[test]
+    fn le_bilan_du_realignement_dit_les_fausses_raretes() {
+        let mut etat = Etat::default();
+        etat.appliquer(&Evenement::NumerosAbsents {
+            numeros: 0,
+            lignes: 0,
+            classeurs: 0,
+            introuvables: 0,
+            illustrations: 0,
+            artworks: 0,
+            raretes: 1,
+        });
+        let dernier = etat.dernier().unwrap();
+        assert!(
+            dernier.contains("1 fausse(s) rareté(s) écartée(s)"),
+            "{dernier}"
+        );
+        assert!(!dernier.contains("rien à rattraper"), "{dernier}");
     }
 
     /// Le réalignement de `LCKC` et `LDK2` (2026-10-16) : des images
@@ -2514,6 +2563,7 @@ mod tests {
             introuvables: 0,
             illustrations: 6,
             artworks: 4,
+            raretes: 0,
         });
         let dernier = etat.dernier().unwrap();
         assert!(

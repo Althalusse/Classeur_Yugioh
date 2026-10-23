@@ -5,7 +5,7 @@ classeur : chaque tirage à sa place, avec sa rareté, son illustration et son
 édition, et pour chaque carte possédée, l'état de chaque exemplaire.
 
 Application de bureau pour **Windows**, écrite en **Rust** (interface egui).
-Version actuelle : **2.0.8**.
+Version actuelle : **2.0.9**.
 
 > Projet de fan, non officiel, sans lien avec Konami ni avec Cardmarket.
 > *Yu-Gi-Oh!* et les illustrations des cartes appartiennent à leurs ayants
@@ -44,9 +44,11 @@ Version actuelle : **2.0.8**.
   page Cardmarket : la version exacte quand on sait laquelle c'est, sinon
   toutes les versions de la carte dans son set (avec celle à ouvrir), ou la
   recherche de son numéro ; la tendance, le plus bas et la moyenne des ventes
-  sur 30 jours. Et la **valeur estimée** des cartes possédées, sur chaque
-  classeur et pour toute la collection. Prix indicatifs, toutes langues,
-  éditions et états confondus.
+  sur 30 jours. Le prix d'un exemplaire s'affiche aussi au bas de chaque
+  carte du classeur, qui se trie par prix croissant ou décroissant. Et la
+  **valeur estimée** des cartes possédées : sur chaque classeur, dans les
+  statistiques, et carte par carte dans l'inventaire (colonnes prix et
+  valeur). Prix indicatifs, toutes langues, éditions et états confondus.
 - **Noms français officiels** — jamais inventés : une carte sans nom français
   officiel garde son nom anglais.
 - **Statistiques**, **corbeille** (un classeur supprimé se restaure), **fiche

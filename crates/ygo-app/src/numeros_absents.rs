@@ -577,7 +577,7 @@ pub async fn completer(
     raretes: &Priorites,
     ecrire: bool,
 ) -> Result<Issue> {
-    use ygo_sources::yugipedia::{self, artwork, structure};
+    use ygo_sources::yugipedia::{self, artwork};
 
     // Lecture du classeur, connexion refermée avant le réseau.
     let (inventaire, set_name, presents) = {
@@ -591,21 +591,9 @@ pub async fn completer(
     let code_reference = premiere.set_code.clone();
     let langue = artwork::langue_set_code(&code_reference);
 
-    let titres = yugipedia::resoudre_pages(client, &set_name, None).await?;
-    let Some(titre) = structure::choisir_page_du_set(&titres, &set_name, &langue) else {
+    let Some(entrees) = lire_set_list_du_set(client, &set_name, &langue, code).await? else {
         return Ok(Issue::PageIntrouvable);
     };
-    let (mut entrees, _) = yugipedia::lire_set_list(client, titre).await?;
-    // Le paquet bonus vendu avec le booster, sous le même préfixe et sur sa
-    // propre page (`CORI-JPS10` Melffy Mommy, 2026-10-15). Une page en échec
-    // ne prive pas le classeur de la principale.
-    for page in structure::pages_complementaires(&titres, &set_name, titre) {
-        match yugipedia::lire_set_list(client, &page).await {
-            Ok((bonus, _)) => entrees.extend(bonus),
-            Err(e) => tracing::warn!(classeur = %code, page = %page, erreur = %e,
-                "paquet bonus non lu"),
-        }
-    }
 
     let manquants = absents(&entrees, &presents, &prefixe_numero(&code_reference));
     let mut bilan = Bilan {
@@ -698,6 +686,118 @@ pub async fn completer(
             "images des numéros absents de la base non cherchées — l'illustration de la base reste"),
     }
     Ok(Issue::Fait(bilan))
+}
+
+/// La Set list d'un set, dans la langue de ses numéros : sa page, et les
+/// paquets bonus vendus sous le même préfixe — `None` si aucune page ne
+/// correspond. Gardée trente jours en cache, comme toute réponse Yugipedia.
+///
+/// # Errors
+///
+/// Si Yugipedia ne répond pas pour la page principale. Une page de paquet
+/// bonus en échec ne prive pas le classeur de la principale.
+async fn lire_set_list_du_set(
+    client: &ygo_sources::ClientHttp,
+    set_name: &str,
+    langue: &str,
+    code: &str,
+) -> Result<Option<Vec<EntreeSetList>>> {
+    use ygo_sources::yugipedia::{self, structure};
+
+    let titres = yugipedia::resoudre_pages(client, set_name, None).await?;
+    let Some(titre) = structure::choisir_page_du_set(&titres, set_name, langue) else {
+        return Ok(None);
+    };
+    let (mut entrees, _) = yugipedia::lire_set_list(client, titre).await?;
+    // Le paquet bonus vendu avec le booster, sous le même préfixe et sur sa
+    // propre page (`CORI-JPS10` Melffy Mommy, 2026-10-15). Une page en échec
+    // ne prive pas le classeur de la principale.
+    for page in structure::pages_complementaires(&titres, set_name, titre) {
+        match yugipedia::lire_set_list(client, &page).await {
+            Ok((bonus, _)) => entrees.extend(bonus),
+            Err(e) => tracing::warn!(classeur = %code, page = %page, erreur = %e,
+                "paquet bonus non lu"),
+        }
+    }
+    Ok(Some(entrees))
+}
+
+/// Juge les raretés d'un classeur que personne n'atteste
+/// ([`crate::raretes::non_attestees`]) — et, si `ecrire`, retire celles qui
+/// ne sont pas possédées et consigne le tout dans ses écarts.
+///
+/// Ne lit la Set list que si une ligne porte un libellé que le référentiel
+/// ignore : un classeur sain ne coûte aucune requête. Rend `None` quand
+/// Yugipedia n'a pas de page pour le set — on ne juge pas sans elle.
+///
+/// # Errors
+///
+/// Si une base ne se lit pas, si l'écriture échoue, ou si Yugipedia ne
+/// répond pas.
+pub async fn attester_raretes(
+    paths: &Paths,
+    client: &ygo_sources::ClientHttp,
+    code: &str,
+    raretes: &Priorites,
+    ecrire: bool,
+) -> Result<Option<crate::raretes::NonAttestees>> {
+    use crate::raretes::{self as r, NonAttestees};
+
+    let chemin = paths.classeur_db(code);
+    let (lignes, set_name, code_reference) = {
+        let conn = Connection::open(&chemin)?;
+        let lignes = r::lignes_a_juger(&conn)?;
+        let (inventaire, set_name) = crate::artworks::lire_inventaire(&conn)?;
+        (
+            lignes,
+            set_name,
+            inventaire.first().map(|l| l.set_code.clone()),
+        )
+    };
+    let a_juger = r::numeros_a_juger(&lignes, raretes);
+    if a_juger.is_empty() {
+        if ecrire {
+            // Rien à juger — mais une ligne signalée lors d'un passage
+            // précédent a pu disparaître : le bandeau suit.
+            r::retirer_non_attestees(&chemin, &NonAttestees::default(), raretes)?;
+        }
+        return Ok(Some(NonAttestees::default()));
+    }
+    let (Some(code_reference), false) = (code_reference, set_name.is_empty()) else {
+        return Ok(None);
+    };
+    let langue = ygo_sources::yugipedia::artwork::langue_set_code(&code_reference);
+    let Some(entrees) = lire_set_list_du_set(client, &set_name, &langue, code).await? else {
+        return Ok(None);
+    };
+    let mut set_list: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    for e in &entrees {
+        let numero = e.numero.trim().to_uppercase();
+        if a_juger.contains(&numero) {
+            set_list
+                .entry(numero)
+                .or_default()
+                .extend(e.raretes.iter().cloned());
+        }
+    }
+    let base = {
+        let cardinfo = ygo_db::connexion::ouvrir_lecture_seule(paths.cardinfo_db())?;
+        r::raretes_en_base(&cardinfo, &a_juger)?
+    };
+    let verdict = r::non_attestees(&lignes, &set_list, &base, raretes);
+    for (_, f) in &verdict.a_retirer {
+        tracing::warn!(classeur = %code, carte = %f.set_code, libelle = %f.rarete,
+            raretes = %f.jumelles.join(", "),
+            "rareté que ni Yugipedia ni la base ne connaissent — écartée");
+    }
+    for f in &verdict.gardees {
+        tracing::warn!(classeur = %code, carte = %f.set_code, libelle = %f.rarete,
+            "rareté que ni Yugipedia ni la base ne connaissent — gardée car possédée");
+    }
+    if ecrire {
+        r::retirer_non_attestees(&chemin, &verdict, raretes)?;
+    }
+    Ok(Some(verdict))
 }
 
 /// L'image Yugipedia de chaque ligne ajoutée en cadre normal — fonction
@@ -1000,6 +1100,11 @@ pub struct Partout {
     /// ([`crate::galerie`], 2026-10-18) — comptées aussi dans
     /// `illustrations`.
     pub galerie: usize,
+    /// Lignes retirées parce que ni la Set list ni la base n'attestent leur
+    /// rareté ([`attester_raretes`], 2026-10-23).
+    pub raretes_ecartees: usize,
+    /// Lignes qui le seraient, gardées parce que possédées : à vérifier.
+    pub raretes_a_verifier: usize,
     /// Classeurs modifiés — leurs images sont à télécharger.
     pub touches: Vec<String>,
 }
@@ -1037,6 +1142,11 @@ pub struct Partout {
 /// sien. La galerie est gardée 30 jours ; un classeur qu'elle ne contredit
 /// pas ne coûte rien de plus.
 ///
+/// Depuis le 2026-10-23, les **raretés que personne n'atteste** y sont
+/// retirées ([`attester_raretes`]) : `force-SMW` sur `RA05-EN136`, laissé par
+/// YGOPRODeck, que ni la Set list ni la base ne connaissent. La Set list
+/// n'est lue que pour un classeur qui porte un libellé inconnu.
+///
 /// Un classeur sain ne coûte donc que la vérification des numéros.
 ///
 /// Un classeur en échec (Yugipedia indisponible, page introuvable) est
@@ -1048,7 +1158,22 @@ pub async fn partout(
 ) -> Partout {
     let mut bilan = Partout::default();
     for code in paths.classeurs_existants() {
-        let touche = numeros_et_passe(paths, client, &code, raretes, &mut bilan).await;
+        let (mut touche, passe) = numeros_et_passe(paths, client, &code, raretes, &mut bilan).await;
+        // Les raretés que personne n'atteste : la passe refaite les a déjà
+        // jugées ; sinon c'est ici. Rien à juger, rien à lire.
+        if !passe {
+            match attester_raretes(paths, client, &code, raretes, true).await {
+                Ok(Some(v)) => {
+                    // Une ligne retirée : l'accueil et le classeur relisent.
+                    touche |= !v.a_retirer.is_empty();
+                    bilan.raretes_ecartees += v.a_retirer.len();
+                    bilan.raretes_a_verifier += v.gardees.len();
+                }
+                Ok(None) => {}
+                Err(e) => tracing::warn!(classeur = %code, erreur = %e,
+                    "raretés non confrontées à Yugipedia"),
+            }
+        }
         // La galerie après tout le reste : la passe et `images_tirage` ont
         // posé leurs images, elle en rend chaque scan à son numéro.
         let realignes = match crate::galerie::realigner(paths, client, &code).await {
@@ -1068,21 +1193,22 @@ pub async fn partout(
 }
 
 /// Les numéros manquants d'un classeur, puis sa passe artworks s'il en a
-/// besoin — cf. [`partout`]. Rend `true` si le classeur a changé.
+/// besoin — cf. [`partout`]. Rend `(le classeur a changé, la passe a été
+/// refaite)`.
 async fn numeros_et_passe(
     paths: &Paths,
     client: &ygo_sources::ClientHttp,
     code: &str,
     raretes: &Priorites,
     bilan: &mut Partout,
-) -> bool {
+) -> (bool, bool) {
     let issue = match completer(paths, client, code, raretes, true).await {
         Ok(Issue::Fait(b)) => b,
-        Ok(_) => return false,
+        Ok(_) => return (false, false),
         Err(e) => {
             tracing::warn!(classeur = %code, erreur = %e, "numéros manquants non vérifiés");
             bilan.echecs += 1;
-            return false;
+            return (false, false);
         }
     };
     bilan.introuvables += issue.introuvables.len();
@@ -1097,23 +1223,27 @@ async fn numeros_et_passe(
         && variantes == 0
         && issue.illustrations_a_reprendre == 0
     {
-        return false;
+        return (false, false);
     }
     bilan.numeros += issue.ajouts.len();
     bilan.lignes += issue.lignes();
-    let (illustrations, artworks) =
+    let (illustrations, artworks, retirees, passe) =
         match crate::creation::completer_artworks(paths, client, code, raretes).await {
             Ok(apres) => {
                 bilan.galerie += apres.galerie;
+                bilan.raretes_ecartees += apres.raretes_non_attestees;
+                bilan.raretes_a_verifier += apres.raretes_a_verifier;
                 (
                     apres.bilan.illustrations + apres.replis + apres.galerie,
                     apres.bilan.ajoutes,
+                    apres.fantomes_retires,
+                    true,
                 )
             }
             Err(e) => {
                 tracing::warn!(classeur = %code, erreur = %e, "passe artworks refaite");
                 bilan.echecs += 1;
-                (0, 0)
+                (0, 0, 0, false)
             }
         };
     tracing::info!(
@@ -1127,7 +1257,14 @@ async fn numeros_et_passe(
     );
     bilan.illustrations += illustrations;
     bilan.artworks += artworks;
-    !issue.ajouts.is_empty() || issue.images > 0 || illustrations > 0 || artworks > 0
+    (
+        !issue.ajouts.is_empty()
+            || issue.images > 0
+            || illustrations > 0
+            || artworks > 0
+            || retirees > 0,
+        passe,
+    )
 }
 
 /// Les lignes du classeur `code` qui attendent une passe :

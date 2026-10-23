@@ -30,7 +30,7 @@ use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
 use eframe::egui;
-use ygo_app::classeur::{self, BornesCarte, Carte, Filtres, Grille, Possession};
+use ygo_app::classeur::{self, BornesCarte, Carte, Filtres, Grille, Possession, TriPrix};
 use ygo_core::config::{Config, SourceImage, GRILLE_MAX, GRILLE_MIN};
 use ygo_core::paths::Paths;
 use ygo_core::rarity::Priorites;
@@ -137,6 +137,11 @@ pub struct EcranClasseur {
     prix: Option<ygo_app::cardmarket::PrixDesLignes>,
     /// Le chiffrage en cours, sur son fil.
     chiffrage: crate::valeur::Calcul<Option<ygo_app::cardmarket::PrixDesLignes>>,
+    /// Le prix au bas de chaque carte (Options : `prix_sur_les_cartes`) ?
+    prix_sur_les_cartes: bool,
+    /// L'ordre d'affichage : celui du classeur, ou par prix. Pas retenu à la
+    /// fermeture, comme les filtres.
+    tri_prix: TriPrix,
 
     /// Mesures, affichées en bas — c'est l'épreuve que l'arbitrage n'a pas faite.
     duree_chargement: Duration,
@@ -174,6 +179,7 @@ impl EcranClasseur {
         let grille = classeur::grille_du_classeur(&chemin, config.grille_defaut());
         let francais = config.langue().code() == "FR";
         let source = config.source_image();
+        let prix_sur_les_cartes = config.prix_sur_les_cartes();
 
         let depart = Instant::now();
         let conn = ygo_db::connexion::ouvrir(&chemin)?;
@@ -255,6 +261,8 @@ impl EcranClasseur {
             detail_ecarts: false,
             prix: None,
             chiffrage,
+            prix_sur_les_cartes,
+            tri_prix: TriPrix::Classeur,
             depart: Instant::now(),
             premier_rendu: None,
         })
@@ -264,10 +272,25 @@ impl EcranClasseur {
     fn relever_les_prix(&mut self, ctx: &egui::Context) {
         if let Some(prix) = self.chiffrage.relever() {
             self.prix = prix;
+            // L'ordre par prix attendait les prix.
+            if self.tri_prix != TriPrix::Classeur {
+                self.refiltrer();
+                self.reproposer();
+            }
         }
         if self.chiffrage.en_cours() {
             ctx.request_repaint_after(Duration::from_millis(150));
         }
+    }
+
+    /// Le prix d'un exemplaire d'une ligne, à écrire sur sa carte : `None`
+    /// si l'affichage est coupé, les prix pas encore là, ou la version pas
+    /// sûre.
+    fn prix_de(&self, rowid: i64) -> Option<u32> {
+        if !self.prix_sur_les_cartes {
+            return None;
+        }
+        self.prix.as_ref()?.lignes.get(&rowid).copied().flatten()
     }
 
     /// La valeur des possédées affichées, et celle du classeur entier : de
@@ -313,9 +336,21 @@ impl EcranClasseur {
     ///
     /// Elles portent sur **toutes** les cartes, pas sur les visibles : leur
     /// rôle est justement d'emmener quelque part dans le classeur entier.
+    ///
+    /// Dans l'ordre affiché : rangées par prix, elles annoncent le feuillet
+    /// où la carte est **maintenant**.
     fn reproposer(&mut self) {
+        let rangees;
+        let cartes: &[Carte] = if self.tri_prix == TriPrix::Classeur {
+            &self.toutes
+        } else {
+            let mut copie = self.toutes.clone();
+            ranger(&mut copie, self.tri_prix, self.prix.as_ref());
+            rangees = copie;
+            &rangees
+        };
         self.propositions = classeur::suggestions(
-            &self.toutes,
+            cartes,
             &self.filtres.terme,
             self.grille,
             classeur::MAX_SUGGESTIONS,
@@ -343,6 +378,7 @@ impl EcranClasseur {
     fn refiltrer(&mut self) {
         let debut = Instant::now();
         self.visibles = classeur::appliquer(self.toutes.clone(), &self.filtres, &self.priorites);
+        ranger(&mut self.visibles, self.tri_prix, self.prix.as_ref());
         self.duree_filtre = debut.elapsed();
         // Un filtre qui réduit le classeur peut laisser la page courante
         // au-delà de la fin : on ramène dans les bornes plutôt que d'afficher
@@ -573,6 +609,7 @@ impl EcranClasseur {
                         self.recharger();
                     }
                     ui.add_space(8.0);
+                    self.choix_du_tri(ui);
 
                     let mut possession = self.filtres.possession;
                     egui::ComboBox::from_id_salt("possession")
@@ -636,6 +673,52 @@ impl EcranClasseur {
         });
     }
 
+    /// L'ordre d'affichage : celui du classeur, ou par prix d'un exemplaire.
+    ///
+    /// Les entrées « Prix » sont **montrées mais désactivées** quand le
+    /// classeur n'a pas de prix, avec la raison en infobulle — comme le menu
+    /// du classeur. Choisies avant l'arrivée des prix, elles s'appliquent à
+    /// leur arrivée.
+    fn choix_du_tri(&mut self, ui: &mut egui::Ui) {
+        let sans_prix = self.prix.is_none() && !self.chiffrage.en_cours();
+        let mut tri = self.tri_prix;
+        egui::ComboBox::from_id_salt("tri_prix")
+            .selected_text(libelle_du_tri(tri))
+            .show_ui(ui, |ui| {
+                ui.selectable_value(
+                    &mut tri,
+                    TriPrix::Classeur,
+                    libelle_du_tri(TriPrix::Classeur),
+                );
+                for sens in [TriPrix::Croissant, TriPrix::Decroissant] {
+                    let entree = ui.add_enabled(
+                        !sans_prix,
+                        egui::Button::selectable(tri == sens, libelle_du_tri(sens)),
+                    );
+                    if entree.clicked() {
+                        tri = sens;
+                    }
+                    entree.on_disabled_hover_text(
+                        "Pas de prix Cardmarket pour ce classeur : les fichiers publics \
+                         se téléchargent au démarrage de l'application",
+                    );
+                }
+            })
+            .response
+            .on_hover_text(
+                "Ordre d'affichage. Par prix : celui d'un exemplaire, écrit au bas de la \
+                 carte ; les cartes sans prix sûr vont à la fin. L'ordre du classeur \
+                 n'est pas modifié.",
+            );
+        if tri != self.tri_prix {
+            self.tri_prix = tri;
+            // Le plus cher — ou le moins cher — est devant : on y va.
+            self.double_page = 0;
+            self.refiltrer();
+            self.reproposer();
+        }
+    }
+
     /// La ligne qui dit ce que la création a corrigé ou refusé.
     ///
     /// # Pourquoi une ligne, et pas un journal ailleurs
@@ -685,9 +768,13 @@ impl EcranClasseur {
                         );
                     }
                     for fantome in &ecarts.fantomes {
+                        ui.label(texte_du_fantome(fantome));
+                    }
+                    for fantome in &ecarts.a_verifier {
                         ui.label(format!(
-                            "• {} — « {} » écartée : cette mention n'est pas une rareté, \
-                             la même illustration porte déjà {}",
+                            "• {} — « {} » gardée parce que possédée, à vérifier : ni \
+                             Yugipedia ni la base ne connaissent cette rareté pour ce numéro, \
+                             imprimé en {}",
                             fantome.set_code,
                             fantome.rarete,
                             fantome.jumelles.join(", ")
@@ -816,7 +903,8 @@ impl EcranClasseur {
     /// Le menu des actions qui portent sur le classeur entier.
     ///
     /// Un menu et non deux boutons : la barre du haut porte déjà le retour,
-    /// le titre, les compteurs, trois filtres, la case FR et les options.
+    /// le titre, les compteurs, trois filtres, l'ordre d'affichage, la case
+    /// FR et les options.
     /// Deux boutons de plus la rendraient illisible pour des actions qu'on
     /// déclenche une fois par classeur.
     ///
@@ -862,6 +950,20 @@ impl EcranClasseur {
                     &self.paths.classeur_db(&self.code),
                 ));
                 ui.close();
+            }
+            // Retenu dans les Options : il vaut pour tous les classeurs.
+            if ui
+                .checkbox(&mut self.prix_sur_les_cartes, "Prix sur les cartes")
+                .on_hover_text(
+                    "Le prix Cardmarket d'un exemplaire (moyenne des ventes sur 30 jours) \
+                     au bas de chaque carte dont la version est sûre",
+                )
+                .changed()
+            {
+                let config = Config::charger(self.paths.app_config());
+                if let Err(e) = config.definir_prix_sur_les_cartes(self.prix_sur_les_cartes) {
+                    tracing::warn!(erreur = %e, "réglage « prix sur les cartes » non écrit");
+                }
             }
         })
         .response
@@ -1555,17 +1657,52 @@ impl EcranClasseur {
         }
 
         // ── Les badges du bas, à leur place d'origine ───────────────────
+        let mut badges = Vec::new();
         if carte.quantite >= ygo_app::possession::SEUIL_PLAYSET {
-            badge(ui, rect.left_bottom(), false, "PLAYSET", COULEUR_PLAYSET);
+            badges.push(badge(
+                ui,
+                rect.left_bottom(),
+                false,
+                "PLAYSET",
+                COULEUR_PLAYSET,
+            ));
         }
         if carte.extended_art {
-            badge(
+            badges.push(badge(
                 ui,
                 rect.right_bottom(),
                 true,
                 "OVERFRAME",
                 COULEUR_OVERFRAME,
+            ));
+        }
+
+        // ── Le prix, au centre en bas ───────────────────────────────────
+        //
+        // Celui d'un exemplaire, tel que la valeur du classeur le compte —
+        // seulement quand la version est sûre. Sur une carte non possédée il
+        // s'atténue comme elle ; sur une carte étroite, il passe dans le coin
+        // qu'un badge laisse libre (cf. `zone_du_prix`).
+        if let Some(centimes) = self.prix_de(carte.rowid) {
+            let galee = ui.painter().layout_no_wrap(
+                crate::valeur::prix_sur_la_carte(centimes),
+                egui::FontId::proportional(10.0),
+                if possedee {
+                    egui::Color32::from_gray(240)
+                } else {
+                    egui::Color32::from_gray(150)
+                },
             );
+            let taille = egui::vec2(galee.size().x + 12.0, HAUTEUR_BADGE);
+            if let Some(zone) = zone_du_prix(rect, taille, &badges) {
+                let fond = egui::Color32::from_black_alpha(if possedee { 200 } else { 130 });
+                ui.painter().rect_filled(zone, HAUTEUR_BADGE / 2.0, fond);
+                ui.painter().galley(
+                    zone.center() - galee.size() / 2.0,
+                    galee,
+                    egui::Color32::WHITE,
+                );
+            }
         }
 
         // ── Le bandeau de survol ────────────────────────────────────────
@@ -1774,15 +1911,96 @@ fn opacite_du_repere(reste: f32) -> f32 {
     }
 }
 
-/// Un badge d'angle, en bas de la carte.
-fn badge(ui: &egui::Ui, coin: egui::Pos2, a_droite: bool, texte: &str, fond: egui::Color32) {
+/// Range des cartes dans l'ordre choisi : rien à faire pour l'ordre du
+/// classeur, ni tant que les prix ne sont pas là.
+fn ranger(cartes: &mut [Carte], tri: TriPrix, prix: Option<&ygo_app::cardmarket::PrixDesLignes>) {
+    if let Some(prix) = prix {
+        classeur::trier_par_prix(cartes, tri, |rowid| {
+            prix.lignes.get(&rowid).copied().flatten()
+        });
+    }
+}
+
+/// Le libellé d'un ordre d'affichage, dans la liste du haut.
+///
+/// ```
+/// use ygo_app::classeur::TriPrix;
+/// use ygo_ui::classeur::libelle_du_tri;
+/// assert_eq!(libelle_du_tri(TriPrix::Classeur), "Ordre du classeur");
+/// assert_eq!(libelle_du_tri(TriPrix::Decroissant), "Prix décroissant");
+/// ```
+#[must_use]
+pub fn libelle_du_tri(tri: TriPrix) -> &'static str {
+    match tri {
+        TriPrix::Classeur => "Ordre du classeur",
+        TriPrix::Croissant => "Prix croissant",
+        TriPrix::Decroissant => "Prix décroissant",
+    }
+}
+
+/// La ligne du détail des écarts pour une fausse rareté écartée : pourquoi,
+/// selon son motif.
+///
+/// ```
+/// use ygo_app::raretes::{Fantome, Motif};
+/// use ygo_ui::classeur::texte_du_fantome;
+/// let mut f = Fantome {
+///     set_code: "RA05-EN136".into(),
+///     name: "Maliss <P> White Rabbit".into(),
+///     rarete: "force-SMW".into(),
+///     image_id: None,
+///     jumelles: vec!["Ultra Rare".into(), "Starlight Rare".into()],
+///     motif: Motif::NonAttestee,
+/// };
+/// assert_eq!(
+///     texte_du_fantome(&f),
+///     "• RA05-EN136 — « force-SMW » écartée : ni Yugipedia ni la base ne connaissent \
+///      cette rareté pour ce numéro, imprimé en Ultra Rare, Starlight Rare"
+/// );
+/// f.motif = Motif::MemeIllustration;
+/// assert!(texte_du_fantome(&f).contains("la même illustration porte déjà Ultra Rare"));
+/// ```
+#[must_use]
+pub fn texte_du_fantome(fantome: &ygo_app::raretes::Fantome) -> String {
+    use ygo_app::raretes::Motif;
+    match fantome.motif {
+        Motif::MemeIllustration => format!(
+            "• {} — « {} » écartée : cette mention n'est pas une rareté, la même \
+             illustration porte déjà {}",
+            fantome.set_code,
+            fantome.rarete,
+            fantome.jumelles.join(", ")
+        ),
+        Motif::NonAttestee => format!(
+            "• {} — « {} » écartée : ni Yugipedia ni la base ne connaissent cette rareté \
+             pour ce numéro, imprimé en {}",
+            fantome.set_code,
+            fantome.rarete,
+            fantome.jumelles.join(", ")
+        ),
+    }
+}
+
+/// Hauteur des badges du bas de la carte, prix compris.
+const HAUTEUR_BADGE: f32 = 15.0;
+/// Écart entre un badge et le bord de la carte.
+const RETRAIT_BADGE: f32 = 4.0;
+
+/// Un badge d'angle, en bas de la carte. Rend la zone qu'il occupe.
+fn badge(
+    ui: &egui::Ui,
+    coin: egui::Pos2,
+    a_droite: bool,
+    texte: &str,
+    fond: egui::Color32,
+) -> egui::Rect {
     let police = egui::FontId::proportional(9.0);
     let largeur = texte.len() as f32 * 5.6 + 10.0;
-    let taille = egui::vec2(largeur, 15.0);
+    let taille = egui::vec2(largeur, HAUTEUR_BADGE);
     let min = if a_droite {
-        coin + egui::vec2(-taille.x - 4.0, -taille.y - 4.0)
+        coin + egui::vec2(-taille.x - RETRAIT_BADGE, -taille.y - RETRAIT_BADGE)
     } else {
-        coin + egui::vec2(4.0, -taille.y - 4.0)
+        coin + egui::vec2(RETRAIT_BADGE, -taille.y - RETRAIT_BADGE)
     };
     let zone = egui::Rect::from_min_size(min, taille);
     ui.painter().rect_filled(zone, 3.0, fond);
@@ -1793,6 +2011,39 @@ fn badge(ui: &egui::Ui, coin: egui::Pos2, a_droite: bool, texte: &str, fond: egu
         police,
         egui::Color32::WHITE,
     );
+    zone
+}
+
+/// La place du prix, sur la ligne des badges d'angle : au centre ; sur une
+/// carte trop étroite pour l'y loger à côté d'un badge, dans le coin que ce
+/// badge laisse libre (le prix d'une Overframe reste visible) ; `None` s'il
+/// ne tient nulle part — une carte étroite, un PLAYSET et un OVERFRAME de
+/// part et d'autre.
+#[must_use]
+pub fn zone_du_prix(
+    carte: egui::Rect,
+    taille: egui::Vec2,
+    badges: &[egui::Rect],
+) -> Option<egui::Rect> {
+    let bas = carte.bottom() - RETRAIT_BADGE;
+    let a_partir_de = |gauche: f32| {
+        egui::Rect::from_min_max(
+            egui::pos2(gauche, bas - taille.y),
+            egui::pos2(gauche + taille.x, bas),
+        )
+    };
+    [
+        a_partir_de(carte.center().x - taille.x / 2.0),
+        a_partir_de(carte.left() + RETRAIT_BADGE),
+        a_partir_de(carte.right() - RETRAIT_BADGE - taille.x),
+    ]
+    .into_iter()
+    .find(|zone| {
+        let dedans = zone.left() >= carte.left() + RETRAIT_BADGE
+            && zone.right() <= carte.right() - RETRAIT_BADGE
+            && zone.top() >= carte.top() + RETRAIT_BADGE;
+        dedans && badges.iter().all(|b| !b.expand(2.0).intersects(*zone))
+    })
 }
 
 /// Ce qu'une commande de l'utilisateur demande.
@@ -2188,6 +2439,54 @@ mod tests {
                 occupe.y
             );
         }
+    }
+
+    /// La place du prix : au centre en bas, entre les badges d'angle quand
+    /// ils y tiennent, dans le coin libre sinon, nulle part s'il n'y en a
+    /// pas.
+    #[test]
+    fn le_prix_se_loge_entre_les_badges_ou_pas_du_tout() {
+        let taille = egui::vec2(48.0, HAUTEUR_BADGE);
+        let badges = |carte: egui::Rect| {
+            let gauche = egui::Rect::from_min_size(
+                carte.left_bottom() + egui::vec2(RETRAIT_BADGE, -HAUTEUR_BADGE - RETRAIT_BADGE),
+                egui::vec2(49.2, HAUTEUR_BADGE),
+            );
+            let droite = egui::Rect::from_min_size(
+                carte.right_bottom()
+                    + egui::vec2(-60.4 - RETRAIT_BADGE, -HAUTEUR_BADGE - RETRAIT_BADGE),
+                egui::vec2(60.4, HAUTEUR_BADGE),
+            );
+            [gauche, droite]
+        };
+
+        // Une carte comme celles de la capture (260 points) : centré, sur la
+        // ligne des badges.
+        let carte = egui::Rect::from_min_size(egui::pos2(0.0, 0.0), egui::vec2(260.0, 380.0));
+        let zone = zone_du_prix(carte, taille, &badges(carte)).unwrap();
+        assert!((zone.center().x - 130.0).abs() < 0.01);
+        assert!((zone.bottom() - (380.0 - RETRAIT_BADGE)).abs() < 0.01);
+        assert!(badges(carte).iter().all(|b| !b.intersects(zone)));
+
+        // Étroite, avec un PLAYSET et un OVERFRAME : pas de place.
+        let etroite = egui::Rect::from_min_size(egui::pos2(0.0, 0.0), egui::vec2(140.0, 204.0));
+        assert_eq!(zone_du_prix(etroite, taille, &badges(etroite)), None);
+        // La même sans badge : le prix y tient, au centre.
+        let zone = zone_du_prix(etroite, taille, &[]).unwrap();
+        assert!((zone.center().x - 70.0).abs() < 0.01);
+        // Avec l'OVERFRAME seul : dans le coin gauche, qu'il laisse libre.
+        let [_, overframe] = badges(etroite);
+        let zone = zone_du_prix(etroite, taille, &[overframe]).unwrap();
+        assert!((zone.left() - RETRAIT_BADGE).abs() < 0.01);
+        assert!(!zone.intersects(overframe));
+        // Avec le PLAYSET seul : dans le coin droit.
+        let [playset, _] = badges(etroite);
+        let zone = zone_du_prix(etroite, taille, &[playset]).unwrap();
+        assert!((zone.right() - (140.0 - RETRAIT_BADGE)).abs() < 0.01);
+        assert!(!zone.intersects(playset));
+        // Plus étroite que le prix lui-même : rien.
+        let minuscule = egui::Rect::from_min_size(egui::pos2(0.0, 0.0), egui::vec2(50.0, 73.0));
+        assert_eq!(zone_du_prix(minuscule, taille, &[]), None);
     }
 
     #[test]

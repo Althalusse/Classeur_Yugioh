@@ -1159,6 +1159,7 @@ pub async fn creer(
         canonisees: bilan_raretes.corrigees,
         fantomes,
         inconnues: crate::raretes::inconnues(&lignes, &reference),
+        a_verifier: Vec::new(),
     };
     let ecrites = ecrire_classeur(&chemin_db, &lignes, &ecarts)?;
     if let Some(overrides) = greffons.appliquer_overrides {
@@ -1331,8 +1332,14 @@ async fn depuis_api(
 pub struct ApresArtworks {
     /// Le bilan de la passe elle-même.
     pub bilan: crate::artworks::Bilan,
-    /// Lignes retirées par le rattrapage des fausses raretés.
+    /// Lignes retirées par le rattrapage des fausses raretés — marqueurs
+    /// d'artwork et raretés que personne n'atteste, ensemble.
     pub fantomes_retires: usize,
+    /// Dont celles que ni la Set list ni la base n'attestent
+    /// ([`crate::raretes::non_attestees`], 2026-10-23).
+    pub raretes_non_attestees: usize,
+    /// Lignes qui le seraient, gardées parce que possédées : à vérifier.
+    pub raretes_a_verifier: usize,
     /// Lignes sans image à elles qui ont reçu le fichier Yugipedia de leur
     /// rareté (cf. `artworks::poser_images_de_repli`).
     pub replis: usize,
@@ -1406,7 +1413,21 @@ pub async fn completer_artworks(
             }
         }
     };
-    let fantomes_retires = rattraper_fantomes(chemin_db, code, reference);
+    let mut fantomes_retires = rattraper_fantomes(chemin_db, code, reference);
+    // Les raretés que personne n'atteste, une fois la passe faite : c'est elle
+    // qui a créé les tirages que la Set list annonce, et la règle exige qu'ils
+    // soient tous là (`RA05-EN136` : « force-SMW » à côté de l'Ultra et de la
+    // Starlight). La Set list est en cache. Son échec ne coûte pas la passe.
+    let (raretes_non_attestees, raretes_a_verifier) =
+        match crate::numeros_absents::attester_raretes(paths, client, code, reference, true).await {
+            Ok(Some(v)) => (v.a_retirer.len(), v.gardees.len()),
+            Ok(None) => (0, 0),
+            Err(e) => {
+                tracing::warn!(classeur = %code, erreur = %e, "raretés non confrontées à Yugipedia");
+                (0, 0)
+            }
+        };
+    fantomes_retires += raretes_non_attestees;
     // La passe a créé des tirages en recopiant une ligne sœur, URL comprise :
     // chacun doit recevoir l'image de **son** tirage.
     poser_images_tirage(paths, code, reference);
@@ -1423,6 +1444,8 @@ pub async fn completer_artworks(
     Ok(ApresArtworks {
         bilan,
         fantomes_retires,
+        raretes_non_attestees,
+        raretes_a_verifier,
         replis,
         galerie,
     })

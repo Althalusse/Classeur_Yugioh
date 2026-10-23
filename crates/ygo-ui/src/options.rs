@@ -951,9 +951,12 @@ impl EcranOptions {
                         "Compare chaque classeur à sa Set list Yugipedia : ajoute les \
                          numéros que la base a perdus (ex. LOCH-JP013), et redonne leur \
                          image aux Overframe qui affichent l'illustration normale (carte \
-                         renommée depuis sa sortie). Rien n'est inventé : une carte \
-                         introuvable est signalée et laissée de côté. Fait aussi tout \
-                         seul après chaque mise à jour de la base ou de l'application.",
+                         renommée depuis sa sortie), et retire les raretés que ni \
+                         Yugipedia ni la base ne connaissent (« force-SMW » sur \
+                         RA05-EN136) — une carte possédée est seulement signalée. Rien \
+                         n'est inventé : une carte introuvable est signalée et laissée de \
+                         côté. Fait aussi tout seul après chaque mise à jour de la base \
+                         ou de l'application, et à la création d'un classeur.",
                     )
                     .on_disabled_hover_text("Lancée — suivez la bande de progression.")
                     .clicked();

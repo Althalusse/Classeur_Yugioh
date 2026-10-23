@@ -16,9 +16,16 @@
 //! en signalait une, et personne ne les additionnait. L'onglet « Toutes
 //! raretés confondues » répond à la question qu'on se pose vraiment devant
 //! une collection — *qu'est-ce qui me manque le plus ?*
+//!
+//! # La valeur — 2026-10-23
+//!
+//! Une tuile « valeur des possédées » et la valeur de chaque classeur, celle
+//! des pastilles de l'accueil ([`ygo_app::cardmarket::valoriser`]),
+//! chiffrées sur un fil. Sans données Cardmarket, ni l'une ni l'autre.
 
 use eframe::egui;
 
+use ygo_app::cardmarket::Valorisation;
 use ygo_app::statistiques::{self, Classeur, ParRarete};
 use ygo_core::paths::Paths;
 
@@ -47,6 +54,8 @@ const LARGEUR_JAUGE: f32 = 260.0;
 const LARGEUR_PART: f32 = 56.0;
 /// Largeur de la colonne « possédées / total ».
 const LARGEUR_COMPTEURS: f32 = 96.0;
+/// Largeur de la colonne de la valeur des possédées.
+const LARGEUR_VALEUR: f32 = 88.0;
 /// Largeur d'une ligne de contenu.
 ///
 /// Bornée, et non étalée sur toute la fenêtre : sur un écran large, un
@@ -75,11 +84,12 @@ fn cellule_gauche(ui: &mut egui::Ui, largeur: f32, texte: egui::RichText) {
     );
 }
 
-/// Une cellule de largeur fixe, alignée à droite.
+/// Une cellule de largeur fixe, alignée à droite — rend le libellé, pour
+/// son info-bulle.
 ///
 /// C'est ce qui fait qu'une colonne de nombres se lit : les unités sous les
 /// unités. `add_sized` centre, ce qui ne convient qu'au texte.
-fn cellule_droite(ui: &mut egui::Ui, largeur: f32, texte: egui::RichText) {
+fn cellule_droite(ui: &mut egui::Ui, largeur: f32, texte: egui::RichText) -> egui::Response {
     ui.allocate_ui_with_layout(
         egui::vec2(largeur, 18.0),
         egui::Layout::right_to_left(egui::Align::Center),
@@ -89,9 +99,10 @@ fn cellule_droite(ui: &mut egui::Ui, largeur: f32, texte: egui::RichText) {
             // bord droit du rectangle réservé, donc le parent avance bien
             // de `largeur`. La ligne y avait été copiée par symétrie ; une
             // mutation y a survécu, ce qui est la définition du code mort.
-            ui.label(texte);
+            ui.label(texte)
         },
-    );
+    )
+    .inner
 }
 
 /// La couleur d'une jauge, du rouge au vert selon l'avancement.
@@ -155,6 +166,11 @@ pub struct EcranStatistiques {
     vue: Vue,
     /// Les classeurs dont le détail par rareté est déplié.
     deplies: std::collections::BTreeSet<String>,
+    /// La valeur des possédées de chaque classeur, une fois chiffrée —
+    /// `None` avant, ou sans données Cardmarket.
+    valorisation: Option<Valorisation>,
+    /// Le chiffrage en cours, sur son fil.
+    chiffrage: crate::valeur::Calcul<Option<Valorisation>>,
     retour: bool,
     duree_lecture: std::time::Duration,
 }
@@ -175,15 +191,42 @@ impl EcranStatistiques {
         let classeurs = statistiques::lister(&paths);
         let duree_lecture = debut.elapsed();
         let cumul = statistiques::raretes_cumulees(&classeurs);
-        Self {
+        let mut ecran = Self {
             paths,
             classeurs,
             cumul,
             filtre: String::new(),
             vue: Vue::default(),
             deplies: std::collections::BTreeSet::new(),
+            valorisation: None,
+            chiffrage: crate::valeur::Calcul::default(),
             retour: false,
             duree_lecture,
+        };
+        ecran.chiffrer();
+        ecran
+    }
+
+    /// Chiffre les possédées de chaque classeur, sur un fil : l'écran
+    /// s'affiche sans attendre les prix.
+    fn chiffrer(&mut self) {
+        let paths = self.paths.clone();
+        let codes: Vec<String> = self.classeurs.iter().map(|c| c.nom.clone()).collect();
+        self.chiffrage = crate::valeur::Calcul::lancer("ygo-prix-statistiques", move || {
+            ygo_app::cardmarket::valoriser(&paths, &codes).unwrap_or_else(|e| {
+                tracing::warn!(erreur = %e, "statistiques : valeur non calculée");
+                None
+            })
+        });
+    }
+
+    /// Relève la valeur si elle est arrivée.
+    fn relever_la_valeur(&mut self, ctx: &egui::Context) {
+        if let Some(valorisation) = self.chiffrage.relever() {
+            self.valorisation = valorisation;
+        }
+        if self.chiffrage.en_cours() {
+            ctx.request_repaint_after(std::time::Duration::from_millis(150));
         }
     }
 
@@ -192,17 +235,19 @@ impl EcranStatistiques {
         std::mem::take(&mut self.retour)
     }
 
-    /// Relit l'installation.
+    /// Relit l'installation, valeur comprise.
     pub fn relire(&mut self) {
         let debut = std::time::Instant::now();
         self.classeurs = statistiques::lister(&self.paths);
         self.duree_lecture = debut.elapsed();
         self.cumul = statistiques::raretes_cumulees(&self.classeurs);
+        self.chiffrer();
     }
 }
 
 impl eframe::App for EcranStatistiques {
     fn ui(&mut self, racine: &mut egui::Ui, _frame: &mut eframe::Frame) {
+        self.relever_la_valeur(racine.ctx());
         self.barre_du_haut(racine);
         self.barre_du_bas(racine);
         egui::CentralPanel::default().show(racine, |ui| {
@@ -281,16 +326,17 @@ impl EcranStatistiques {
                 (format!("{:.0} %", t.pourcentage()), "de la collection"),
                 (format!("{}", t.complets), "classeurs complets"),
             ] {
-                egui::Frame::group(ui.style())
-                    .corner_radius(6.0)
-                    .inner_margin(8.0)
-                    .show(ui, |ui| {
-                        ui.vertical(|ui| {
-                            ui.label(egui::RichText::new(valeur).heading().strong());
-                            ui.small(egui::RichText::new(libelle).weak());
-                        });
-                    });
+                tuile(ui, valeur, libelle);
                 ui.add_space(6.0);
+            }
+            // La valeur des possédées, quand les prix sont là — le détail
+            // (exemplaires sans prix sûr, date des prix) au survol.
+            if let Some(v) = &self.valorisation {
+                let total = v.total();
+                if let Some(montant) = crate::valeur::pastille(&total) {
+                    tuile(ui, montant, "valeur des possédées")
+                        .on_hover_text(crate::valeur::detail(&total, &v.prix_du));
+                }
             }
         });
     }
@@ -373,6 +419,16 @@ impl EcranStatistiques {
                                 egui::RichText::new(format!("{} / {}", c.possedees, c.total))
                                     .monospace(),
                             );
+                            if let Some(v) = &self.valorisation {
+                                let valeur = v.classeurs.get(&c.nom).copied().unwrap_or_default();
+                                let texte = crate::valeur::pastille(&valeur).unwrap_or_default();
+                                let detail = crate::valeur::detail(&valeur, &v.prix_du);
+                                let cellule =
+                                    cellule_droite(ui, LARGEUR_VALEUR, egui::RichText::new(texte));
+                                if !detail.is_empty() {
+                                    cellule.on_hover_text(detail);
+                                }
+                            }
                             ui.add_space(10.0);
                             ui.small(egui::RichText::new(ligne_de_reste(c.manquantes())).weak());
                         });
@@ -411,6 +467,20 @@ impl EcranStatistiques {
             }
         });
     }
+}
+
+/// Une tuile du récapitulatif : un chiffre, et ce qu'il compte.
+fn tuile(ui: &mut egui::Ui, valeur: String, libelle: &str) -> egui::Response {
+    egui::Frame::group(ui.style())
+        .corner_radius(6.0)
+        .inner_margin(8.0)
+        .show(ui, |ui| {
+            ui.vertical(|ui| {
+                ui.label(egui::RichText::new(valeur).heading().strong());
+                ui.small(egui::RichText::new(libelle).weak());
+            });
+        })
+        .response
 }
 
 /// Une ligne de rareté, alignée sur les mêmes colonnes que les classeurs.

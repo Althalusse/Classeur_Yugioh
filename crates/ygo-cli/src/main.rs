@@ -136,6 +136,9 @@ async fn executer() -> anyhow::Result<bool> {
         "simuler-numeros" => {
             cmd_simuler_numeros(&cible.context("chemin de l'installation attendu")?, reste).await
         }
+        "raretes-fantomes" => {
+            cmd_raretes_fantomes(&cible.context("chemin de l'installation attendu")?, reste).await
+        }
         "etats-defaut" => {
             cmd_etats_defaut(&cible.context("chemin de l'installation attendu")?, reste)
         }
@@ -219,6 +222,11 @@ USAGE
   ygo-cli numeros-absents <installation>  ajoute les numéros que la Set list Yugipedia
                                    connaît et que la base a perdus (LOCH-JP013…)
         [--corriger]                  écrit — sans lui, rien n'est modifié
+        [--classeur CODE]             se limite à un classeur
+  ygo-cli raretes-fantomes <installation>  les raretés que ni la Set list Yugipedia ni
+                                   la base ne connaissent au numéro (force-SMW sur
+                                   RA05-EN136) ; les possédées ne sont que signalées
+        [--corriger]                  retire et consigne — sans lui, rien n'est modifié
         [--classeur CODE]             se limite à un classeur
   ygo-cli simuler-numeros <installation>  crée des classeurs d'essai À PART et y
                                    applique numeros-absents + la passe artworks ;
@@ -1095,6 +1103,97 @@ async fn cmd_numeros_absents(installation: &Path, args: &[String]) -> anyhow::Re
         if corriger { "ajouté(s)" } else { "à ajouter" }
     );
     if !corriger && numeros > 0 {
+        println!("Relancer avec --corriger pour écrire.");
+    }
+    Ok(true)
+}
+
+/// `raretes-fantomes` — les raretés qu'aucune source n'atteste
+/// (cf. `ygo_app::raretes::non_attestees`).
+///
+/// La Set list n'est lue que pour les classeurs qui portent un libellé
+/// inconnu du référentiel : sur une installation saine, aucune requête.
+async fn cmd_raretes_fantomes(installation: &Path, args: &[String]) -> anyhow::Result<bool> {
+    let corriger = args.iter().any(|a| a == "--corriger");
+    let seul = args
+        .iter()
+        .position(|a| a == "--classeur")
+        .and_then(|i| args.get(i + 1))
+        .map(|c| c.to_uppercase());
+    let paths = Paths::depuis_racine(installation);
+    ygo_sources::cache::activer(&paths.cache_http());
+    let raretes = Priorites::charger(paths.rarity_config());
+    let client = ygo_sources::ClientHttp::new()?;
+    println!("Installation : {}", installation.display());
+    println!(
+        "Mode         : {}",
+        if corriger {
+            "ÉCRITURE"
+        } else {
+            "analyse seule — rien ne sera modifié"
+        }
+    );
+    println!();
+    let (mut retirees, mut gardees) = (0usize, 0usize);
+    for code in paths.classeurs_existants() {
+        if seul.as_deref().is_some_and(|c| c != code) {
+            continue;
+        }
+        let verdict = match ygo_app::numeros_absents::attester_raretes(
+            &paths, &client, &code, &raretes, corriger,
+        )
+        .await
+        {
+            Ok(Some(v)) => v,
+            Ok(None) => {
+                println!("{code:10} non jugé — pas de Set list Yugipedia");
+                continue;
+            }
+            Err(e) => {
+                println!("{code:10} erreur : {e}");
+                continue;
+            }
+        };
+        if verdict.a_retirer.is_empty() && verdict.gardees.is_empty() {
+            println!("{code:10} rien");
+            continue;
+        }
+        println!(
+            "{code:10} {} à retirer, {} possédée(s) à vérifier",
+            verdict.a_retirer.len(),
+            verdict.gardees.len()
+        );
+        for (rowid, f) in &verdict.a_retirer {
+            println!(
+                "    - {} « {} » [{}] — Yugipedia et la base : {} (ligne {rowid})",
+                f.set_code,
+                f.name,
+                f.rarete,
+                f.jumelles.join(", ")
+            );
+        }
+        for f in &verdict.gardees {
+            println!(
+                "    ! {} « {} » [{}] — possédée, gardée ; Yugipedia et la base : {}",
+                f.set_code,
+                f.name,
+                f.rarete,
+                f.jumelles.join(", ")
+            );
+        }
+        retirees += verdict.a_retirer.len();
+        gardees += verdict.gardees.len();
+    }
+    println!();
+    println!(
+        "{retirees} ligne(s) {}, {gardees} possédée(s) à vérifier.",
+        if corriger {
+            "retirée(s)"
+        } else {
+            "à retirer"
+        }
+    );
+    if !corriger && retirees > 0 {
         println!("Relancer avec --corriger pour écrire.");
     }
     Ok(true)

@@ -1362,7 +1362,7 @@ impl Offre {
             Cible::Recherche { nom, id_extension } => {
                 regles::url_recherche(langue, nom, *id_extension)
             }
-            Cible::Numero(numero) => regles::url_recherche(langue, numero, None),
+            Cible::Numero(numero) => regles::url_recherche_numero(langue, numero),
         }
     }
 
@@ -2028,6 +2028,10 @@ impl Prix {
     /// tendance et 4,56 € au plus bas). Le médian des trois
     /// ([`Prix::reference`]) la remplace alors, comme quand elle manque.
     ///
+    /// Sans vente ni tendance, rien : un plus bas seul n'est qu'une offre, pas
+    /// une valeur (LOCR-JP001 Grand Master Rare, jamais vendue : une seule
+    /// annonce, à 25 000 €).
+    ///
     /// ```
     /// use ygo_app::cardmarket::Prix;
     /// let p = |t, b, m| Prix { tendance: t, bas: b, moyenne30: m };
@@ -2036,11 +2040,13 @@ impl Prix {
     /// assert_eq!(p(Some(500), Some(400), Some(90)).unitaire(), Some(400));
     /// assert_eq!(p(Some(10), Some(2), Some(80)).unitaire(), Some(80));
     /// assert_eq!(p(Some(100), Some(51), None).unitaire(), Some(75));
+    /// assert_eq!(p(None, Some(2_500_000), None).unitaire(), None);
     /// assert_eq!(p(None, None, None).unitaire(), None);
     /// ```
     #[must_use]
     pub fn unitaire(&self) -> Option<u32> {
         let Some(moyenne) = self.moyenne30 else {
+            self.tendance?;
             return self.reference();
         };
         let (Some(t), Some(b)) = (self.tendance, self.bas) else {
@@ -2131,11 +2137,46 @@ impl Valeur {
 pub struct Valorisation {
     /// Par code de classeur.
     pub classeurs: BTreeMap<String, Valeur>,
+    /// Le prix d'un exemplaire de chaque ligne possédée, par classeur puis
+    /// par `rowid` — `None` quand la version n'est pas sûre. C'est la
+    /// matière des colonnes de l'inventaire (2026-10-23).
+    pub lignes: HashMap<String, HashMap<i64, Option<u32>>>,
     /// Date du guide des prix.
     pub prix_du: String,
 }
 
 impl Valorisation {
+    /// Le prix d'un exemplaire d'une ligne possédée — `None` si sa version
+    /// n'est pas sûre, ou si la ligne n'a pas été chiffrée (possédée
+    /// depuis).
+    ///
+    /// ```
+    /// use std::collections::HashMap;
+    /// use ygo_app::cardmarket::Valorisation;
+    /// let v = Valorisation {
+    ///     lignes: HashMap::from([("RA05".to_owned(), HashMap::from([(1, Some(388)), (2, None)]))]),
+    ///     ..Valorisation::default()
+    /// };
+    /// assert_eq!(v.prix("RA05", 1), Some(388));
+    /// assert_eq!(v.prix("RA05", 2), None);
+    /// assert_eq!(v.prix("RA05", 3), None);
+    /// assert_eq!(v.prix("LOCR-JP", 1), None);
+    /// assert!(v.chiffree("RA05", 2) && !v.chiffree("RA05", 3));
+    /// ```
+    #[must_use]
+    pub fn prix(&self, classeur: &str, rowid: i64) -> Option<u32> {
+        self.lignes.get(classeur)?.get(&rowid).copied().flatten()
+    }
+
+    /// La ligne a-t-elle été chiffrée — avec ou sans prix sûr ? Une ligne
+    /// possédée depuis le chiffrage ne l'est pas : il est à refaire.
+    #[must_use]
+    pub fn chiffree(&self, classeur: &str, rowid: i64) -> bool {
+        self.lignes
+            .get(classeur)
+            .is_some_and(|l| l.contains_key(&rowid))
+    }
+
     /// La valeur de tous les classeurs.
     #[must_use]
     pub fn total(&self) -> Valeur {
@@ -2166,6 +2207,7 @@ pub fn valoriser(paths: &Paths, codes: &[String]) -> Result<Option<Valorisation>
     }
     let cardinfo = ygo_db::connexion::ouvrir_lecture_seule(paths.cardinfo_db())?;
     let mut classeurs = BTreeMap::new();
+    let mut lignes = HashMap::new();
     for code in codes {
         let valeur = ygo_db::connexion::ouvrir_lecture_seule(paths.classeur_db(code))
             .map_err(crate::error::AppError::from)
@@ -2173,10 +2215,14 @@ pub fn valoriser(paths: &Paths, codes: &[String]) -> Result<Option<Valorisation>
         match valeur {
             Ok(offres) => {
                 let mut v = Valeur::default();
+                let mut prix = HashMap::with_capacity(offres.len());
                 for l in &offres {
-                    v.ajouter(l.quantite, l.offre.prix_unitaire());
+                    let unitaire = l.offre.prix_unitaire();
+                    v.ajouter(l.quantite, unitaire);
+                    prix.insert(l.rowid, unitaire);
                 }
                 classeurs.insert(code.clone(), v);
+                lignes.insert(code.clone(), prix);
             }
             Err(e) => {
                 tracing::warn!(classeur = %code, erreur = %e, "Cardmarket : classeur non chiffré")
@@ -2185,6 +2231,7 @@ pub fn valoriser(paths: &Paths, codes: &[String]) -> Result<Option<Valorisation>
     }
     Ok(Some(Valorisation {
         classeurs,
+        lignes,
         prix_du: index.index.empreinte.prix.clone(),
     }))
 }
@@ -3319,7 +3366,9 @@ mod tests {
         let o = offre("AAA-FR007", "Common", "Promo");
         assert_eq!(o.cible, Cible::Numero("AAA-EN007".into()));
         assert_eq!(o.raison, Raison::NumeroInconnu);
-        assert!(o.url("fr").ends_with("Search?searchString=AAA-EN007"));
+        assert!(o
+            .url("fr")
+            .contains("Search?searchMode=v2&idCategory=0&idExpansion=0&searchString=AAA-EN007&"));
         // Un set non rapproché.
         let o = offre("ZZZ-JP001", "Rare", "Zed");
         assert_eq!(o.cible, Cible::Numero("ZZZ-JP001".into()));

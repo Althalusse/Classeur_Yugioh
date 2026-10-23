@@ -70,6 +70,10 @@ pub struct Carte {
     /// Rang de cette variante, de 1 à `variantes` — **0** si le tirage
     /// n'en a qu'une, pour que l'interface n'ait rien à afficher.
     pub variante: u32,
+    /// Le prix Cardmarket d'un exemplaire, en centimes — posé quand le
+    /// chiffrage arrive ([`poser_les_prix`]) ; `None` tant qu'il ne l'est
+    /// pas, ou quand la version n'est pas sûre.
+    pub prix: Option<u32>,
 }
 
 impl Carte {
@@ -93,6 +97,14 @@ impl Carte {
     #[must_use]
     pub fn surplus(&self) -> i64 {
         (self.quantite - PLAYSET).max(0)
+    }
+
+    /// Ce que valent ses exemplaires : prix × quantité, en centimes —
+    /// `None` sans prix.
+    #[must_use]
+    pub fn valeur(&self) -> Option<u64> {
+        let exemplaires = u64::try_from(self.quantite.max(0)).unwrap_or(0);
+        self.prix.map(|p| u64::from(p).saturating_mul(exemplaires))
     }
 
     /// Les exemplaires de la carte, un par un ou par état.
@@ -154,6 +166,25 @@ pub fn numeroter(cartes: &mut [Carte]) {
             0
         };
     }
+}
+
+/// Pose sur chaque carte le prix d'un exemplaire, d'après `prix(classeur,
+/// rowid)` — en pratique [`crate::cardmarket::Valorisation::prix`].
+pub fn poser_les_prix(cartes: &mut [Carte], prix: impl Fn(&str, i64) -> Option<u32>) {
+    for c in cartes {
+        c.prix = prix(&c.classeur, c.rowid);
+    }
+}
+
+/// Ce que valent des cartes : leurs exemplaires chiffrés, et ceux qui ne le
+/// sont pas — la même mesure que la valeur des classeurs.
+#[must_use]
+pub fn valeur(cartes: &[&Carte]) -> crate::cardmarket::Valeur {
+    let mut v = crate::cardmarket::Valeur::default();
+    for c in cartes {
+        v.ajouter(c.quantite, c.prix);
+    }
+    v
 }
 
 /// Ce sur quoi l'inventaire se filtre.
@@ -259,6 +290,10 @@ pub enum Colonne {
     Quantite,
     /// Par surplus au-delà du playset.
     Surplus,
+    /// Par prix d'un exemplaire.
+    Prix,
+    /// Par valeur : prix × quantité.
+    Valeur,
     /// Par état.
     Qualite,
     /// Par classeur.
@@ -275,6 +310,8 @@ impl Colonne {
             Self::Rarete => "Rareté",
             Self::Quantite => "Quantité",
             Self::Surplus => "Surplus",
+            Self::Prix => "Prix",
+            Self::Valeur => "Valeur",
             Self::Qualite => "État",
             Self::Classeur => "Classeur",
         }
@@ -282,16 +319,24 @@ impl Colonne {
 
     /// Toutes les colonnes triables, dans l'ordre d'affichage.
     #[must_use]
-    pub fn toutes() -> [Self; 7] {
+    pub fn toutes() -> [Self; 9] {
         [
             Self::Nom,
             Self::Code,
             Self::Rarete,
             Self::Quantite,
             Self::Surplus,
+            Self::Prix,
+            Self::Valeur,
             Self::Qualite,
             Self::Classeur,
         ]
+    }
+
+    /// Une colonne de prix, qui n'a de sens qu'une fois les prix posés ?
+    #[must_use]
+    pub fn de_prix(self) -> bool {
+        matches!(self, Self::Prix | Self::Valeur)
     }
 }
 
@@ -301,8 +346,16 @@ impl Colonne {
 /// par `(classeur, rowid)`. Sans quoi deux affichages successifs de la même
 /// liste pourraient présenter deux ordres différents, et une ligne
 /// sélectionnée changerait de place sous le curseur.
+///
+/// Par prix ou par valeur, les cartes **sans prix vont à la fin**, dans les
+/// deux sens : elles ne sont ni les moins chères ni les plus chères.
 pub fn trier(cartes: &mut [Carte], colonne: Colonne, descendant: bool, francais: bool) {
     cartes.sort_by(|a, b| {
+        let sans_prix = if colonne.de_prix() {
+            a.prix.is_none().cmp(&b.prix.is_none())
+        } else {
+            std::cmp::Ordering::Equal
+        };
         let ordre = match colonne {
             Colonne::Nom => a
                 .nom_affiche(francais)
@@ -312,11 +365,15 @@ pub fn trier(cartes: &mut [Carte], colonne: Colonne, descendant: bool, francais:
             Colonne::Rarete => a.rarete.cmp(&b.rarete),
             Colonne::Quantite => a.quantite.cmp(&b.quantite),
             Colonne::Surplus => a.surplus().cmp(&b.surplus()),
+            Colonne::Prix => a.prix.cmp(&b.prix),
+            Colonne::Valeur => a.valeur().cmp(&b.valeur()),
             Colonne::Qualite => a.qualite.cmp(&b.qualite),
             Colonne::Classeur => a.classeur.cmp(&b.classeur),
         };
         let ordre = if descendant { ordre.reverse() } else { ordre };
-        ordre.then_with(|| (&a.classeur, a.rowid).cmp(&(&b.classeur, b.rowid)))
+        sans_prix
+            .then(ordre)
+            .then_with(|| (&a.classeur, a.rowid).cmp(&(&b.classeur, b.rowid)))
     });
 }
 
@@ -591,6 +648,7 @@ pub fn lire_classeur(paths: &Paths, classeur: &str) -> Result<Vec<Carte>> {
                 card_image_id: l.get(9)?,
                 variantes: 1,
                 variante: 0,
+                prix: None,
             })
         })
         .and_then(Iterator::collect::<rusqlite::Result<Vec<_>>>)
@@ -621,7 +679,66 @@ mod tests {
             card_image_id: Some(rowid),
             variantes: 1,
             variante: 0,
+            prix: None,
         }
+    }
+
+    /// Quatre cartes : deux au même prix, une sans prix, une à trois
+    /// exemplaires dont la valeur dépasse les autres.
+    fn chiffrees() -> Vec<Carte> {
+        let mut cartes = vec![
+            carte("RA05", 1, "RA05-EN001", "Ultra Rare", 1),
+            carte("RA05", 2, "RA05-EN002", "Common", 1),
+            carte("RA05", 3, "RA05-EN003", "Secret Rare", 1),
+            carte("LOCR-JP", 4, "LOCR-JP004", "Super Rare", 3),
+        ];
+        poser_les_prix(&mut cartes, |classeur, rowid| match (classeur, rowid) {
+            ("RA05", 1 | 3) => Some(388),
+            ("LOCR-JP", 4) => Some(200),
+            _ => None,
+        });
+        cartes
+    }
+
+    fn rowids(cartes: &[Carte]) -> Vec<i64> {
+        cartes.iter().map(|c| c.rowid).collect()
+    }
+
+    #[test]
+    fn les_prix_se_posent_par_classeur_et_rowid() {
+        let cartes = chiffrees();
+        assert_eq!(cartes[0].prix, Some(388));
+        assert_eq!(cartes[1].prix, None);
+        assert_eq!(cartes[3].prix, Some(200));
+        assert_eq!(cartes[3].valeur(), Some(600), "trois exemplaires à 2 €");
+        assert_eq!(cartes[1].valeur(), None);
+    }
+
+    /// Par prix comme par valeur, les cartes sans prix restent au bout,
+    /// dans les deux sens ; à égalité, `(classeur, rowid)` départage.
+    #[test]
+    fn par_prix_les_cartes_sans_prix_restent_au_bout() {
+        let mut cartes = chiffrees();
+        trier(&mut cartes, Colonne::Prix, false, false);
+        assert_eq!(rowids(&cartes), [4, 1, 3, 2]);
+        trier(&mut cartes, Colonne::Prix, true, false);
+        assert_eq!(rowids(&cartes), [1, 3, 4, 2]);
+
+        trier(&mut cartes, Colonne::Valeur, true, false);
+        assert_eq!(rowids(&cartes), [4, 1, 3, 2], "6 € avant 3,88 €");
+        trier(&mut cartes, Colonne::Valeur, false, false);
+        assert_eq!(rowids(&cartes), [1, 3, 4, 2]);
+    }
+
+    /// La valeur d'un lot : les exemplaires chiffrés, et les autres à part.
+    #[test]
+    fn la_valeur_d_un_lot_compte_les_exemplaires_chiffres_et_les_autres() {
+        let cartes = chiffrees();
+        let lot: Vec<&Carte> = cartes.iter().collect();
+        let v = valeur(&lot);
+        assert_eq!(v.centimes, 388 + 388 + 600);
+        assert_eq!(v.chiffres, 5);
+        assert_eq!(v.non_chiffres, 1);
     }
 
     /// Le playset et son surplus.

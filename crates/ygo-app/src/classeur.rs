@@ -335,6 +335,50 @@ pub fn raretes_disponibles(cartes: &[Carte]) -> Vec<String> {
     raretes
 }
 
+/// L'ordre d'affichage choisi dans le classeur ouvert, par-dessus le sien —
+/// qui, lui, ne change pas (souhait du 2026-10-23).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum TriPrix {
+    /// L'ordre du classeur : ses réglages, à défaut ceux des Options.
+    #[default]
+    Classeur,
+    /// Du moins cher au plus cher.
+    Croissant,
+    /// Du plus cher au moins cher.
+    Decroissant,
+}
+
+/// Range des cartes par prix d'un exemplaire.
+///
+/// `prix` rend le prix d'une ligne d'après son `rowid` : celui écrit au bas
+/// de la carte, `None` quand la version n'est pas sûre.
+///
+/// - **Stable** : à prix égal, l'ordre du classeur est gardé.
+/// - **Sans prix, à la fin**, dans les deux sens : une carte dont on ignore
+///   le prix n'est ni la moins chère ni la plus chère.
+/// - [`TriPrix::Classeur`] ne touche à rien.
+///
+/// ```
+/// use ygo_app::classeur::{trier_par_prix, Carte, TriPrix};
+/// let mut cartes: Vec<Carte> = (1..=4).map(|rowid| Carte { rowid, ..Carte::default() }).collect();
+/// let prix = |rowid: i64| [Some(300), None, Some(50), Some(300)][usize::try_from(rowid - 1).unwrap()];
+/// trier_par_prix(&mut cartes, TriPrix::Decroissant, prix);
+/// assert_eq!(cartes.iter().map(|c| c.rowid).collect::<Vec<_>>(), [1, 4, 3, 2]);
+/// ```
+pub fn trier_par_prix(cartes: &mut [Carte], tri: TriPrix, prix: impl Fn(i64) -> Option<u32>) {
+    use std::cmp::Reverse;
+    match tri {
+        TriPrix::Classeur => {}
+        TriPrix::Croissant => {
+            cartes.sort_by_key(|c| prix(c.rowid).map_or((true, 0), |p| (false, p)));
+        }
+        TriPrix::Decroissant => {
+            cartes
+                .sort_by_key(|c| prix(c.rowid).map_or((true, Reverse(0)), |p| (false, Reverse(p))));
+        }
+    }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Pagination — le classeur en double page
 // ─────────────────────────────────────────────────────────────────────────────
@@ -972,20 +1016,29 @@ pub struct Ecarts {
     /// Lignes dont le libellé a été ramené à la forme des Options.
     #[serde(default)]
     pub canonisees: usize,
-    /// Lignes écartées parce que leur « rareté » est un marqueur d'artwork.
+    /// Lignes écartées parce que leur « rareté » n'en est pas une : un
+    /// marqueur d'artwork, ou une rareté que ni Yugipedia ni la base ne
+    /// connaissent au numéro (cf. [`crate::raretes::Motif`]).
     #[serde(default)]
     pub fantomes: Vec<crate::raretes::Fantome>,
     /// Libellés qu'aucune table ne reconnaît, **laissés tels quels**, et leur
     /// nombre de lignes.
     #[serde(default)]
     pub inconnues: BTreeMap<String, usize>,
+    /// Lignes qui seraient écartées, **gardées parce que possédées** : à
+    /// vérifier par l'utilisateur (2026-10-23).
+    #[serde(default)]
+    pub a_verifier: Vec<crate::raretes::Fantome>,
 }
 
 impl Ecarts {
     /// N'y a-t-il rien à signaler ?
     #[must_use]
     pub fn est_vide(&self) -> bool {
-        self.canonisees == 0 && self.fantomes.is_empty() && self.inconnues.is_empty()
+        self.canonisees == 0
+            && self.fantomes.is_empty()
+            && self.inconnues.is_empty()
+            && self.a_verifier.is_empty()
     }
 
     /// Le nombre de lignes retirées du classeur.
@@ -1015,6 +1068,14 @@ impl Ecarts {
                 self.retirees(),
                 pluriel(self.retirees()),
                 pluriel(self.retirees())
+            ));
+        }
+        let a_verifier = self.a_verifier.len();
+        if a_verifier > 0 {
+            morceaux.push(format!(
+                "{a_verifier} ligne{} possédée{} à vérifier (rareté inconnue de Yugipedia)",
+                pluriel(a_verifier),
+                pluriel(a_verifier)
             ));
         }
         let inconnues = self.lignes_inconnues();
@@ -1292,6 +1353,60 @@ mod tests {
 
     fn ids(tranche: &[Carte]) -> Vec<i64> {
         tranche.iter().map(|c| c.rowid).collect()
+    }
+
+    // ── L'ordre par prix ────────────────────────────────────────────────────
+
+    /// Six lignes : deux au même prix, deux sans prix sûr.
+    fn six_lignes() -> (Vec<Carte>, impl Fn(i64) -> Option<u32>) {
+        let prix = |rowid: i64| match rowid {
+            1 => Some(388),
+            2 => None,
+            3 => Some(12),
+            4 => Some(388),
+            5 => Some(25_000),
+            _ => None,
+        };
+        (cartes(6), prix)
+    }
+
+    #[test]
+    fn le_prix_croissant_met_le_moins_cher_devant_et_les_sans_prix_au_bout() {
+        let (mut lignes, prix) = six_lignes();
+        trier_par_prix(&mut lignes, TriPrix::Croissant, prix);
+        assert_eq!(ids(&lignes), [3, 1, 4, 5, 2, 6]);
+    }
+
+    #[test]
+    fn le_prix_decroissant_met_le_plus_cher_devant_et_les_sans_prix_au_bout() {
+        let (mut lignes, prix) = six_lignes();
+        trier_par_prix(&mut lignes, TriPrix::Decroissant, prix);
+        assert_eq!(ids(&lignes), [5, 1, 4, 3, 2, 6]);
+    }
+
+    /// À prix égal et sans prix, l'ordre du classeur tient : `1` avant `4`,
+    /// `2` avant `6`, dans les deux sens.
+    #[test]
+    fn l_ordre_par_prix_garde_l_ordre_du_classeur_a_egalite() {
+        for tri in [TriPrix::Croissant, TriPrix::Decroissant] {
+            let (mut lignes, prix) = six_lignes();
+            trier_par_prix(&mut lignes, tri, prix);
+            let rang = |r: i64| ids(&lignes).iter().position(|x| *x == r).unwrap();
+            assert!(rang(1) < rang(4), "{tri:?}");
+            assert!(rang(2) < rang(6), "{tri:?}");
+        }
+    }
+
+    #[test]
+    fn l_ordre_du_classeur_ne_touche_a_rien() {
+        let (mut lignes, prix) = six_lignes();
+        trier_par_prix(&mut lignes, TriPrix::Classeur, prix);
+        assert_eq!(ids(&lignes), [1, 2, 3, 4, 5, 6]);
+
+        // Sans aucun prix, les deux sens rendent l'ordre du classeur.
+        let mut lignes = cartes(4);
+        trier_par_prix(&mut lignes, TriPrix::Decroissant, |_| None);
+        assert_eq!(ids(&lignes), [1, 2, 3, 4]);
     }
 
     // ── La pagination, avec des grilles que les données réelles ignorent ────
@@ -2348,6 +2463,7 @@ mod tests {
             rarete: rarete.to_owned(),
             image_id: Some(4_007),
             jumelles: vec!["Ultra Rare".to_owned()],
+            motif: crate::raretes::Motif::MemeIllustration,
         }
     }
 
@@ -2370,6 +2486,7 @@ mod tests {
             canonisees: 12,
             fantomes: vec![fantome("New"), fantome("New artwork")],
             inconnues: BTreeMap::from([("force-SMW".to_owned(), 1)]),
+            a_verifier: Vec::new(),
         };
         enregistrer_ecarts(&chemin, &ecarts).unwrap();
 

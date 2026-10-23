@@ -109,6 +109,25 @@ pub fn montant(v: &Valeur) -> Option<String> {
     (v.chiffres > 0).then(|| format!("≈ {}", euros(v.centimes)))
 }
 
+/// Le prix d'un exemplaire, au bas d'une carte du classeur : au centime
+/// sous 100 €, en euros ronds au-delà — la place est comptée.
+///
+/// ```
+/// use ygo_ui::valeur::prix_sur_la_carte;
+/// assert_eq!(prix_sur_la_carte(388), "3,88 €");
+/// assert_eq!(prix_sur_la_carte(9_999), "99,99 €");
+/// assert_eq!(prix_sur_la_carte(38_696), "387 €");
+/// assert_eq!(prix_sur_la_carte(123_456), "1 235 €");
+/// ```
+#[must_use]
+pub fn prix_sur_la_carte(centimes: u32) -> String {
+    if centimes < 10_000 {
+        euros(centimes.into())
+    } else {
+        euros_ronds(centimes.into())
+    }
+}
+
 /// Le détail, pour une info-bulle : ce qui est compté, ce qui ne l'est pas,
 /// d'où viennent les prix. Vide sans exemplaire.
 ///
@@ -175,7 +194,9 @@ mod tests {
     fn le_resultat_se_releve_une_fois() {
         let mut calcul = Calcul::lancer("test-valeur", || 42);
         let mut recu = None;
-        for _ in 0..200 {
+        // Jusqu'à dix secondes : la boucle sort dès le résultat, mais une
+        // machine chargée peut tarder à ordonnancer le fil.
+        for _ in 0..2_000 {
             if let Some(r) = calcul.relever() {
                 recu = Some(r);
                 break;
@@ -192,7 +213,10 @@ mod tests {
         let mut calcul: Calcul<u8> = Calcul::lancer("test-valeur-mort", || -> u8 {
             std::panic::panic_any("échec simulé")
         });
-        for _ in 0..200 {
+        // Jusqu'à dix secondes : avec `RUST_BACKTRACE`, la trace d'une
+        // panique se résout avant que le fil meure, et elle a dépassé la
+        // seconde sur une machine chargée (2026-10-23).
+        for _ in 0..2_000 {
             if !calcul.en_cours() {
                 break;
             }

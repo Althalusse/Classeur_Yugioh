@@ -994,6 +994,32 @@ pub fn url_recherche(langue: &str, nom: &str, id_extension: Option<i64>) -> Stri
     url
 }
 
+/// La recherche d'un numéro (`CORI-JP033`), dans le mode de recherche que le
+/// bouton « Trouver » du site emploie.
+///
+/// Sans `searchMode=v2`, Cardmarket ne cherche que dans les noms : la page
+/// d'un numéro reste vide (relevé de l'utilisateur, 2026-10-23 :
+/// `Search?searchString=CORI-JP033` ne montre rien ; « Trouver » mène à
+/// `Search?searchMode=v2&idCategory=0&idExpansion=0&searchString=CORI-JP033&idRarity=0&perSite=30`,
+/// qui montre la carte). Les paramètres sont repris tels que le site les
+/// écrit.
+///
+/// ```
+/// use ygo_core::cardmarket::url_recherche_numero;
+/// assert_eq!(
+///     url_recherche_numero("fr", "CORI-JP033"),
+///     "https://www.cardmarket.com/fr/YuGiOh/Products/Search?searchMode=v2&idCategory=0&idExpansion=0&searchString=CORI-JP033&idRarity=0&perSite=30"
+/// );
+/// ```
+#[must_use]
+pub fn url_recherche_numero(langue: &str, numero: &str) -> String {
+    format!(
+        "{SITE}/{langue}/YuGiOh/Products/Search?searchMode=v2&idCategory=0&idExpansion=0\
+         &searchString={}&idRarity=0&perSite=30",
+        encoder(numero)
+    )
+}
+
 /// Le numéro à chercher chez Cardmarket quand le nom ne mène nulle part :
 /// celui de la ligne, ramené à l'anglais pour une carte TCG — Cardmarket
 /// range toutes les langues occidentales sous un seul produit, au numéro

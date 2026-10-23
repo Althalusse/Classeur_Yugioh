@@ -38,7 +38,7 @@ use std::path::Path;
 
 use rusqlite::Connection;
 use ygo_core::paths::Paths;
-use ygo_core::rarity::canon::{canoniser, Origine};
+use ygo_core::rarity::canon::{canoniser, cle, Origine};
 use ygo_core::rarity::Priorites;
 
 use crate::creation::LigneClasseur;
@@ -220,8 +220,26 @@ pub struct Fantome {
     pub rarete: String,
     /// L'illustration partagée avec les lignes légitimes.
     pub image_id: Option<i64>,
-    /// Les raretés reconnues portées par cette même illustration.
+    /// Les raretés véritables qui le démentent : celles de la même
+    /// illustration ([`Motif::MemeIllustration`]), ou celles que la Set list
+    /// donne au numéro ([`Motif::NonAttestee`]).
     pub jumelles: Vec<String>,
+    /// Pourquoi la ligne n'est pas une rareté. Absent des écarts consignés
+    /// avant le 2026-10-23 : c'était alors toujours la même illustration.
+    #[serde(default)]
+    pub motif: Motif,
+}
+
+/// Ce qui fait d'une ligne une fausse rareté.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum Motif {
+    /// Son illustration porte déjà une rareté véritable : un marqueur
+    /// d'artwork (« New » sur CH01) — [`ecarter_fantomes`].
+    #[default]
+    MemeIllustration,
+    /// Ni la Set list Yugipedia ni la base ne connaissent cette rareté pour
+    /// ce numéro (`force-SMW` sur RA05-EN136) — [`non_attestees`].
+    NonAttestee,
 }
 
 /// Retire les lignes dont la « rareté » est un marqueur d'artwork.
@@ -289,6 +307,7 @@ pub fn ecarter_fantomes(lignes: &mut Vec<LigneClasseur>, reference: &Priorites) 
             rarete: ligne.rarity.clone(),
             image_id: Some(id),
             jumelles: jumelles.iter().cloned().collect(),
+            motif: Motif::MemeIllustration,
         });
         false
     });
@@ -388,6 +407,7 @@ pub fn ecarter_fantomes_en_base(
             rarete: ligne.rarete.clone(),
             image_id: Some(id),
             jumelles: jumelles.iter().cloned().collect(),
+            motif: Motif::MemeIllustration,
         };
         if ligne.quantite > 0 {
             bilan.gardees.push(fantome);
@@ -425,6 +445,238 @@ impl BilanSecondPassage {
     pub fn vide(&self) -> bool {
         self.ecartees.is_empty() && self.gardees.is_empty()
     }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Les raretés que personne n'atteste
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Une ligne du classeur, ce qu'il en faut pour juger sa rareté.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LigneAJuger {
+    /// `rowid` de la ligne.
+    pub rowid: i64,
+    /// Numéro de la carte.
+    pub set_code: String,
+    /// Nom, pour le rapport.
+    pub name: String,
+    /// Le libellé de rareté.
+    pub rarete: String,
+    /// Exemplaires possédés.
+    pub quantite: i64,
+}
+
+/// Les lignes dont la rareté n'est attestée par personne — fonction **pure**.
+///
+/// # Le cas — 2026-10-23
+///
+/// `force-SMW` sur `RA05-EN136` : une annotation qu'YGOPRODeck a laissée
+/// dans son champ de rareté. La Set list Yugipedia donne à ce numéro deux
+/// raretés, Ultra et Starlight ; la base aussi ; le classeur les a, plus
+/// celle-là. [`ecarter_fantomes`] la laisse passer : elle n'a pas
+/// d'illustration à elle, rien ne la confronte à une rareté véritable.
+///
+/// # La règle — cinq conditions, toutes
+///
+/// 1. son libellé n'est reconnu par aucune table du référentiel : une vraie
+///    rareté mal écrite (« UR ») a déjà été ramenée à sa forme ;
+/// 2. la Set list (`set_list` : numéro → raretés) connaît le numéro, et pas
+///    cette rareté ;
+/// 3. chaque rareté que la Set list donne au numéro est déjà sur une
+///    **autre** ligne : la ligne ne peut être aucune d'elles sous un autre
+///    nom ;
+/// 4. la base (`base`, même forme) connaît le numéro, et pas cette rareté :
+///    deux sources contre une ;
+/// 5. personne n'en possède d'exemplaire — sinon elle est rendue dans
+///    `gardees`, à vérifier, jamais retirée : aucune règle automatique
+///    n'efface ce que l'utilisateur a compté.
+///
+/// Une vraie rareté que Yugipedia ne liste pas encore (une réimpression
+/// récente) n'est pas touchée : son libellé est reconnu (condition 1).
+#[must_use]
+pub fn non_attestees(
+    lignes: &[LigneAJuger],
+    set_list: &BTreeMap<String, Vec<String>>,
+    base: &BTreeMap<String, Vec<String>>,
+    reference: &Priorites,
+) -> NonAttestees {
+    let numero = |code: &str| code.trim().to_uppercase();
+    // Les raretés que le classeur porte, par numéro et par ligne.
+    let mut du_classeur: BTreeMap<String, Vec<(i64, String)>> = BTreeMap::new();
+    for l in lignes {
+        du_classeur
+            .entry(numero(&l.set_code))
+            .or_default()
+            .push((l.rowid, cle(&l.rarete, reference)));
+    }
+    let mut verdict = NonAttestees::default();
+    for l in lignes {
+        if l.rarete.trim().is_empty() || canoniser(&l.rarete, reference).is_some() {
+            continue;
+        }
+        let n = numero(&l.set_code);
+        let la_cle = cle(&l.rarete, reference);
+        let (Some(attestees), Some(en_base)) = (set_list.get(&n), base.get(&n)) else {
+            continue;
+        };
+        let cles_set_list: BTreeSet<String> = attestees.iter().map(|r| cle(r, reference)).collect();
+        if cles_set_list.is_empty() || cles_set_list.contains(&la_cle) {
+            continue;
+        }
+        if en_base.is_empty() || en_base.iter().any(|r| cle(r, reference) == la_cle) {
+            continue;
+        }
+        let autres: BTreeSet<&String> = du_classeur
+            .get(&n)
+            .into_iter()
+            .flatten()
+            .filter(|(rowid, _)| *rowid != l.rowid)
+            .map(|(_, c)| c)
+            .collect();
+        if !cles_set_list.iter().all(|c| autres.contains(c)) {
+            continue;
+        }
+        let mut jumelles: Vec<String> = Vec::new();
+        for r in attestees {
+            let libelle =
+                canoniser(r, reference).map_or_else(|| r.trim().to_owned(), |c| c.libelle);
+            if !jumelles.contains(&libelle) {
+                jumelles.push(libelle);
+            }
+        }
+        let fantome = Fantome {
+            set_code: l.set_code.clone(),
+            name: l.name.clone(),
+            rarete: l.rarete.clone(),
+            image_id: None,
+            jumelles,
+            motif: Motif::NonAttestee,
+        };
+        if l.quantite > 0 {
+            verdict.gardees.push(fantome);
+        } else {
+            verdict.a_retirer.push((l.rowid, fantome));
+        }
+    }
+    verdict
+}
+
+/// Ce que [`non_attestees`] conclut.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct NonAttestees {
+    /// Lignes à retirer : `rowid`, et la pièce à conviction.
+    pub a_retirer: Vec<(i64, Fantome)>,
+    /// Lignes qui le seraient, gardées parce que possédées.
+    pub gardees: Vec<Fantome>,
+}
+
+/// Les numéros dont une ligne porte un libellé que le référentiel ignore :
+/// les seuls que [`non_attestees`] peut juger. Sans eux, inutile de lire la
+/// Set list.
+#[must_use]
+pub fn numeros_a_juger(lignes: &[LigneAJuger], reference: &Priorites) -> BTreeSet<String> {
+    lignes
+        .iter()
+        .filter(|l| !l.rarete.trim().is_empty() && canoniser(&l.rarete, reference).is_none())
+        .map(|l| l.set_code.trim().to_uppercase())
+        .collect()
+}
+
+/// Les lignes d'un classeur, telles que [`non_attestees`] les juge.
+///
+/// # Errors
+///
+/// Si le classeur ne se lit pas.
+pub fn lignes_a_juger(conn: &Connection) -> Result<Vec<LigneAJuger>> {
+    let mut q = conn.prepare(
+        "SELECT rowid, COALESCE(set_code, ''), COALESCE(name, ''), COALESCE(rarity, ''), \
+                COALESCE(quantite, 0) FROM cards",
+    )?;
+    let lignes = q
+        .query_map([], |l| {
+            Ok(LigneAJuger {
+                rowid: l.get(0)?,
+                set_code: l.get(1)?,
+                name: l.get(2)?,
+                rarete: l.get(3)?,
+                quantite: l.get(4)?,
+            })
+        })?
+        .collect::<rusqlite::Result<Vec<_>>>()?;
+    Ok(lignes)
+}
+
+/// Les raretés que la base connaît à des numéros : numéro → raretés.
+///
+/// # Errors
+///
+/// Si `cardinfo.db` ne se lit pas.
+pub fn raretes_en_base(
+    cardinfo: &Connection,
+    numeros: &BTreeSet<String>,
+) -> Result<BTreeMap<String, Vec<String>>> {
+    let mut q = cardinfo.prepare_cached(
+        "SELECT COALESCE(rarity, '') FROM set_prints \
+         WHERE set_code = ?1 AND COALESCE(rarity, '') <> ''",
+    )?;
+    let mut sortie = BTreeMap::new();
+    for numero in numeros {
+        let raretes = q
+            .query_map([numero], |l| l.get::<_, String>(0))?
+            .collect::<rusqlite::Result<Vec<_>>>()?;
+        if !raretes.is_empty() {
+            sortie.insert(numero.clone(), raretes);
+        }
+    }
+    Ok(sortie)
+}
+
+/// Retire du classeur les lignes que [`non_attestees`] désigne, et les
+/// consigne dans ses écarts — avec celles gardées parce que possédées.
+///
+/// # Errors
+///
+/// Si le classeur ne s'ouvre pas en écriture.
+pub fn retirer_non_attestees(
+    chemin_db: &Path,
+    verdict: &NonAttestees,
+    reference: &Priorites,
+) -> Result<BilanSecondPassage> {
+    let bilan = BilanSecondPassage {
+        ecartees: verdict.a_retirer.iter().map(|(_, f)| f.clone()).collect(),
+        gardees: verdict.gardees.clone(),
+    };
+    let mut ecarts = crate::classeur::ecarts_du_classeur(chemin_db).unwrap_or_default();
+    // Rien à retirer, rien à signaler, et rien de signalé à effacer.
+    if bilan.vide() && ecarts.a_verifier.is_empty() {
+        return Ok(bilan);
+    }
+    // Connexion simple, comme le second passage : pas de `-wal` laissé
+    // derrière un classeur fermé.
+    let mut conn = Connection::open(chemin_db)?;
+    if !verdict.a_retirer.is_empty() {
+        let transaction = conn.transaction()?;
+        {
+            let mut suppression = transaction.prepare("DELETE FROM cards WHERE rowid = ?1")?;
+            for (rowid, _) in &verdict.a_retirer {
+                suppression.execute([rowid])?;
+            }
+        }
+        transaction.commit()?;
+    }
+    if ecarts.quand.is_empty() {
+        ecarts.quand = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
+    }
+    for f in &bilan.ecartees {
+        if !ecarts.fantomes.contains(f) {
+            ecarts.fantomes.push(f.clone());
+        }
+    }
+    // Les gardées sont l'état du moment : la liste est refaite, pas allongée.
+    ecarts.a_verifier = bilan.gardees.clone();
+    ecarts.inconnues = analyser(&conn, reference)?.inconnues;
+    crate::classeur::enregistrer_ecarts_sur(&conn, &ecarts)?;
+    Ok(bilan)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -903,6 +1155,230 @@ mod tests {
             .unwrap()
             .vide());
         assert_eq!(raretes_de(&chemin), vec!["Secret Rare"]);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // Les raretés que personne n'atteste
+    // ─────────────────────────────────────────────────────────────────────
+
+    fn a_juger(rowid: i64, set_code: &str, rarete: &str, quantite: i64) -> LigneAJuger {
+        LigneAJuger {
+            rowid,
+            set_code: set_code.to_owned(),
+            name: format!("Carte {set_code}"),
+            rarete: rarete.to_owned(),
+            quantite,
+        }
+    }
+
+    /// Les Options d'un classeur RA05 : la Starlight y figure.
+    fn options_ra05() -> Priorites {
+        Priorites::depuis_paires([("Common", 1), ("Ultra Rare", 4), ("Starlight Rare", 12)])
+    }
+
+    /// numéro → raretés, la forme commune de la Set list et de la base.
+    fn par_numero(paires: &[(&str, &[&str])]) -> BTreeMap<String, Vec<String>> {
+        paires
+            .iter()
+            .map(|(n, r)| ((*n).to_owned(), r.iter().map(|s| (*s).to_owned()).collect()))
+            .collect()
+    }
+
+    /// Ce que Yugipedia et la base disent de `RA05-EN136`.
+    fn deux_raretes() -> BTreeMap<String, Vec<String>> {
+        par_numero(&[("RA05-EN136", &["Ultra Rare", "Starlight Rare"])])
+    }
+
+    /// La forme exacte de `RA05-EN136` dans le classeur : les deux raretés
+    /// véritables, et l'annotation qu'YGOPRODeck a laissée dans le champ.
+    fn ra05() -> Vec<LigneAJuger> {
+        vec![
+            a_juger(661, "RA05-EN136", "force-SMW", 0),
+            a_juger(697, "RA05-EN136", "Ultra Rare", 1),
+            a_juger(698, "RA05-EN136", "Starlight Rare", 0),
+        ]
+    }
+
+    #[test]
+    fn une_rarete_que_personne_n_atteste_est_retiree() {
+        let verdict = non_attestees(&ra05(), &deux_raretes(), &deux_raretes(), &options_ra05());
+
+        assert!(verdict.gardees.is_empty());
+        assert_eq!(verdict.a_retirer.len(), 1);
+        let (rowid, fantome) = &verdict.a_retirer[0];
+        assert_eq!(*rowid, 661);
+        assert_eq!(fantome.rarete, "force-SMW");
+        assert_eq!(fantome.set_code, "RA05-EN136");
+        assert_eq!(fantome.motif, Motif::NonAttestee);
+        assert_eq!(fantome.image_id, None);
+        assert_eq!(
+            fantome.jumelles,
+            vec!["Ultra Rare".to_owned(), "Starlight Rare".to_owned()],
+            "dans l'ordre de la Set list"
+        );
+    }
+
+    /// Condition 5 : possédée, elle est signalée, jamais effacée.
+    #[test]
+    fn une_rarete_non_attestee_mais_possedee_est_gardee() {
+        let mut lignes = ra05();
+        lignes[0].quantite = 1;
+        let verdict = non_attestees(&lignes, &deux_raretes(), &deux_raretes(), &options_ra05());
+
+        assert!(verdict.a_retirer.is_empty());
+        assert_eq!(verdict.gardees.len(), 1);
+        assert_eq!(verdict.gardees[0].rarete, "force-SMW");
+    }
+
+    /// Conditions 2 et 4 : il faut deux sources qui connaissent le numéro, et
+    /// qui ignorent toutes deux la rareté. Une seule ne suffit pas.
+    #[test]
+    fn sans_deux_sources_qui_la_dementent_on_ne_tranche_pas() {
+        let o = options_ra05();
+        let rien = BTreeMap::new();
+        let avec = par_numero(&[("RA05-EN136", &["Ultra Rare", "Starlight Rare", "force-SMW"])]);
+
+        for (set_list, base) in [
+            (&rien, &deux_raretes()),
+            (&deux_raretes(), &rien),
+            (&avec, &deux_raretes()),
+            (&deux_raretes(), &avec),
+        ] {
+            assert_eq!(
+                non_attestees(&ra05(), set_list, base, &o),
+                NonAttestees::default()
+            );
+        }
+    }
+
+    /// Condition 3 : une rareté de la Set list manque au classeur — la ligne
+    /// inconnue pourrait être elle sous un autre nom. On la laisse.
+    #[test]
+    fn une_rarete_attestee_absente_du_classeur_retient_la_ligne() {
+        let lignes = vec![
+            a_juger(661, "RA05-EN136", "force-SMW", 0),
+            a_juger(697, "RA05-EN136", "Ultra Rare", 0),
+        ];
+        let verdict = non_attestees(&lignes, &deux_raretes(), &deux_raretes(), &options_ra05());
+
+        assert_eq!(verdict, NonAttestees::default());
+    }
+
+    /// Condition 1 : un libellé reconnu — même abrégé, même absent de la Set
+    /// list — n'est jamais jugé ici. Une réimpression que Yugipedia n'a pas
+    /// encore listée ne part pas.
+    #[test]
+    fn une_rarete_reconnue_n_est_jamais_jugee() {
+        let lignes = vec![
+            a_juger(1, "RA05-EN136", "Ultra Rare", 0),
+            a_juger(2, "RA05-EN136", "Starlight Rare", 0),
+            a_juger(3, "RA05-EN136", "Secret Rare", 0),
+            a_juger(4, "RA05-EN136", "UR", 0),
+        ];
+        let verdict = non_attestees(&lignes, &deux_raretes(), &deux_raretes(), &options_ra05());
+
+        assert_eq!(verdict, NonAttestees::default());
+    }
+
+    /// Seuls les numéros qui portent un libellé inconnu sont à juger : sans
+    /// eux, la Set list n'a pas à être lue.
+    #[test]
+    fn seuls_les_numeros_a_libelle_inconnu_sont_a_juger() {
+        let mut lignes = ra05();
+        lignes.push(a_juger(700, "RA05-EN137", "Ultra Rare", 0));
+
+        assert_eq!(
+            numeros_a_juger(&lignes, &options_ra05()),
+            BTreeSet::from(["RA05-EN136".to_owned()])
+        );
+        assert!(numeros_a_juger(&lignes[1..], &options_ra05()).is_empty());
+    }
+
+    /// De bout en bout sur un classeur écrit : la ligne part, la pièce à
+    /// conviction est consignée, et rejouer ne retire plus rien.
+    #[test]
+    fn le_retrait_se_consigne_dans_les_ecarts_du_classeur() {
+        let (_tmp, chemin) = classeur_ecrit(&[
+            ("RA05-EN136", "Ultra Rare", Some(69_272_449), 1),
+            ("RA05-EN136", "force-SMW", Some(69_272_449), 0),
+            ("RA05-EN136", "Starlight Rare", Some(69_272_449), 0),
+        ]);
+        let o = options_ra05();
+        let juger = || {
+            let conn = ygo_db::connexion::ouvrir_lecture_seule(&chemin).unwrap();
+            let lignes = lignes_a_juger(&conn).unwrap();
+            non_attestees(&lignes, &deux_raretes(), &deux_raretes(), &o)
+        };
+
+        let bilan = retirer_non_attestees(&chemin, &juger(), &o).unwrap();
+        assert_eq!(bilan.ecartees.len(), 1);
+        assert_eq!(raretes_de(&chemin), vec!["Ultra Rare", "Starlight Rare"]);
+        let ecarts = crate::classeur::ecarts_du_classeur(&chemin).unwrap();
+        assert_eq!(ecarts.fantomes.len(), 1);
+        assert_eq!(ecarts.fantomes[0].motif, Motif::NonAttestee);
+        assert!(ecarts.a_verifier.is_empty());
+        assert!(
+            ecarts.inconnues.is_empty(),
+            "le libellé inconnu est parti avec sa ligne"
+        );
+
+        let rejoue = juger();
+        assert_eq!(rejoue, NonAttestees::default());
+        assert!(retirer_non_attestees(&chemin, &rejoue, &o).unwrap().vide());
+        assert_eq!(
+            crate::classeur::ecarts_du_classeur(&chemin)
+                .unwrap()
+                .fantomes
+                .len(),
+            1,
+            "consignée une fois"
+        );
+    }
+
+    /// La liste « à vérifier » est l'état du moment : une ligne possédée y
+    /// entre, et en sort quand elle n'est plus possédée et qu'elle est partie.
+    #[test]
+    fn la_liste_a_verifier_suit_l_etat_du_moment() {
+        let (_tmp, chemin) = classeur_ecrit(&[
+            ("RA05-EN136", "Ultra Rare", Some(69_272_449), 0),
+            ("RA05-EN136", "force-SMW", Some(69_272_449), 2),
+            ("RA05-EN136", "Starlight Rare", Some(69_272_449), 0),
+        ]);
+        let o = options_ra05();
+        let juger = || {
+            let conn = ygo_db::connexion::ouvrir_lecture_seule(&chemin).unwrap();
+            let lignes = lignes_a_juger(&conn).unwrap();
+            non_attestees(&lignes, &deux_raretes(), &deux_raretes(), &o)
+        };
+
+        let bilan = retirer_non_attestees(&chemin, &juger(), &o).unwrap();
+        assert!(bilan.ecartees.is_empty());
+        assert_eq!(bilan.gardees.len(), 1);
+        assert_eq!(raretes_de(&chemin).len(), 3, "rien n'a été supprimé");
+        let ecarts = crate::classeur::ecarts_du_classeur(&chemin).unwrap();
+        assert_eq!(ecarts.a_verifier.len(), 1);
+        assert!(ecarts.fantomes.is_empty());
+
+        // L'utilisateur remet la quantité à zéro : le passage suivant retire.
+        let conn = rusqlite::Connection::open(&chemin).unwrap();
+        conn.execute("UPDATE cards SET quantite = 0, possessed = 0", [])
+            .unwrap();
+        drop(conn);
+        retirer_non_attestees(&chemin, &juger(), &o).unwrap();
+        let ecarts = crate::classeur::ecarts_du_classeur(&chemin).unwrap();
+        assert!(ecarts.a_verifier.is_empty());
+        assert_eq!(ecarts.fantomes.len(), 1);
+        assert_eq!(raretes_de(&chemin), vec!["Ultra Rare", "Starlight Rare"]);
+    }
+
+    /// Les écarts consignés avant le 2026-10-23 n'ont pas de motif : ils se
+    /// relisent, et c'était alors toujours la même illustration.
+    #[test]
+    fn un_ecart_consigne_sans_motif_se_relit() {
+        let json = r#"{"set_code":"CH01-EN001","name":"Carte","rarete":"New",
+                       "image_id":4007,"jumelles":["Ultra Rare"]}"#;
+        let fantome: Fantome = serde_json::from_str(json).unwrap();
+        assert_eq!(fantome.motif, Motif::MemeIllustration);
     }
 
     // ─────────────────────────────────────────────────────────────────────

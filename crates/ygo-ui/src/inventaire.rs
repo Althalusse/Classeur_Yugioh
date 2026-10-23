@@ -9,6 +9,11 @@
 //! l'installation réelle. Ici, il ne reste que les pixels — et deux règles
 //! pures, [`intervalle`] et [`etiquette_variante`].
 //!
+//! Les colonnes « Prix » (un exemplaire) et « Valeur » (× quantité), et la
+//! valeur de ce qui est affiché dans la barre du haut, viennent de
+//! [`ygo_app::cardmarket::valoriser`], chiffré sur un fil (2026-10-23).
+//! Sans données Cardmarket, elles n'apparaissent pas.
+//!
 //! # La sélection multiple est la raison d'être de cet écran
 //!
 //! Sur l'installation réelle, 330 cartes n'avaient aucun état parce
@@ -228,6 +233,13 @@ pub struct EcranInventaire {
     /// le fil de travail de l'application, comme celle du sélecteur.
     creations: Vec<String>,
 
+    /// Les prix Cardmarket des lignes possédées, une fois chiffrés —
+    /// `None` avant, ou sans données Cardmarket : les colonnes « Prix » et
+    /// « Valeur » n'apparaissent qu'avec eux.
+    valorisation: Option<ygo_app::cardmarket::Valorisation>,
+    /// Le chiffrage en cours, sur son fil.
+    chiffrage: crate::valeur::Calcul<Option<ygo_app::cardmarket::Valorisation>>,
+
     /// Ce qu'il faut dire à l'utilisateur, et si c'est une erreur.
     message: Option<(String, bool)>,
     retour: bool,
@@ -267,11 +279,14 @@ impl EcranInventaire {
             deplies: BTreeSet::new(),
             csv,
             creations: Vec::new(),
+            valorisation: None,
+            chiffrage: crate::valeur::Calcul::default(),
             message: None,
             retour: false,
             duree_lecture: std::time::Duration::ZERO,
         };
         ecran.relire();
+        ecran.chiffrer();
         ecran
     }
 
@@ -285,7 +300,18 @@ impl EcranInventaire {
         // Les états des exemplaires réglés à part comptent aussi : le filtre
         // « PL » doit pouvoir trouver la carte dont deux exemplaires le sont.
         self.etats = inventaire::qualites(&self.cartes);
+        self.poser_les_prix();
         self.trier();
+        // Une ligne possédée depuis le chiffrage — un import — n'a pas de
+        // prix : on rechiffre, sur le fil.
+        let a_rechiffrer = self.valorisation.as_ref().is_some_and(|v| {
+            self.cartes
+                .iter()
+                .any(|c| !v.chiffree(&c.classeur, c.rowid))
+        });
+        if a_rechiffrer && !self.chiffrage.en_cours() {
+            self.chiffrer();
+        }
         // Une ligne retirée ne doit pas rester sélectionnée : l'action
         // suivante porterait sur une adresse qui n'est plus dans la liste.
         let vivantes: BTreeSet<(String, i64)> = self
@@ -306,6 +332,43 @@ impl EcranInventaire {
             self.descendant,
             self.francais,
         );
+    }
+
+    /// Chiffre les lignes possédées sur un fil : l'écran s'affiche sans
+    /// attendre les prix — un dixième de seconde d'ordinaire.
+    fn chiffrer(&mut self) {
+        let paths = self.paths.clone();
+        let codes = self.classeurs.clone();
+        self.chiffrage = crate::valeur::Calcul::lancer("ygo-prix-inventaire", move || {
+            ygo_app::cardmarket::valoriser(&paths, &codes).unwrap_or_else(|e| {
+                tracing::warn!(erreur = %e, "inventaire : prix non calculés");
+                None
+            })
+        });
+    }
+
+    /// Relève les prix s'ils sont arrivés, et les pose sur les cartes.
+    fn relever_les_prix(&mut self, ctx: &egui::Context) {
+        if let Some(valorisation) = self.chiffrage.relever() {
+            self.valorisation = valorisation;
+            // Sans prix, plus de colonne de prix : on ne trie plus dessus.
+            if self.valorisation.is_none() && self.colonne.de_prix() {
+                self.colonne = Colonne::default();
+                self.descendant = false;
+            }
+            self.poser_les_prix();
+            self.trier();
+        }
+        if self.chiffrage.en_cours() {
+            ctx.request_repaint_after(std::time::Duration::from_millis(150));
+        }
+    }
+
+    /// Pose les prix connus sur les cartes.
+    fn poser_les_prix(&mut self) {
+        if let Some(v) = &self.valorisation {
+            inventaire::poser_les_prix(&mut self.cartes, |classeur, rowid| v.prix(classeur, rowid));
+        }
     }
 
     /// Reprend les créations de classeur demandées.
@@ -474,6 +537,40 @@ enum Rangee {
     },
 }
 
+/// La largeur de chaque colonne du tableau.
+fn largeur_de(colonne: Colonne) -> Column {
+    match colonne {
+        Colonne::Nom => Column::auto().at_least(220.0).resizable(true),
+        Colonne::Code => Column::auto().at_least(120.0),
+        Colonne::Rarete => Column::auto().at_least(150.0),
+        Colonne::Quantite | Colonne::Surplus => Column::auto().at_least(60.0),
+        Colonne::Prix | Colonne::Qualite => Column::auto().at_least(70.0),
+        Colonne::Valeur | Colonne::Classeur => Column::auto().at_least(90.0),
+    }
+}
+
+/// L'écart entre un montant et la colonne qui le suit.
+const MARGE_EUROS: f32 = 12.0;
+
+/// Un montant, aligné à droite pour que les colonnes se lisent — un tiret
+/// quand il n'y a pas de prix sûr.
+fn cellule_euros(ui: &mut egui::Ui, centimes: Option<u64>) {
+    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+        ui.add_space(MARGE_EUROS);
+        match centimes {
+            Some(c) => {
+                ui.label(ygo_app::cardmarket::euros(c));
+            }
+            None => {
+                ui.weak("—").on_hover_text(
+                    "Pas de prix sûr : version incertaine, ou carte non retrouvée chez \
+                     Cardmarket",
+                );
+            }
+        }
+    });
+}
+
 /// Les rangées du tableau : chaque carte, et sous une carte dépliée de
 /// plusieurs exemplaires, chacun d'eux.
 fn rangees(visibles: &[Carte], deplies: &BTreeSet<(String, i64)>) -> Vec<Rangee> {
@@ -570,6 +667,7 @@ impl eframe::App for EcranInventaire {
             self.message = None;
         }
         self.raccourcis(racine.ctx());
+        self.relever_les_prix(racine.ctx());
         self.barre_du_haut(racine);
         self.barre_des_filtres(racine);
         self.barre_du_bas(racine);
@@ -613,10 +711,26 @@ impl EcranInventaire {
 
                 let visibles = self.visibles();
                 let t = inventaire::totaux(&visibles);
-                ui.label(format!(
+                let mut resume = format!(
                     "{} ligne(s) · {} exemplaire(s) · {} playset(s) · {} en surplus",
                     t.lignes, t.exemplaires, t.playsets, t.surplus
-                ));
+                );
+                // La valeur de ce qui est affiché : filtrer sur un classeur
+                // ou une rareté la chiffre d'un coup d'œil.
+                let valeur = self.valorisation.as_ref().and_then(|v| {
+                    let valeur = inventaire::valeur(&visibles);
+                    let montant = crate::valeur::montant(&valeur)?;
+                    Some((montant, crate::valeur::detail(&valeur, &v.prix_du)))
+                });
+                match valeur {
+                    Some((montant, detail)) => {
+                        resume.push_str(&format!(" · {montant}"));
+                        ui.label(resume).on_hover_text(detail);
+                    }
+                    None => {
+                        ui.label(resume);
+                    }
+                }
 
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     if ui.button("Exporter…").clicked() {
@@ -913,27 +1027,30 @@ impl EcranInventaire {
             // on sélectionne des lignes, pas du texte.
             ui.style_mut().interaction.selectable_labels = false;
 
-            TableBuilder::new(ui)
+            // « Prix » et « Valeur » ne viennent qu'avec les prix : sans
+            // données Cardmarket, deux colonnes de tirets ne diraient rien.
+            let avec_prix = self.valorisation.is_some();
+            let colonnes: Vec<Colonne> = Colonne::toutes()
+                .into_iter()
+                .filter(|c| avec_prix || !c.de_prix())
+                .collect();
+            // Les cellules prennent la disposition du parent si on ne leur
+            // en donne pas : de haut en bas, dans un panneau. Le triangle de
+            // la première colonne passait alors AU-DESSUS du nom, chaque
+            // ligne montait à 35 points au lieu de 22, et le nom se lisait à
+            // mi-chemin entre son code et celui de la ligne suivante
+            // (capture du 2026-10-23). De gauche à droite, centrées.
+            let mut table = TableBuilder::new(ui)
                 .striped(true)
-                .sense(egui::Sense::click_and_drag())
-                .column(Column::auto().at_least(220.0).resizable(true))
-                .column(Column::auto().at_least(120.0))
-                .column(Column::auto().at_least(150.0))
-                .column(Column::auto().at_least(60.0))
-                .column(Column::auto().at_least(60.0))
-                .column(Column::auto().at_least(70.0))
-                .column(Column::auto().at_least(90.0))
+                .cell_layout(egui::Layout::left_to_right(egui::Align::Center))
+                .sense(egui::Sense::click_and_drag());
+            for colonne in &colonnes {
+                table = table.column(largeur_de(*colonne));
+            }
+            table
                 .column(Column::remainder())
                 .header(24.0, |mut entete| {
-                    for colonne in [
-                        Colonne::Nom,
-                        Colonne::Code,
-                        Colonne::Rarete,
-                        Colonne::Quantite,
-                        Colonne::Surplus,
-                        Colonne::Qualite,
-                        Colonne::Classeur,
-                    ] {
+                    for colonne in colonnes.iter().copied() {
                         entete.col(|ui| {
                             // La flèche est écrite en mots ailleurs dans le
                             // projet parce que ▲/▼ manquent aux polices
@@ -948,13 +1065,24 @@ impl EcranInventaire {
                             } else {
                                 ""
                             };
-                            if ui
-                                .button(
-                                    egui::RichText::new(format!("{}{marque}", colonne.libelle()))
-                                        .strong(),
+                            let titre =
+                                egui::RichText::new(format!("{}{marque}", colonne.libelle()))
+                                    .strong();
+                            // Les montants sont alignés à droite : leur
+                            // en-tête aussi, au-dessus des unités.
+                            let clique = if colonne.de_prix() {
+                                ui.with_layout(
+                                    egui::Layout::right_to_left(egui::Align::Center),
+                                    |ui| {
+                                        ui.add_space(MARGE_EUROS);
+                                        ui.button(titre).clicked()
+                                    },
                                 )
-                                .clicked()
-                            {
+                                .inner
+                            } else {
+                                ui.button(titre).clicked()
+                            };
+                            if clique {
                                 a_trier = Some(colonne);
                             }
                         });
@@ -1031,6 +1159,10 @@ impl EcranInventaire {
                             });
                             ligne.col(|_| {});
                             ligne.col(|_| {});
+                            if avec_prix {
+                                ligne.col(|_| {});
+                                ligne.col(|_| {});
+                            }
                             ligne.col(|ui| {
                                 if ui
                                     .small_button("Retirer")
@@ -1113,6 +1245,10 @@ impl EcranInventaire {
                                 ui.label(format!("+{}", c.surplus()));
                             }
                         });
+                        if avec_prix {
+                            ligne.col(|ui| cellule_euros(ui, c.prix.map(u64::from)));
+                            ligne.col(|ui| cellule_euros(ui, c.valeur()));
+                        }
                         ligne.col(|ui| {
                             let exemplaires = c.exemplaires();
                             if !exemplaires.homogene() {
@@ -1350,6 +1486,7 @@ mod tests {
             card_image_id: Some(rowid),
             variantes: 1,
             variante: 0,
+            prix: None,
         }
     }
 

@@ -73,6 +73,11 @@ pub struct Bilan {
     /// Lignes rendues à leur scan d'après la galerie du set, après les
     /// images de tirage (étape 8).
     pub galerie: usize,
+    /// Lignes retirées : une rareté que ni Yugipedia ni la base n'attestent
+    /// (étape 5, 2026-10-23).
+    pub fausses_raretes: usize,
+    /// Lignes qui le seraient, gardées parce que possédées : à vérifier.
+    pub raretes_a_verifier: usize,
     /// Ce qui n'a pas pu être fait, une phrase par étape.
     pub echecs: Vec<String>,
     /// Classeurs dont les images sont à revoir.
@@ -91,6 +96,7 @@ impl Bilan {
             + self.images_tirage
             + self.replis
             + self.galerie
+            + self.fausses_raretes
     }
 }
 
@@ -180,6 +186,8 @@ pub async fn complet(
     bilan.numeros = partout.numeros;
     bilan.introuvables = partout.introuvables;
     bilan.illustrations = partout.illustrations;
+    bilan.fausses_raretes = partout.raretes_ecartees;
+    bilan.raretes_a_verifier = partout.raretes_a_verifier;
     if partout.echecs > 0 {
         bilan.echecs.push(format!(
             "Yugipedia : {} classeur(s) non vérifié(s) — à relancer plus tard",

@@ -32,6 +32,7 @@
 //! | `maj_appli_verifier` | booléen | `true` | chercher une nouvelle version de l'application au démarrage |
 //! | `maj_appli_pre_versions` | booléen | `false` | proposer aussi les Releases marquées « pre-release » |
 //! | `classeurs_alignes_version` | texte | — | version de l'application qui a réaligné les classeurs sur Yugipedia ; une autre version au démarrage relance le réalignement |
+//! | `prix_sur_les_cartes` | booléen | `true` | le prix Cardmarket au bas de chaque carte du classeur |
 //! | `inclure_sets_ocg_jp` | booléen | — | **ignorée** : l'inclusion OCG-JP est forcée depuis la V1.0.4 |
 
 use std::path::{Path, PathBuf};
@@ -58,6 +59,7 @@ const CLE_COMPLETER_ARTWORKS: &str = "completer_artworks_yugipedia";
 const CLE_MAJ_APPLI_VERIFIER: &str = "maj_appli_verifier";
 const CLE_MAJ_APPLI_PRE: &str = "maj_appli_pre_versions";
 const CLE_CLASSEURS_ALIGNES: &str = "classeurs_alignes_version";
+const CLE_PRIX_SUR_LES_CARTES: &str = "prix_sur_les_cartes";
 
 /// Plus petite grille acceptée (`preferences._GRILLE_MIN`).
 pub const GRILLE_MIN: u8 = 3;
@@ -514,6 +516,14 @@ impl Config {
             .unwrap_or(false)
     }
 
+    /// Le prix Cardmarket au bas de chaque carte du classeur ? Défaut : oui.
+    pub fn prix_sur_les_cartes(&self) -> bool {
+        self.brut(CLE_PRIX_SUR_LES_CARTES)
+            .as_ref()
+            .and_then(Value::as_bool)
+            .unwrap_or(true)
+    }
+
     /// La version de l'application qui a réaligné les classeurs sur Yugipedia
     /// pour la dernière fois. `None` : jamais, ou avant que la clé existe.
     ///
@@ -667,6 +677,16 @@ impl Config {
         Ok(actif)
     }
 
+    /// Écrit « le prix au bas de chaque carte du classeur ».
+    ///
+    /// # Errors
+    ///
+    /// Si `app_config.json` n'a pas pu être écrit.
+    pub fn definir_prix_sur_les_cartes(&self, actif: bool) -> Result<bool> {
+        self.definir(CLE_PRIX_SUR_LES_CARTES, Value::from(actif))?;
+        Ok(actif)
+    }
+
     /// Note la version de l'application qui vient de réaligner les classeurs.
     ///
     /// # Errors
@@ -808,6 +828,16 @@ mod tests {
         let relu = Config::charger(tmp.path().join("app_config.json"));
         assert!(relu.maj_appli_pre_versions());
         assert!(!relu.maj_appli_verifier());
+    }
+
+    #[test]
+    fn le_prix_sur_les_cartes_est_affiche_par_defaut_et_se_retient() {
+        let tmp = tempfile::tempdir().unwrap();
+        let cfg = Config::charger(tmp.path().join("app_config.json"));
+        assert!(cfg.prix_sur_les_cartes());
+        cfg.definir_prix_sur_les_cartes(false).unwrap();
+        let relu = Config::charger(tmp.path().join("app_config.json"));
+        assert!(!relu.prix_sur_les_cartes());
     }
 
     #[test]
