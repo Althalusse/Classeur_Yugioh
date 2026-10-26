@@ -513,6 +513,11 @@ pub fn planifier(
             .cloned()
             .or_else(|| libelles_reference.get(cle_r).cloned())
             .unwrap_or_default();
+        // Le nom de la région du numéro (2026-10-26) : la Ghost d'un classeur
+        // japonais d'avant le correctif s'écrit — et ses fichiers se
+        // cherchent — en Holographic (`…-INFO-JP-HGR.png`).
+        let rarete = ygo_core::rarity::region::nom_pour_le_numero(&rarete, numero)
+            .map_or(rarete, str::to_owned);
 
         // ── Compléter le nombre de tirages ───────────────────────────────
         for v in variantes.iter().skip(rows.len()) {
@@ -1791,6 +1796,34 @@ mod tests {
         assert!(matches!(
             actions.first(),
             Some(Action::Inserer { rarete, .. }) if rarete == "Platinum Secret Rare"
+        ));
+    }
+
+    /// Le défaut du 2026-10-26 : la Set list d'`INFO-JP` écrit « Holographic
+    /// Rare », la base « Ghost Rare » — la passe insérait une seconde ligne
+    /// pour la même carte. Les deux noms d'une rareté sont un seul tirage.
+    #[test]
+    fn la_holographic_de_la_set_list_retrouve_la_ghost_de_la_base() {
+        let (r, lib) = reference(vec![("INFO-JP033", "Holographic Rare", vec![""])]);
+        for rarete in ["Ghost Rare", "Holographic Rare"] {
+            let inv = vec![ligne(1, "INFO-JP033", rarete, 0)];
+            let (actions, bilan) = plan(&r, &lib, &inv, &index(vec![]));
+            assert_eq!(bilan.ajoutes, 0, "{rarete} : rien à insérer");
+            assert!(actions.is_empty(), "{rarete}");
+        }
+    }
+
+    /// Une variante manquante d'un numéro japonais naît sous le nom de sa
+    /// région, même quand le classeur écrit encore `Ghost Rare`.
+    #[test]
+    fn une_ligne_creee_sur_un_numero_japonais_porte_le_nom_ocg() {
+        let (r, lib) = reference(vec![("INFO-JP033", "Holographic Rare", vec!["", "AA"])]);
+        let inv = vec![ligne(1, "INFO-JP033", "Ghost Rare", 0)];
+        let (actions, bilan) = plan(&r, &lib, &inv, &index(vec![]));
+        assert_eq!(bilan.ajoutes, 1);
+        assert!(matches!(
+            actions.first(),
+            Some(Action::Inserer { rarete, .. }) if rarete == "Holographic Rare"
         ));
     }
 

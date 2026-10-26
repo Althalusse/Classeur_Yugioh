@@ -1438,12 +1438,23 @@ mod tests {
         assert!(!ecran.base.base_presente, "et la base manque, forcément");
         // Longtemps ce test affirmait `priorites.is_empty()` — il figeait le
         // défaut du 2026-09-05. Une installation vierge reçoit désormais les
-        // raretés de repli, sans quoi le tri par rareté ne rangerait rien.
+        // raretés de repli, sans quoi le tri par rareté ne rangerait rien —
+        // et, depuis le 2026-10-26, le nom OCG de la Ghost Rare qui en fait
+        // partie, à la même priorité qu'elle.
         assert_eq!(
             ecran.priorites.len(),
-            ygo_core::rarity::RARETES_REPLI.len(),
+            ygo_core::rarity::RARETES_REPLI.len() + 1,
             "l'écran répare le fichier absent au lieu de s'ouvrir sans priorités"
         );
+        let priorite = |nom: &str| {
+            ecran
+                .priorites
+                .iter()
+                .find(|(n, _)| n == nom)
+                .map(|(_, p)| *p)
+        };
+        assert_eq!(priorite("Holographic Rare"), priorite("Ghost Rare"));
+        assert!(priorite("Ghost Rare").is_some());
         assert!(paths_du_test.rarity_config().is_file(), "et il l'écrit");
     }
 

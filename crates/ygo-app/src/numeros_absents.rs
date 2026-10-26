@@ -305,10 +305,7 @@ fn lignes_de(
             name: nom_en.clone(),
             name_fr: nom_fr.clone(),
             set_code: absent.numero.clone(),
-            // La forme des Options, comme à la création ; un libellé inconnu
-            // reste tel quel — jamais rapproché au plus proche.
-            rarity: ygo_core::rarity::canon::canoniser(rarete, raretes)
-                .map_or_else(|| rarete.clone(), |c| c.libelle),
+            rarity: rarete_de_ligne(rarete, &absent.numero, raretes),
             rarity_code: String::new(),
             set_name: set_name.to_owned(),
             card_image_url: image_url.clone(),
@@ -352,8 +349,7 @@ pub fn lignes_depuis_fiche(
                 name: fiche.titre.clone(),
                 name_fr: carte.nom_fr.clone().unwrap_or_default(),
                 set_code: absent.numero.clone(),
-                rarity: ygo_core::rarity::canon::canoniser(rarete, raretes)
-                    .map_or_else(|| rarete.clone(), |c| c.libelle),
+                rarity: rarete_de_ligne(rarete, &absent.numero, raretes),
                 rarity_code: String::new(),
                 set_name: set_name.to_owned(),
                 card_image_url: String::new(),
@@ -369,6 +365,16 @@ pub fn lignes_depuis_fiche(
             })
             .collect(),
     )
+}
+
+/// La rareté d'une ligne ajoutée : la forme des Options, comme à la
+/// création, au nom de la région du numéro (`Holographic Rare` sur un numéro
+/// japonais, 2026-10-26) ; un libellé inconnu reste tel quel — jamais
+/// rapproché au plus proche.
+fn rarete_de_ligne(rarete: &str, numero: &str, raretes: &Priorites) -> String {
+    let libelle = ygo_core::rarity::canon::canoniser(rarete, raretes)
+        .map_or_else(|| rarete.to_owned(), |c| c.libelle);
+    ygo_core::rarity::region::nom_pour_le_numero(&libelle, numero).map_or(libelle, str::to_owned)
 }
 
 /// La table `cards` a-t-elle cette colonne ?
@@ -1105,6 +1111,10 @@ pub struct Partout {
     pub raretes_ecartees: usize,
     /// Lignes qui le seraient, gardées parce que possédées : à vérifier.
     pub raretes_a_verifier: usize,
+    /// Lignes renommées selon la région de leur numéro, ou retirées parce
+    /// qu'elles doublaient leur jumelle régionale
+    /// ([`crate::raretes::harmoniser_noms_regionaux`], 2026-10-26).
+    pub noms_regionaux: usize,
     /// Classeurs modifiés — leurs images sont à télécharger.
     pub touches: Vec<String>,
 }
@@ -1147,6 +1157,12 @@ pub struct Partout {
 /// YGOPRODeck, que ni la Set list ni la base ne connaissent. La Set list
 /// n'est lue que pour un classeur qui porte un libellé inconnu.
 ///
+/// Depuis le 2026-10-26, chaque ligne y prend d'abord le **nom de sa
+/// région** ([`crate::raretes::harmoniser_noms_regionaux`], sans réseau) :
+/// la Ghost Rare d'un classeur japonais devient Holographic Rare, et la
+/// Holographic qu'une ancienne passe avait insérée à côté d'elle — la même
+/// carte — disparaît.
+///
 /// Un classeur sain ne coûte donc que la vérification des numéros.
 ///
 /// Un classeur en échec (Yugipedia indisponible, page introuvable) est
@@ -1158,7 +1174,27 @@ pub async fn partout(
 ) -> Partout {
     let mut bilan = Partout::default();
     for code in paths.classeurs_existants() {
-        let (mut touche, passe) = numeros_et_passe(paths, client, &code, raretes, &mut bilan).await;
+        // Les noms régionaux d'abord, sans réseau : la passe, le garde-fou
+        // et la galerie voient ensuite le classeur sous ses noms justes.
+        let regional =
+            match crate::raretes::harmoniser_noms_regionaux(&paths.classeur_db(&code), raretes) {
+                Ok(plan) => {
+                    if !plan.vide() {
+                        tracing::info!(classeur = %code, renommees = plan.renommees.len(),
+                        retirees = plan.retirees.len(),
+                        "raretés nommées selon la région du numéro");
+                    }
+                    plan.lignes()
+                }
+                Err(e) => {
+                    tracing::warn!(classeur = %code, erreur = %e,
+                    "raretés non nommées selon la région");
+                    0
+                }
+            };
+        bilan.noms_regionaux += regional;
+        let (touche, passe) = numeros_et_passe(paths, client, &code, raretes, &mut bilan).await;
+        let mut touche = touche || regional > 0;
         // Les raretés que personne n'atteste : la passe refaite les a déjà
         // jugées ; sinon c'est ici. Rien à juger, rien à lire.
         if !passe {

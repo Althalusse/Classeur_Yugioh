@@ -21,7 +21,10 @@
 //!    les deux lignes canoniques, et le dédoublonnage n'a plus de prise
 //!    (mesuré sur `SDWD`, 2026-09-01). Une ligne qui porte une quantité n'est
 //!    jamais supprimée.
-//! 3. **Raretés** — libellés ramenés à leur forme canonique.
+//! 3. **Raretés** — libellés ramenés à leur forme canonique, puis au nom de
+//!    la région du numéro (`Holographic Rare` sur un numéro japonais,
+//!    2026-10-26 ; une Holographic qui doublait sa Ghost compte parmi les
+//!    doublons).
 //! 4. **Noms FR officiels** — posés, jamais inventés.
 //! 5. **Numéros perdus et Overframe** ([`crate::numeros_absents::partout`]) —
 //!    Yugipedia, sur les seuls classeurs qui en ont besoin.
@@ -149,6 +152,18 @@ pub fn doublons_et_raretes(paths: &Paths, reference: &Priorites, bilan: &mut Bil
                 bilan
                     .echecs
                     .push(format!("{code} : doublons/raretés — {e}"));
+            }
+        }
+        // Les noms régionaux, une fois la connexion rendue : la Ghost Rare
+        // d'un numéro japonais devient Holographic Rare (2026-10-26).
+        match crate::raretes::harmoniser_noms_regionaux(&paths.classeur_db(&code), reference) {
+            Ok(plan) => {
+                bilan.raretes += plan.renommees.len();
+                bilan.doublons += plan.retirees.len();
+            }
+            Err(e) => {
+                tracing::warn!(classeur = %code, erreur = %e, "contrôle : noms régionaux");
+                bilan.echecs.push(format!("{code} : noms régionaux — {e}"));
             }
         }
     }

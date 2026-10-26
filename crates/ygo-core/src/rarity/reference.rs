@@ -13,6 +13,12 @@
 //! main : quarante-quatre codes, quatre-vingt-huit libellés et onze alias
 //! auraient donné toutes leurs chances aux coquilles.
 //!
+//! **Une entrée ajoutée depuis**, en fin de table (2026-10-26) : `HGR`,
+//! `Holographic Rare` — le nom OCG de la Ghost Rare, que la Set list
+//! Yugipedia d'`INFO-JP` écrit et que le Python ne connaissait pas. Elle a
+//! son propre code : c'est un nom qu'on **écrit** dans les classeurs OCG,
+//! pas une orthographe à ramener à `Ghost Rare` (cf. [`super::region`]).
+//!
 //! # L'ordre compte, et ce n'est pas un détail de forme
 //!
 //! Quatorze clés normalisées sont **en collision** — `grandmasterrare` en
@@ -181,11 +187,25 @@ mod tests {
 
     #[test]
     fn la_table_extraite_se_charge() {
-        assert_eq!(table().len(), 44, "44 codes dans le référentiel réel");
+        assert_eq!(
+            table().len(),
+            45,
+            "44 codes extraits du Python, plus Holographic Rare"
+        );
         let alias: usize = table().iter().map(|r| r.alias.len()).sum();
         assert_eq!(alias, 11);
         assert_eq!(table()[0].code, "C");
         assert_eq!(table()[0].en, "Common");
+    }
+
+    /// Le nom OCG de la Ghost Rare a son code à lui — et ne vole pas celui
+    /// de la Ghost Rare, que Scanflip connaît.
+    #[test]
+    fn holographic_rare_a_son_propre_code() {
+        assert_eq!(nom_vers_code("Holographic Rare"), Some("HGR"));
+        assert_eq!(nom_vers_code("holographic rare"), Some("HGR"));
+        assert_eq!(code_vers_nom_en("HGR"), "Holographic Rare");
+        assert_eq!(nom_vers_code("Ghost Rare"), Some("G"));
     }
 
     #[test]

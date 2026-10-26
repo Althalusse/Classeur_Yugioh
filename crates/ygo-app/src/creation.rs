@@ -1133,6 +1133,21 @@ pub async fn creer(
         );
     }
 
+    // ── Le nom de la région — 2026-10-26 ────────────────────────────────
+    //
+    // La base nomme `Ghost Rare` la Holographic des boosters OCG ; la Set
+    // list, Cardmarket et la carte elle-même disent `Holographic Rare`. Le
+    // classeur prend le nom de la région de chaque numéro. Ce n'est pas un
+    // écart à signaler : c'est le nom juste, pas une correction de la source.
+    let regionales = crate::raretes::nommer_selon_le_numero(&mut lignes);
+    if regionales > 0 {
+        tracing::info!(
+            classeur = %code,
+            lignes = regionales,
+            "raretés nommées selon la région du numéro"
+        );
+    }
+
     // ── Les fausses raretés ─────────────────────────────────────────────
     //
     // Ce qui reste non reconnu **et** partage son illustration avec une

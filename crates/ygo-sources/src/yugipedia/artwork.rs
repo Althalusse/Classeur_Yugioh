@@ -87,7 +87,7 @@ pub const CONTEXTES: [&str; 5] = ["OP", "DT", "VG", "PR", "PROMO"];
 ///
 /// Ne sert **qu'au classement** des candidats : une abréviation inconnue ne
 /// filtre jamais un résultat.
-pub const ABBR_RARETE: [(&str, &str); 36] = [
+pub const ABBR_RARETE: [(&str, &str); 37] = [
     ("common", "C"),
     ("short print", "SP"),
     ("super short print", "SSP"),
@@ -109,6 +109,10 @@ pub const ABBR_RARETE: [(&str, &str); 36] = [
     ("quarter century secret rare", "QCScR"),
     ("quarter century ultra rare", "QCUR"),
     ("ghost rare", "GR"),
+    // Absente jusqu'au 2026-10-26 : le nom OCG de la Ghost Rare, que
+    // Yugipedia écrit `…-INFO-JP-HGR.png`. Sans elle, la ligne Holographic
+    // d'un classeur japonais ne trouvait pas son fichier.
+    ("holographic rare", "HGR"),
     ("gold rare", "GUR"),
     ("gold secret rare", "GScR"),
     ("premium gold rare", "PGR"),
@@ -1687,6 +1691,10 @@ mod tests {
         // Entrées mortes : le référentiel normalise avant la table.
         assert_eq!(abbr_rarete("Short Print"), "C", "et non SP");
         assert_eq!(abbr_rarete("Common Parallel Rare"), "NPR");
+        // Les deux noms de la Ghost Rare gardent chacun l'abréviation de
+        // leurs fichiers : `…-LODT-EN-GR-1E.png`, `…-INFO-JP-HGR.png`.
+        assert_eq!(abbr_rarete("Ghost Rare"), "GR");
+        assert_eq!(abbr_rarete("Holographic Rare"), "HGR");
     }
 
     #[test]

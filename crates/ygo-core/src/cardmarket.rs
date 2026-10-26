@@ -627,6 +627,34 @@ pub fn decouper_cle(cle: &str) -> (&str, Distinction) {
     }
 }
 
+/// Une clé de version dans le vocabulaire de ce module : la rareté à double
+/// nom y prend son nom TCG ([`crate::rarity::region`]).
+///
+/// Les ordres relevés, les règles et la table des libellés parlent de la
+/// `Ghost Rare` ; un classeur japonais écrit `Holographic Rare` depuis le
+/// 2026-10-26. [`libelle`] rend ensuite « Holographic Rare » pour l'OCG,
+/// comme Cardmarket.
+///
+/// ```
+/// use ygo_core::cardmarket::cle_de_reference;
+/// assert_eq!(cle_de_reference("Holographic Rare"), "Ghost Rare");
+/// assert_eq!(
+///     cle_de_reference("Holographic Rare (illustration 2)"),
+///     "Ghost Rare (illustration 2)"
+/// );
+/// assert_eq!(cle_de_reference("Ultra Rare (Overframe)"), "Ultra Rare (Overframe)");
+/// ```
+#[must_use]
+pub fn cle_de_reference(cle: &str) -> String {
+    let (rarete, distinction) = decouper_cle(cle);
+    let reference = crate::rarity::region::nom_de_reference(rarete);
+    if reference == rarete {
+        cle.to_owned()
+    } else {
+        cle_de_version(reference, distinction)
+    }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Table des ordres confirmés et des libellés
 // ─────────────────────────────────────────────────────────────────────────────

@@ -28,9 +28,11 @@
 //! # La règle
 //!
 //! Pour une ligne `(set_code, rareté)`, les tirages de même `set_code` et de
-//! même rareté **canonique**. Parmi eux, l'édition de la ligne si elle est
-//! renseignée, puis `1st`, `unlimited`, `limited` — la première édition qui
-//! porte une image décide :
+//! même rareté **canonique** — même clé de rareté ([`cle`]) : la
+//! `Holographic Rare` d'un classeur japonais trouve la `Ghost Rare` que la
+//! base donne au même tirage (2026-10-26). Parmi eux, l'édition de la ligne
+//! si elle est renseignée, puis `1st`, `unlimited`, `limited` — la première
+//! édition qui porte une image décide :
 //!
 //! - **une** image : elle est retenue ;
 //! - **plusieurs** images distinctes : ambiguïté, on ne choisit **pas**. Vu
@@ -57,7 +59,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
 use rusqlite::{Connection, OptionalExtension};
-use ygo_core::rarity::canon::canoniser;
+use ygo_core::rarity::canon::{canoniser, cle};
 use ygo_core::rarity::Priorites;
 
 use crate::error::Result;
@@ -122,7 +124,8 @@ pub fn choisir(tirages: &[(String, String)], edition_ligne: Option<&str>) -> Cho
     Choix::Aucune
 }
 
-/// Les tirages de `cardinfo.db`, par `(set_code, rareté canonique)`.
+/// Les tirages de `cardinfo.db`, par `(set_code, clé de rareté)` — la clé de
+/// [`cle`], qui réunit les deux noms d'une même rareté.
 #[derive(Debug, Default)]
 pub struct Index {
     tirages: BTreeMap<(String, String), Vec<(String, String)>>,
@@ -165,12 +168,12 @@ impl Index {
                 index.codes_connus.insert(code.to_owned());
             }
             for (rarete, edition, url) in lignes {
-                let Some(canon) = canoniser(&rarete, reference) else {
+                if canoniser(&rarete, reference).is_none() {
                     continue;
-                };
+                }
                 index
                     .tirages
-                    .entry((code.to_owned(), canon.libelle))
+                    .entry((code.to_owned(), cle(&rarete, reference)))
                     .or_default()
                     .push((edition, url));
             }
@@ -185,11 +188,12 @@ impl Index {
         self.codes_connus.contains(set_code)
     }
 
-    /// Les tirages d'une ligne, s'il y en a.
+    /// Les tirages d'une ligne, s'il y en a — `cle_rarete` est la clé de
+    /// [`cle`].
     #[must_use]
-    pub fn tirages(&self, set_code: &str, rarete_canonique: &str) -> Option<&[(String, String)]> {
+    pub fn tirages(&self, set_code: &str, cle_rarete: &str) -> Option<&[(String, String)]> {
         self.tirages
-            .get(&(set_code.to_owned(), rarete_canonique.to_owned()))
+            .get(&(set_code.to_owned(), cle_rarete.to_owned()))
             .map(Vec::as_slice)
     }
 }
@@ -302,7 +306,7 @@ pub fn analyser(
                 rapport.rarete_inconnue += 1;
                 None
             }
-            Some(canon) => match index.tirages(&ligne.set_code, &canon.libelle) {
+            Some(canon) => match index.tirages(&ligne.set_code, &cle(&canon.libelle, reference)) {
                 None => {
                     rapport.sans_tirage += 1;
                     None
@@ -765,6 +769,26 @@ mod tests {
         ligne(&cl, "RA02-EN001", "ScR", 1, "", "avant.jpg");
         let rapport = analyser(&cl, &info, &reference()).unwrap();
         assert_eq!(rapport.a_poser, vec![(1, "ScR.png".to_owned())]);
+    }
+
+    /// La Holographic d'un classeur japonais est la Ghost de la base : elle
+    /// reçoit l'image de son tirage (`…-INFO-JP-HGR.png`).
+    #[test]
+    fn la_holographic_trouve_le_tirage_ghost_de_la_base() {
+        let info = cardinfo(&[(
+            "INFO-JP033",
+            "Ghost Rare",
+            "unlimited",
+            "Exodia-INFO-JP-HGR.png",
+        )]);
+        let cl = classeur();
+        ligne(&cl, "INFO-JP033", "Holographic Rare", 1, "", "avant.jpg");
+        let rapport = analyser(&cl, &info, &reference()).unwrap();
+        assert_eq!(
+            rapport.a_poser,
+            vec![(1, "Exodia-INFO-JP-HGR.png".to_owned())]
+        );
+        assert_eq!(rapport.rarete_inconnue, 0);
     }
 
     /// Un classeur ancien, sans colonne `edition`, se lit quand même.

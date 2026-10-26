@@ -40,7 +40,16 @@
 //! galeries. Elles vivent à part, dans
 //! `assets/raretes_alias_yugipedia.json`, où chaque entrée porte l'URL de la
 //! page et le fichier qui l'atteste — la provenance est dans la donnée, pas
-//! dans un souvenir.
+//! dans un souvenir. Une troisième les a rejointes le 2026-10-26 : `HGR`,
+//! `Holographic Rare` (`RainbowNeos-PTDN-JP-HGR.png`).
+//!
+//! # Deux noms, une même rareté
+//!
+//! `Holographic Rare` est le nom OCG de la `Ghost Rare` ([`super::region`]).
+//! Chacun reste sa propre forme canonique — c'est celle qu'on écrit, selon
+//! la région du numéro —, mais leur **clé** ([`cle`]) est la même : la passe
+//! artworks, le dédoublonnage et le garde-fou des raretés y voient un seul
+//! tirage, et non une ligne de plus.
 //!
 //! # L'autorité reste la liste des Options
 //!
@@ -366,6 +375,9 @@ pub fn canoniser(libelle: &str, reference: &Priorites) -> Option<Canon> {
 /// Un libellé qu'aucune table ne reconnaît garde sa clé brute — il ne doit pas
 /// se confondre avec une rareté voisine.
 ///
+/// Les deux noms d'une même rareté ([`super::region`]) ont la même clé :
+/// `Holographic Rare` (OCG) et `Ghost Rare` (TCG) désignent le même tirage.
+///
 /// ```
 /// use ygo_core::rarity::canon::cle;
 /// use ygo_core::rarity::Priorites;
@@ -375,11 +387,14 @@ pub fn canoniser(libelle: &str, reference: &Priorites) -> Option<Canon> {
 /// assert_eq!(cle("PlScR", &options), "platinumsecretrare");
 /// // Ce qui n'est pas une rareté ne rejoint personne.
 /// assert_eq!(cle("force-SMW", &options), "forcesmw");
+/// // Deux noms, une rareté.
+/// assert_eq!(cle("Holographic Rare", &options), cle("Ghost Rare", &options));
+/// assert_eq!(cle("HGR", &options), "ghostrare");
 /// ```
 #[must_use]
 pub fn cle(libelle: &str, reference: &Priorites) -> String {
     let canonique = canoniser(libelle, reference).map_or_else(|| libelle.to_owned(), |c| c.libelle);
-    canonique
+    super::region::nom_de_reference(&canonique)
         .to_lowercase()
         .chars()
         .filter(|c| c.is_ascii_lowercase() || c.is_ascii_digit())
@@ -409,7 +424,7 @@ mod tests {
 
     #[test]
     fn la_table_extraite_se_charge_sans_conflit() {
-        assert_eq!(alias().len(), 27);
+        assert_eq!(alias().len(), 28);
         let mut cles: Vec<String> = alias().iter().map(|a| normaliser(&a.abreviation)).collect();
         cles.sort();
         let avant = cles.len();
@@ -691,6 +706,43 @@ mod tests {
                 crate::rarity::reference::nom_vers_code(libelle),
                 Some(scanflip)
             );
+        }
+    }
+
+    /// Le défaut du 2026-10-26 : la Set list d'`INFO-JP` écrit « Holographic
+    /// Rare », que rien ne reconnaissait — la ligne entrait au classeur avec
+    /// le bandeau « libellé inconnu du référentiel ».
+    #[test]
+    fn holographic_rare_est_une_rarete() {
+        let o = options();
+        assert_eq!(
+            o.brute("Holographic Rare"),
+            None,
+            "absente des Options réelles"
+        );
+        let c = canoniser("Holographic Rare", &o).expect("reconnue par le référentiel");
+        assert_eq!(c.libelle, "Holographic Rare", "pas ramenée à Ghost Rare");
+        assert_eq!(c.origine, Origine::Deja);
+        // L'abréviation des fichiers Yugipedia (`…-INFO-JP-HGR.png`).
+        assert_eq!(canoniser("HGR", &o).unwrap().libelle, "Holographic Rare");
+        // Déclarée dans les Options, elle y est telle quelle.
+        let avec = Priorites::depuis_paires([("Ghost Rare", 19), ("Holographic Rare", 19)]);
+        assert_eq!(
+            canoniser("Holographic Rare", &avec).unwrap().origine,
+            Origine::Deja
+        );
+    }
+
+    /// Ses deux noms sont un seul tirage pour la clé — c'est ce qui empêche
+    /// la passe artworks d'insérer une Holographic à côté de la Ghost que la
+    /// base a donnée — mais jamais une autre rareté.
+    #[test]
+    fn la_cle_reunit_les_deux_noms_d_une_rarete_et_eux_seuls() {
+        let o = options();
+        assert_eq!(cle("Holographic Rare", &o), cle("Ghost Rare", &o));
+        assert_eq!(cle("HGR", &o), cle("GR", &o));
+        for autre in ["Ghost/Gold Parallel Rare", "Gold Rare", "Secret Rare"] {
+            assert_ne!(cle("Holographic Rare", &o), cle(autre, &o), "{autre}");
         }
     }
 

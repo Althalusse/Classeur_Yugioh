@@ -373,11 +373,13 @@ mod tests {
             vec![&"STRB"],
             "Starlight Blasonnée manque à la table du Python"
         );
-        let seulement_python: Vec<&&str> = python.difference(&scanflip).collect();
+        let mut seulement_python: Vec<&&str> = python.difference(&scanflip).collect();
+        seulement_python.sort_unstable();
         assert_eq!(
             seulement_python,
-            vec![&"GMR"],
-            "Grand Master Rare est une rareté OCG que Scanflip ignore"
+            vec![&"GMR", &"HGR"],
+            "Grand Master Rare et Holographic Rare (2026-10-26) sont des raretés OCG \
+             que Scanflip ignore"
         );
     }
 

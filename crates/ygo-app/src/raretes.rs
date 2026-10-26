@@ -39,7 +39,7 @@ use std::path::Path;
 use rusqlite::Connection;
 use ygo_core::paths::Paths;
 use ygo_core::rarity::canon::{canoniser, cle, Origine};
-use ygo_core::rarity::Priorites;
+use ygo_core::rarity::{region, Priorites};
 
 use crate::creation::LigneClasseur;
 use crate::error::Result;
@@ -680,6 +680,222 @@ pub fn retirer_non_attestees(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Les noms régionaux — 2026-10-26
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Donne à chaque ligne le nom de sa rareté **dans la région de son numéro**
+/// ([`ygo_core::rarity::region`]) : `Ghost Rare` devient `Holographic Rare`
+/// sur `INFO-JP033`. Rend le nombre de lignes renommées.
+///
+/// À la création, avant l'écriture, après la canonisation : la base nomme
+/// `Ghost Rare` la Holographic des boosters OCG — c'est le nom que le
+/// collectionneur japonais ne lit nulle part, ni sur sa carte, ni chez
+/// Yugipedia, ni chez Cardmarket.
+pub fn nommer_selon_le_numero(lignes: &mut [LigneClasseur]) -> usize {
+    let mut renommees = 0;
+    for ligne in lignes.iter_mut() {
+        if let Some(nom) = region::nom_pour_le_numero(&ligne.rarity, &ligne.set_code) {
+            ligne.rarity = nom.to_owned();
+            renommees += 1;
+        }
+    }
+    renommees
+}
+
+/// Une ligne de classeur, ce qu'il en faut pour lui donner son nom régional.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LigneRegionale {
+    /// `rowid` dans `cards`.
+    pub rowid: i64,
+    /// Numéro de la carte.
+    pub set_code: String,
+    /// Libellé de rareté, tel qu'il est en base.
+    pub rarete: String,
+    /// 1 si Overframe.
+    pub extended_art: i64,
+    /// Exemplaires possédés.
+    pub quantite: i64,
+}
+
+/// Ce que le renommage régional d'un classeur déjà écrit décide.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct PlanRegional {
+    /// `(rowid, avant, après)` : les lignes renommées.
+    pub renommees: Vec<(i64, String, String)>,
+    /// Lignes retirées : le même tirage, déjà là sous son nom régional.
+    pub retirees: Vec<i64>,
+}
+
+impl PlanRegional {
+    /// Rien à écrire ?
+    #[must_use]
+    pub fn vide(&self) -> bool {
+        self.renommees.is_empty() && self.retirees.is_empty()
+    }
+
+    /// Lignes touchées, renommées ou retirées.
+    #[must_use]
+    pub fn lignes(&self) -> usize {
+        self.renommees.len() + self.retirees.len()
+    }
+}
+
+/// Le renommage régional d'un classeur **déjà écrit** — fonction pure.
+///
+/// # Le doublon d'un classeur créé avant le 2026-10-26
+///
+/// Sa passe artworks, ne reconnaissant pas la Holographic de la Set list
+/// dans la Ghost de la base, l'a **insérée** à côté : deux lignes pour une
+/// carte. Renommer la Ghost en ferait deux Holographic. D'où la règle, pour
+/// une ligne au nom d'une autre région :
+///
+/// - aucune ligne du même numéro et du même cadre ne porte déjà le bon nom :
+///   elle est renommée ;
+/// - une ligne le porte déjà — la ligne fait double emploi. Non possédée,
+///   elle part. Possédée, elle prend la place d'une jumelle non possédée,
+///   qui part ; à défaut, elle est renommée et gardée : rien de ce que
+///   l'utilisateur a compté n'est effacé.
+#[must_use]
+pub fn planifier_noms_regionaux(lignes: &[LigneRegionale]) -> PlanRegional {
+    let cle = |l: &LigneRegionale, rarete: &str| {
+        (
+            l.set_code.trim().to_uppercase(),
+            l.extended_art,
+            rarete.to_owned(),
+        )
+    };
+    let presentes: BTreeSet<(String, i64, String)> =
+        lignes.iter().map(|l| cle(l, &l.rarete)).collect();
+    // Les jumelles non possédées : celles qui peuvent céder leur place.
+    let mut libres: BTreeMap<(String, i64, String), Vec<i64>> = BTreeMap::new();
+    for l in lignes.iter().filter(|l| l.quantite <= 0) {
+        libres.entry(cle(l, &l.rarete)).or_default().push(l.rowid);
+    }
+    let mut plan = PlanRegional::default();
+    for l in lignes {
+        let Some(nom) = region::nom_pour_le_numero(&l.rarete, &l.set_code) else {
+            continue;
+        };
+        let visee = cle(l, nom);
+        if presentes.contains(&visee) {
+            if l.quantite <= 0 {
+                plan.retirees.push(l.rowid);
+                continue;
+            }
+            if let Some(cedee) = libres.get_mut(&visee).and_then(Vec::pop) {
+                plan.retirees.push(cedee);
+            }
+        }
+        plan.renommees
+            .push((l.rowid, l.rarete.clone(), nom.to_owned()));
+    }
+    plan.retirees.sort_unstable();
+    plan
+}
+
+/// Renomme selon la région les lignes d'un classeur déjà écrit, retire les
+/// doublons qu'une ancienne passe artworks a laissés
+/// ([`planifier_noms_regionaux`]), puis recompte ses libellés inconnus.
+///
+/// Le recompte efface le bandeau « libellé non reconnu » d'un classeur créé
+/// quand `Holographic Rare` n'était pas au référentiel : les écarts consignés
+/// suivent ce que le classeur contient **aujourd'hui** (même règle que
+/// `creation::consigner_second_passage`).
+///
+/// # Errors
+///
+/// Si le classeur ne s'ouvre pas ou ne s'écrit pas.
+pub fn harmoniser_noms_regionaux(chemin_db: &Path, reference: &Priorites) -> Result<PlanRegional> {
+    // Un dossier sans base n'en reçoit pas une vide : rien à harmoniser.
+    if !chemin_db.is_file() {
+        return Ok(PlanRegional::default());
+    }
+    let ecarts = crate::classeur::ecarts_du_classeur(chemin_db);
+    // Connexion simple, comme le second passage : pas de `-wal` laissé
+    // derrière un classeur fermé.
+    let mut conn = Connection::open(chemin_db)?;
+    let colonnes = ygo_db::migrations::colonnes(&conn, "cards")?;
+    let colonne = |nom: &str| {
+        if colonnes.iter().any(|c| c == nom) {
+            format!("COALESCE({nom}, 0)")
+        } else {
+            "0".to_owned()
+        }
+    };
+    let noms: Vec<&str> = region::NOMS_REGIONAUX
+        .iter()
+        .flat_map(|(ocg, tcg)| [*ocg, *tcg])
+        .collect();
+    let marques = vec!["?"; noms.len()].join(", ");
+    let sql = format!(
+        "SELECT rowid, COALESCE(set_code, ''), COALESCE(rarity, ''), {}, {} \
+         FROM cards WHERE rarity IN ({marques})",
+        colonne("extended_art"),
+        colonne("quantite"),
+    );
+    let lignes: Vec<LigneRegionale> = {
+        let mut requete = conn.prepare(&sql)?;
+        let lignes = requete
+            .query_map(rusqlite::params_from_iter(noms.iter()), |l| {
+                Ok(LigneRegionale {
+                    rowid: l.get(0)?,
+                    set_code: l.get(1)?,
+                    rarete: l.get(2)?,
+                    extended_art: l.get(3)?,
+                    quantite: l.get(4)?,
+                })
+            })?
+            .collect::<rusqlite::Result<Vec<_>>>()?;
+        lignes
+    };
+    let plan = planifier_noms_regionaux(&lignes);
+    if !plan.vide() {
+        let transaction = conn.transaction()?;
+        {
+            let mut renommer =
+                transaction.prepare("UPDATE cards SET rarity = ?1 WHERE rowid = ?2")?;
+            for (rowid, _, apres) in &plan.renommees {
+                renommer.execute((apres, rowid))?;
+            }
+            let mut retirer = transaction.prepare("DELETE FROM cards WHERE rowid = ?1")?;
+            for rowid in &plan.retirees {
+                retirer.execute([rowid])?;
+            }
+        }
+        transaction.commit()?;
+    }
+    if let Some(mut ecarts) = ecarts {
+        let inconnues = analyser(&conn, reference)?.inconnues;
+        if inconnues != ecarts.inconnues {
+            ecarts.inconnues = inconnues;
+            crate::classeur::enregistrer_ecarts_sur(&conn, &ecarts)?;
+        }
+    }
+    Ok(plan)
+}
+
+/// Ajoute à une table de priorités le nom régional d'une rareté qu'elle
+/// déclare, **à la même priorité** que sa jumelle : `Holographic Rare` se
+/// range avec `Ghost Rare`, que l'utilisateur pourra séparer dans les
+/// Options. Rend le nombre d'ajouts.
+///
+/// La base ne déclare jamais `Holographic Rare` — YGOJSON l'appelle `Ghost
+/// Rare` partout —, c'est l'application qui l'écrit dans les classeurs OCG :
+/// sans cet ajout, la rareté n'apparaîtrait pas dans la liste des Options.
+fn completer_noms_regionaux(table: &mut Vec<(String, i64)>) -> usize {
+    let mut ajouts: Vec<(String, i64)> = Vec::new();
+    for (ocg, tcg) in region::NOMS_REGIONAUX {
+        let priorite = |nom: &str| table.iter().find(|(n, _)| n == nom).map(|(_, p)| *p);
+        if let (None, Some(p)) = (priorite(ocg), priorite(tcg)) {
+            ajouts.push((ocg.to_owned(), p));
+        }
+    }
+    let n = ajouts.len();
+    table.extend(ajouts);
+    n
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Priorités : génération et synchronisation
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -776,6 +992,10 @@ pub fn raretes_de_la_base(paths: &Paths) -> Vec<String> {
 /// sans ordre. Les priorités déjà écrites ne sont **jamais** renumérotées — ce
 /// sont des choix de l'utilisateur.
 ///
+/// Un troisième, depuis le 2026-10-26 : le nom régional d'une rareté déclarée
+/// — `Holographic Rare`, que l'application écrit et que la base ignore —
+/// entre **à la priorité de sa jumelle** (cf. `completer_noms_regionaux`).
+///
 /// # Errors
 ///
 /// Rend une erreur si le fichier ne peut pas être écrit.
@@ -784,7 +1004,12 @@ pub fn synchroniser_priorites(paths: &Paths) -> Result<(Priorites, BilanPriorite
     let raretes = raretes_de_la_base(paths);
 
     if existantes.is_empty() {
-        let defauts = ygo_core::rarity::priorites_par_defaut(&raretes);
+        let mut table: Vec<(String, i64)> = ygo_core::rarity::priorites_par_defaut(&raretes)
+            .iter()
+            .map(|(nom, p)| (nom.to_owned(), p))
+            .collect();
+        completer_noms_regionaux(&mut table);
+        let defauts = Priorites::depuis_paires(table);
         defauts.enregistrer(paths.rarity_config())?;
         let total = defauts.len();
         tracing::info!(
@@ -805,18 +1030,24 @@ pub fn synchroniser_priorites(paths: &Paths) -> Result<(Priorites, BilanPriorite
         .iter()
         .map(|(nom, p)| (nom.to_owned(), p))
         .collect();
-    let connues: std::collections::HashSet<&str> =
-        table.iter().map(|(nom, _)| nom.as_str()).collect();
-    let mut suivant = table.iter().map(|(_, p)| *p).max().unwrap_or(0) + 1;
     let mut ajouts: Vec<(String, i64)> = Vec::new();
-    for rarete in &raretes {
-        if !connues.contains(rarete.as_str()) && !ajouts.iter().any(|(n, _)| n == rarete) {
-            ajouts.push((rarete.clone(), suivant));
-            suivant += 1;
+    {
+        let connues: std::collections::HashSet<&str> =
+            table.iter().map(|(nom, _)| nom.as_str()).collect();
+        let mut suivant = table.iter().map(|(_, p)| *p).max().unwrap_or(0) + 1;
+        for rarete in &raretes {
+            if !connues.contains(rarete.as_str()) && !ajouts.iter().any(|(n, _)| n == rarete) {
+                ajouts.push((rarete.clone(), suivant));
+                suivant += 1;
+            }
         }
     }
+    let mut ajoutees = ajouts.len();
+    table.extend(ajouts);
+    // Après les raretés de la base : une Ghost Rare qui vient d'entrer
+    // donne aussitôt sa priorité à la Holographic.
+    ajoutees += completer_noms_regionaux(&mut table);
 
-    let ajoutees = ajouts.len();
     if ajoutees == 0 {
         let total = table.len();
         return Ok((
@@ -828,7 +1059,6 @@ pub fn synchroniser_priorites(paths: &Paths) -> Result<(Priorites, BilanPriorite
             },
         ));
     }
-    table.extend(ajouts);
     let completee = Priorites::depuis_paires(table);
     completee.enregistrer(paths.rarity_config())?;
     let total = completee.len();
@@ -1528,8 +1758,14 @@ mod tests {
         assert!(paths.rarity_config().is_file(), "le fichier est écrit");
 
         // Sans base, on retombe sur les 21 raretés courantes — l'application
-        // reste utilisable avant même la première initialisation.
-        assert_eq!(table.len(), ygo_core::rarity::RARETES_REPLI.len());
+        // reste utilisable avant même la première initialisation —, plus le
+        // nom OCG de la Ghost Rare, qui en fait partie.
+        assert_eq!(table.len(), ygo_core::rarity::RARETES_REPLI.len() + 1);
+        assert_eq!(
+            table.brute("Holographic Rare"),
+            table.brute("Ghost Rare"),
+            "à la priorité de sa jumelle"
+        );
         assert_eq!(table.brute("Common"), Some(1));
         assert_eq!(table.brute("Ultra Rare"), Some(4));
         assert!(
@@ -1618,5 +1854,190 @@ mod tests {
             vec!["Common".to_owned(), "Ghost Rare".to_owned()],
             "distinctes, triées, sans vide ni NULL"
         );
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // Les noms régionaux — 2026-10-26
+    // ─────────────────────────────────────────────────────────────────────
+
+    fn ligne_classeur(set_code: &str, rarete: &str) -> LigneClasseur {
+        LigneClasseur {
+            set_code: set_code.to_owned(),
+            rarity: rarete.to_owned(),
+            ..LigneClasseur::default()
+        }
+    }
+
+    /// À la création : la Ghost Rare de la base devient Holographic sur un
+    /// numéro japonais, et reste Ghost sur un numéro TCG.
+    #[test]
+    fn la_creation_donne_a_chaque_ligne_le_nom_de_sa_region() {
+        let mut lignes = vec![
+            ligne_classeur("INFO-JP033", "Ghost Rare"),
+            ligne_classeur("INFO-JP033", "Ultra Rare"),
+            ligne_classeur("LODT-EN000", "Ghost Rare"),
+            ligne_classeur("CORI-JPS10", "Ghost Rare"),
+        ];
+        assert_eq!(nommer_selon_le_numero(&mut lignes), 2);
+        let raretes: Vec<&str> = lignes.iter().map(|l| l.rarity.as_str()).collect();
+        assert_eq!(
+            raretes,
+            [
+                "Holographic Rare",
+                "Ultra Rare",
+                "Ghost Rare",
+                "Holographic Rare"
+            ]
+        );
+        assert_eq!(
+            nommer_selon_le_numero(&mut lignes),
+            0,
+            "rejouable sans effet"
+        );
+    }
+
+    fn regionale(
+        rowid: i64,
+        set_code: &str,
+        rarete: &str,
+        ext: i64,
+        quantite: i64,
+    ) -> LigneRegionale {
+        LigneRegionale {
+            rowid,
+            set_code: set_code.to_owned(),
+            rarete: rarete.to_owned(),
+            extended_art: ext,
+            quantite,
+        }
+    }
+
+    /// Un classeur OCG d'avant le correctif, sans doublon : la Ghost est
+    /// renommée, la TCG ne bouge pas.
+    #[test]
+    fn une_ghost_seule_sur_un_numero_ocg_est_renommee() {
+        let plan = planifier_noms_regionaux(&[
+            regionale(1, "PHNI-JP033", "Ghost Rare", 0, 0),
+            regionale(2, "LODT-EN000", "Ghost Rare", 0, 1),
+        ]);
+        assert_eq!(
+            plan.renommees,
+            vec![(1, "Ghost Rare".to_owned(), "Holographic Rare".to_owned())]
+        );
+        assert!(plan.retirees.is_empty());
+    }
+
+    /// Le classeur `INFO-JP` créé le 2026-10-26 : la Ghost de la base et la
+    /// Holographic insérée par la passe artworks — une carte, deux lignes.
+    /// La Ghost, non possédée, part.
+    #[test]
+    fn le_doublon_laisse_par_l_ancienne_passe_disparait() {
+        let plan = planifier_noms_regionaux(&[
+            regionale(31, "INFO-JP033", "Ghost Rare", 0, 0),
+            regionale(122, "INFO-JP033", "Holographic Rare", 0, 0),
+        ]);
+        assert!(plan.renommees.is_empty());
+        assert_eq!(plan.retirees, vec![31]);
+    }
+
+    /// Possédée, la Ghost garde ses exemplaires : elle prend le nom et la
+    /// place de la Holographic vide.
+    #[test]
+    fn la_ligne_possedee_prend_la_place_de_sa_jumelle_vide() {
+        let plan = planifier_noms_regionaux(&[
+            regionale(31, "INFO-JP033", "Ghost Rare", 0, 2),
+            regionale(122, "INFO-JP033", "Holographic Rare", 0, 0),
+        ]);
+        assert_eq!(
+            plan.renommees,
+            vec![(31, "Ghost Rare".to_owned(), "Holographic Rare".to_owned())]
+        );
+        assert_eq!(plan.retirees, vec![122]);
+    }
+
+    /// Les deux possédées : rien n'est effacé, l'utilisateur tranchera.
+    #[test]
+    fn deux_lignes_possedees_restent_toutes_les_deux() {
+        let plan = planifier_noms_regionaux(&[
+            regionale(31, "INFO-JP033", "Ghost Rare", 0, 1),
+            regionale(122, "INFO-JP033", "Holographic Rare", 0, 1),
+        ]);
+        assert_eq!(plan.renommees.len(), 1);
+        assert!(plan.retirees.is_empty());
+    }
+
+    /// Une Holographic Overframe n'est pas la jumelle d'une Ghost au cadre
+    /// normal : autre version, renommage simple.
+    #[test]
+    fn le_cadre_distingue_les_jumelles() {
+        let plan = planifier_noms_regionaux(&[
+            regionale(1, "INFO-JP033", "Ghost Rare", 0, 0),
+            regionale(2, "INFO-JP033", "Holographic Rare", 1, 0),
+        ]);
+        assert_eq!(plan.renommees.len(), 1);
+        assert!(plan.retirees.is_empty());
+    }
+
+    /// Sur la base écrite : le doublon part, et le bandeau « libellé non
+    /// reconnu » consigné à la création disparaît avec lui — c'est ce que
+    /// l'utilisateur voyait sur `INFO-JP`.
+    #[test]
+    fn l_harmonisation_d_un_classeur_ecrit_efface_le_bandeau() {
+        let (_tmp, chemin) = classeur_ecrit(&[
+            ("INFO-JP033", "Ultra Rare", Some(1), 0),
+            ("INFO-JP033", "Ghost Rare", Some(1), 0),
+            ("INFO-JP033", "Holographic Rare", Some(1), 0),
+        ]);
+        let ecarts = crate::classeur::Ecarts {
+            quand: "2026-10-26 12:00:00".to_owned(),
+            inconnues: BTreeMap::from([("Holographic Rare".to_owned(), 1)]),
+            ..crate::classeur::Ecarts::default()
+        };
+        crate::classeur::enregistrer_ecarts(&chemin, &ecarts).unwrap();
+        assert!(crate::classeur::ecarts_du_classeur(&chemin).is_some());
+
+        let plan = harmoniser_noms_regionaux(&chemin, &options()).unwrap();
+        assert_eq!(plan.retirees.len(), 1);
+        assert_eq!(raretes_de(&chemin), vec!["Ultra Rare", "Holographic Rare"]);
+        assert!(
+            crate::classeur::ecarts_du_classeur(&chemin).is_none(),
+            "plus rien à signaler"
+        );
+
+        // Rejouée, elle ne fait plus rien.
+        assert!(harmoniser_noms_regionaux(&chemin, &options())
+            .unwrap()
+            .vide());
+    }
+
+    /// La Holographic entre dans les Options à la priorité de la Ghost — la
+    /// base, qui ne la déclare jamais, ne l'y aurait pas mise.
+    #[test]
+    fn la_holographic_entre_dans_les_options_avec_la_ghost() {
+        let tmp = tempfile::tempdir().unwrap();
+        let paths = Paths::depuis_racine(tmp.path());
+        paths.creer_dossiers().unwrap();
+        Priorites::depuis_paires([("Common", 1), ("Ghost Rare", 19), ("Starlight Rare", 21)])
+            .enregistrer(paths.rarity_config())
+            .unwrap();
+        let conn = ygo_db::connexion::ouvrir(paths.cardinfo_db()).unwrap();
+        conn.execute_batch(
+            "CREATE TABLE set_prints (rarity TEXT);
+             INSERT INTO set_prints VALUES ('Common'), ('Ghost Rare'), ('Starlight Rare');",
+        )
+        .unwrap();
+        drop(conn);
+
+        let (table, bilan) = synchroniser_priorites(&paths).unwrap();
+        assert_eq!(bilan.ajoutees, 1);
+        assert_eq!(table.brute("Holographic Rare"), Some(19));
+        assert_eq!(
+            table.brute("Starlight Rare"),
+            Some(21),
+            "rien n'est renuméroté"
+        );
+
+        let (_, second) = synchroniser_priorites(&paths).unwrap();
+        assert_eq!(second.ajoutees, 0, "une seule fois");
     }
 }

@@ -26,6 +26,24 @@
 //! Le Python les **retire**. On les garde, marqués — savoir qu'un set est déjà
 //! chez soi est une information, et la faire disparaître oblige à aller
 //! vérifier ailleurs. Ils ne sont simplement pas créables une seconde fois.
+//!
+//! # La locale anglaise sans préfixe — 2026-10-26
+//!
+//! YGOJSON ne donne **aucun** préfixe à la locale anglaise de plusieurs
+//! boosters récents : celle de `INFO` (« The Infinite Forbidden ») range,
+//! avec ses 125 tirages `INFO-EN…`, les cinq jetons `TKN5-EN006…010` glissés
+//! dans ses paquets, et un préfixe commun n'existe plus. La requête TCG,
+//! qui lit le préfixe de la locale, ne voyait donc pas le set : seul
+//! `INFO-JP` était proposé, alors que le set existe en français. Mesuré sur
+//! la base de l'utilisateur : `LEDE`, `INFO`, `SUDA`, `ALIN`, `DUAD`,
+//! `DOOD`, `BPRO`, `DUOV`, `BACH`, `KC01` — dix sets, les six derniers
+//! boosters compris.
+//!
+//! Pour une locale anglaise sans préfixe, le code se lit donc sur ses
+//! **numéros** : celui que porte plus de la moitié d'entre eux (`INFO`, 101
+//! numéros sur 106). Sans majorité — les cartes de participation, qui mêlent
+//! cinquante préfixes — le set reste hors de la liste, comme avant ; et un
+//! code qu'un set préfixé porte déjà reste le sien.
 
 use rusqlite::Connection;
 use ygo_core::paths::Paths;
@@ -117,6 +135,44 @@ const SQL_TCG: &str = "\
     GROUP BY code, s.name_en, s.name_fr \
     HAVING code != ''";
 
+/// Requête TCG des sets dont **aucune** locale `en`/`eu` n'a de préfixe — le
+/// code est celui que porte plus de la moitié des **numéros** distincts de
+/// la locale (cf. tête de module).
+///
+/// Les numéros, pas les tirages : la boîte « Yugi & Kaiba » range sept
+/// tirages de `KACB-EN001` pour un seul de `YUCB-EN001` — deux cartes, deux
+/// préfixes, aucune majorité. Un set dont une locale `en` ou `eu` a un
+/// préfixe est laissé à [`SQL_TCG`]. Le décompte ne retient que les tirages
+/// du code retenu — les jetons `TKN5` de `INFO` n'en font pas partie :
+/// 101 cartes, comme YGOPRODeck.
+const SQL_TCG_SANS_PREFIXE: &str = "\
+    WITH tirages AS ( \
+        SELECT sl.id AS locale, s.name_en AS name_en, s.name_fr AS name_fr, \
+               sp.card_uuid AS carte, UPPER(sp.set_code) AS numero, \
+               UPPER(SUBSTR(sp.set_code, 1, INSTR(sp.set_code || '-', '-') - 1)) AS code \
+        FROM sets s \
+        JOIN set_locales sl ON sl.set_uuid = s.uuid \
+        JOIN set_prints sp ON sp.set_locale_id = sl.id \
+        WHERE COALESCE(sl.prefix, '') = '' \
+          AND sl.language IN ('en', 'eu') \
+          AND COALESCE(sp.set_code, '') != '' \
+          AND NOT EXISTS ( \
+              SELECT 1 FROM set_locales autre \
+              WHERE autre.set_uuid = s.uuid \
+                AND autre.language IN ('en', 'eu') \
+                AND COALESCE(autre.prefix, '') != '') \
+    ), \
+    comptes AS ( \
+        SELECT locale, code, COUNT(DISTINCT numero) AS n, \
+               SUM(COUNT(DISTINCT numero)) OVER (PARTITION BY locale) AS total \
+        FROM tirages GROUP BY locale, code \
+    ) \
+    SELECT t.code, t.name_en, t.name_fr, COUNT(DISTINCT t.carte) AS nb \
+    FROM tirages t \
+    JOIN comptes c ON c.locale = t.locale AND c.code = t.code \
+    WHERE c.n * 2 > c.total AND t.code != '' \
+    GROUP BY t.code, t.name_en, t.name_fr";
+
 /// Requête OCG japonaise — préfixe **complet**, suffixe conservé.
 const SQL_OCG: &str = "\
     SELECT UPPER(sl.prefix) AS code, \
@@ -132,25 +188,51 @@ const SQL_OCG: &str = "\
 fn lire_sets(conn: &Connection, francais: bool) -> Result<Vec<SetDisponible>> {
     let mut sets = Vec::new();
     for sql in [SQL_TCG, SQL_OCG] {
-        let mut requete = conn.prepare(sql)?;
-        let lignes = requete.query_map([], |l| {
-            let code: String = l.get(0)?;
-            let name_en: Option<String> = l.get(1)?;
-            let name_fr: Option<String> = l.get(2)?;
-            let nb: i64 = l.get(3)?;
-            Ok((code, name_en, name_fr, nb))
-        })?;
-        for ligne in lignes {
-            let (code, name_en, name_fr, nb) = ligne?;
-            sets.push(SetDisponible {
-                code,
-                nom: nom_affiche(name_en.as_deref(), name_fr.as_deref(), francais),
-                nb_cartes: nb.max(0) as usize,
-                deja_cree: false,
-            });
+        lire_requete(conn, sql, francais, &mut sets)?;
+    }
+    // Le complément ne doit jamais coûter la liste entière : une base où il
+    // échouerait garde les sets des deux requêtes d'origine.
+    let mut complement = Vec::new();
+    match lire_requete(conn, SQL_TCG_SANS_PREFIXE, francais, &mut complement) {
+        Ok(()) => {
+            // Un code qu'un set préfixé porte déjà est le sien : la boîte
+            // « Duelist Pack Collection Tin 2009 », dont la locale anglaise
+            // range surtout des `RGBT-ENPP…`, ne doit pas se faire passer
+            // pour « Raging Battle » — c'est lui que la création trouverait.
+            let deja: std::collections::HashSet<String> =
+                sets.iter().map(|s| s.code.clone()).collect();
+            sets.extend(complement.into_iter().filter(|s| !deja.contains(&s.code)));
         }
+        Err(e) => tracing::warn!(erreur = %e, "sets TCG sans préfixe anglais non lus"),
     }
     Ok(sets)
+}
+
+/// Ajoute à `sets` ce que rend une requête `(code, name_en, name_fr, nb)`.
+fn lire_requete(
+    conn: &Connection,
+    sql: &str,
+    francais: bool,
+    sets: &mut Vec<SetDisponible>,
+) -> Result<()> {
+    let mut requete = conn.prepare(sql)?;
+    let lignes = requete.query_map([], |l| {
+        let code: String = l.get(0)?;
+        let name_en: Option<String> = l.get(1)?;
+        let name_fr: Option<String> = l.get(2)?;
+        let nb: i64 = l.get(3)?;
+        Ok((code, name_en, name_fr, nb))
+    })?;
+    for ligne in lignes {
+        let (code, name_en, name_fr, nb) = ligne?;
+        sets.push(SetDisponible {
+            code,
+            nom: nom_affiche(name_en.as_deref(), name_fr.as_deref(), francais),
+            nb_cartes: nb.max(0) as usize,
+            deja_cree: false,
+        });
+    }
+    Ok(())
 }
 
 /// Le nom à montrer, selon la langue.
@@ -316,7 +398,7 @@ mod tests {
              CREATE TABLE set_locales (id INTEGER PRIMARY KEY, set_uuid TEXT, \
                                        prefix TEXT, language TEXT);
              CREATE TABLE set_prints (id INTEGER PRIMARY KEY, set_locale_id INTEGER, \
-                                      card_uuid TEXT);",
+                                      card_uuid TEXT, set_code TEXT);",
         )
         .unwrap();
         // RA02 : deux locales TCG du même set — elles doivent fusionner.
@@ -324,9 +406,9 @@ mod tests {
             "INSERT INTO sets VALUES ('u-ra02', 'Rarity Collection II', 'Collection Rareté II');
              INSERT INTO set_locales VALUES (1, 'u-ra02', 'RA02-EN', 'en');
              INSERT INTO set_locales VALUES (2, 'u-ra02', 'RA02-EU', 'eu');
-             INSERT INTO set_prints VALUES (1, 1, 'c1');
-             INSERT INTO set_prints VALUES (2, 1, 'c2');
-             INSERT INTO set_prints VALUES (3, 2, 'c1');",
+             INSERT INTO set_prints VALUES (1, 1, 'c1', 'RA02-EN001');
+             INSERT INTO set_prints VALUES (2, 1, 'c2', 'RA02-EN002');
+             INSERT INTO set_prints VALUES (3, 2, 'c1', 'RA02-EU001');",
         )
         .unwrap();
         // LOCH : une locale TCG et une locale OCG-JP du même set.
@@ -334,9 +416,67 @@ mod tests {
             "INSERT INTO sets VALUES ('u-loch', 'Legacy of Destruction', NULL);
              INSERT INTO set_locales VALUES (3, 'u-loch', 'LOCH-EN', 'en');
              INSERT INTO set_locales VALUES (4, 'u-loch', 'LOCH-JP', 'jp');
-             INSERT INTO set_prints VALUES (4, 3, 'd1');
-             INSERT INTO set_prints VALUES (5, 4, 'd1');
-             INSERT INTO set_prints VALUES (6, 4, 'd2');",
+             INSERT INTO set_prints VALUES (4, 3, 'd1', 'LOCH-EN001');
+             INSERT INTO set_prints VALUES (5, 4, 'd1', 'LOCH-JP001');
+             INSERT INTO set_prints VALUES (6, 4, 'd2', 'LOCH-JP002');",
+        )
+        .unwrap();
+        // INFO, tel que YGOJSON le livre : la locale anglaise **sans
+        // préfixe** — ses numéros `INFO-EN…` côtoient un jeton `TKN5-EN010`
+        // glissé dans les paquets —, la française et la japonaise avec.
+        conn.execute_batch(
+            "INSERT INTO sets VALUES ('u-info', 'The Infinite Forbidden', 'L''Infini Interdit');
+             INSERT INTO set_locales VALUES (5, 'u-info', '', 'en');
+             INSERT INTO set_locales VALUES (6, 'u-info', 'INFO-FR', 'fr');
+             INSERT INTO set_locales VALUES (7, 'u-info', 'INFO-JP', 'jp');
+             INSERT INTO set_prints VALUES (7, 5, 'e1', 'INFO-EN001');
+             INSERT INTO set_prints VALUES (8, 5, 'e1', 'INFO-EN001');
+             INSERT INTO set_prints VALUES (9, 5, 'e2', 'INFO-EN002');
+             INSERT INTO set_prints VALUES (10, 5, 'jeton', 'TKN5-EN010');
+             INSERT INTO set_prints VALUES (11, 6, 'e1', 'INFO-FR001');
+             INSERT INTO set_prints VALUES (12, 7, 'e1', 'INFO-JP001');",
+        )
+        .unwrap();
+        // Des cartes de participation : une locale anglaise sans préfixe
+        // dont aucun préfixe de numéro n'a la majorité.
+        conn.execute_batch(
+            "INSERT INTO sets VALUES ('u-sp', 'Sneak Peek Participation Cards', NULL);
+             INSERT INTO set_locales VALUES (8, 'u-sp', NULL, 'en');
+             INSERT INTO set_prints VALUES (13, 8, 'f1', 'STON-ENSP1');
+             INSERT INTO set_prints VALUES (14, 8, 'f2', 'GLAS-ENSP1');
+             INSERT INTO set_prints VALUES (15, 8, 'f3', 'LODT-ENSP1');",
+        )
+        .unwrap();
+        // Une locale anglaise sans préfixe, mais une européenne avec : le
+        // set passe par la requête d'origine, et une seule fois.
+        conn.execute_batch(
+            "INSERT INTO sets VALUES ('u-mix', 'Mixed', NULL);
+             INSERT INTO set_locales VALUES (9, 'u-mix', '', 'en');
+             INSERT INTO set_locales VALUES (10, 'u-mix', 'MIX1-EU', 'eu');
+             INSERT INTO set_prints VALUES (16, 9, 'g1', 'MIX1-EN001');
+             INSERT INTO set_prints VALUES (17, 10, 'g1', 'MIX1-EU001');",
+        )
+        .unwrap();
+        // Une boîte sans préfixe dont les numéros sont surtout ceux d'un set
+        // préfixé (« Duelist Pack Collection Tin 2009 » et ses `RGBT-ENPP…`) :
+        // le code appartient au set préfixé.
+        conn.execute_batch(
+            "INSERT INTO sets VALUES ('u-tin', 'Collection Tin', NULL);
+             INSERT INTO set_locales VALUES (11, 'u-tin', '', 'en');
+             INSERT INTO set_prints VALUES (18, 11, 'h1', 'RA02-ENPP1');
+             INSERT INTO set_prints VALUES (19, 11, 'h2', 'RA02-ENPP2');
+             INSERT INTO set_prints VALUES (20, 11, 'h3', 'TIN1-EN001');",
+        )
+        .unwrap();
+        // Une boîte à deux cartes : sept tirages de l'une, un de l'autre.
+        // La majorité se compte en numéros — il n'y en a aucune.
+        conn.execute_batch(
+            "INSERT INTO sets VALUES ('u-box', 'Collector Box', NULL);
+             INSERT INTO set_locales VALUES (12, 'u-box', '', 'en');
+             INSERT INTO set_prints VALUES (21, 12, 'k1', 'KACB-EN001');
+             INSERT INTO set_prints VALUES (22, 12, 'k1', 'KACB-EN001');
+             INSERT INTO set_prints VALUES (23, 12, 'k1', 'KACB-EN001');
+             INSERT INTO set_prints VALUES (24, 12, 'y1', 'YUCB-EN001');",
         )
         .unwrap();
     }
@@ -416,6 +556,55 @@ mod tests {
             lister(&paths, false).unwrap().is_empty(),
             "base sans les tables"
         );
+    }
+
+    /// Le cas du 2026-10-26 : « The Infinite Forbidden » n'était proposé
+    /// qu'en `INFO-JP`, sa locale anglaise n'ayant pas de préfixe. Le code se
+    /// lit sur ses numéros — `INFO` en porte trois sur quatre, le jeton
+    /// `TKN5` ne compte ni pour le code ni pour le nombre de cartes.
+    #[test]
+    fn un_set_sans_prefixe_anglais_est_propose_par_ses_numeros() {
+        let (_tmp, paths) = installation();
+        let sets = lister(&paths, true).unwrap();
+        let info: Vec<&SetDisponible> = sets.iter().filter(|s| s.code == "INFO").collect();
+        assert_eq!(info.len(), 1, "le set TCG est proposé, une fois");
+        assert_eq!(info[0].nom, "L'Infini Interdit");
+        assert_eq!(info[0].nb_cartes, 2, "e1 et e2 — pas le jeton");
+        assert!(
+            sets.iter().any(|s| s.code == "INFO-JP"),
+            "la version japonaise reste proposée à côté"
+        );
+        assert!(
+            !sets.iter().any(|s| s.code == "TKN5"),
+            "le jeton n'est pas un set"
+        );
+    }
+
+    /// Sans préfixe majoritaire, rien n'est deviné : les cartes de
+    /// participation, qui mêlent les préfixes, restent hors de la liste — et
+    /// la boîte à deux cartes aussi, quel que soit le nombre de tirages de
+    /// l'une d'elles.
+    #[test]
+    fn sans_prefixe_majoritaire_le_set_reste_hors_de_la_liste() {
+        let (_tmp, paths) = installation();
+        let sets = lister(&paths, false).unwrap();
+        for code in ["STON", "GLAS", "LODT", "KACB", "YUCB", ""] {
+            assert!(!sets.iter().any(|s| s.code == code), "{code:?}");
+        }
+    }
+
+    /// Une locale européenne préfixée suffit à la requête d'origine : le
+    /// complément ne l'ajoute pas une seconde fois. Et un code qu'un set
+    /// préfixé porte déjà reste le sien : la boîte qui range surtout des
+    /// `RA02-ENPP…` ne devient pas un second « RA02 ».
+    #[test]
+    fn un_set_deja_propose_ne_l_est_pas_deux_fois() {
+        let (_tmp, paths) = installation();
+        let sets = lister(&paths, false).unwrap();
+        assert_eq!(sets.iter().filter(|s| s.code == "MIX1").count(), 1);
+        let ra02: Vec<&SetDisponible> = sets.iter().filter(|s| s.code == "RA02").collect();
+        assert_eq!(ra02.len(), 1);
+        assert_eq!(ra02[0].nom, "Rarity Collection II", "pas la boîte");
     }
 
     #[test]

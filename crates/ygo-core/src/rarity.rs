@@ -27,6 +27,7 @@
 
 pub mod canon;
 pub mod reference;
+pub mod region;
 pub mod scanflip;
 
 use std::collections::BTreeMap;
@@ -157,19 +158,25 @@ impl Priorites {
     }
 
     /// Priorité d'une rareté pour le **tri** — `9999` si inconnue.
+    ///
+    /// Une rareté à double nom ([`region`]) absente de la table prend la
+    /// priorité de sa jumelle : `Holographic Rare` se range comme
+    /// `Ghost Rare` tant que l'utilisateur ne lui en a pas donné une.
     pub fn pour_tri(&self, rarete: &str) -> i64 {
-        self.table
-            .get(rarete)
-            .copied()
-            .unwrap_or(PRIORITE_INCONNUE_TRI)
+        self.declaree(rarete).unwrap_or(PRIORITE_INCONNUE_TRI)
     }
 
-    /// Priorité d'une rareté pour le **filtrage** — `0` si inconnue.
+    /// Priorité d'une rareté pour le **filtrage** — `0` si inconnue. Même
+    /// repli sur la jumelle que [`Self::pour_tri`].
     pub fn pour_filtre(&self, rarete: &str) -> i64 {
-        self.table
-            .get(rarete)
-            .copied()
-            .unwrap_or(PRIORITE_INCONNUE_FILTRE)
+        self.declaree(rarete).unwrap_or(PRIORITE_INCONNUE_FILTRE)
+    }
+
+    /// La priorité de la rareté, à défaut celle de sa jumelle régionale.
+    fn declaree(&self, rarete: &str) -> Option<i64> {
+        self.table.get(rarete).copied().or_else(|| {
+            region::jumelle(rarete).and_then(|jumelle| self.table.get(jumelle).copied())
+        })
     }
 
     /// Priorité déclarée, ou `None` si la rareté est absente de la table.
@@ -301,6 +308,28 @@ mod tests {
         assert_eq!(p.brute("PLatinum Secret Rare"), None);
         assert_eq!(p.pour_tri("PLatinum Secret Rare"), 9999);
         assert_eq!(p.pour_filtre("PLatinum Secret Rare"), 0);
+    }
+
+    /// `Holographic Rare` — le nom OCG de la Ghost Rare — se range comme
+    /// elle tant que la liste des Options ne lui donne pas de priorité ; dès
+    /// qu'elle en a une, c'est la sienne. `brute` reste la stricte lecture du
+    /// fichier : c'est elle qui dit ce que l'utilisateur a déclaré.
+    #[test]
+    fn une_rarete_regionale_prend_la_priorite_de_sa_jumelle() {
+        let sans = Priorites::depuis_paires([("Ghost Rare", 19)]);
+        assert_eq!(sans.pour_tri("Holographic Rare"), 19);
+        assert_eq!(sans.pour_filtre("Holographic Rare"), 19);
+        assert_eq!(sans.brute("Holographic Rare"), None);
+
+        let avec = Priorites::depuis_paires([("Ghost Rare", 19), ("Holographic Rare", 20)]);
+        assert_eq!(avec.pour_tri("Holographic Rare"), 20);
+
+        let vide = Priorites::default();
+        assert_eq!(vide.pour_tri("Holographic Rare"), PRIORITE_INCONNUE_TRI);
+        assert_eq!(
+            vide.pour_filtre("Holographic Rare"),
+            PRIORITE_INCONNUE_FILTRE
+        );
     }
 
     #[test]

@@ -1481,6 +1481,21 @@ impl IndexCharge {
     ///
     /// Si `cardinfo.db` ne se lit pas.
     pub fn offre(&self, conn: &Connection, d: &Demande<'_>) -> Result<Offre> {
+        // Le vocabulaire des règles : la `Holographic Rare` d'un classeur
+        // japonais y est la `Ghost Rare` de la base et des ordres relevés
+        // (`regles::cle_de_reference`, 2026-10-26) ; le libellé montré
+        // redevient « Holographic Rare » en OCG.
+        let rarete = regles::cle_de_reference(d.rarete);
+        let raretes: Vec<String> = d
+            .raretes
+            .iter()
+            .map(|r| regles::cle_de_reference(r))
+            .collect();
+        let d = &Demande {
+            rarete: &rarete,
+            raretes: &raretes,
+            ..*d
+        };
         let prix_du = self.index.empreinte.prix.clone();
         // La carte non retrouvée — set non rapproché, nom absent de
         // l'extension, numéro inconnu de la base : son numéro la retrouve
