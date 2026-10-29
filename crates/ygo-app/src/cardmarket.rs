@@ -71,7 +71,9 @@ use std::time::SystemTime;
 
 use rusqlite::{params, Connection, OptionalExtension};
 use serde::{Deserialize, Serialize};
-use ygo_core::cardmarket::{self as regles, ContexteOrdre, Distinction, Region, Sens};
+use ygo_core::cardmarket::{
+    self as regles, ContexteOrdre, Distinction, LangueDesAnnonces, Region, Sens,
+};
 use ygo_core::paths::Paths;
 use ygo_sources::cardmarket::{self as fichiers, Catalogue, Fichier, GuidePrix, PrixPublie};
 use ygo_sources::yugipedia::artwork;
@@ -1363,6 +1365,31 @@ impl Offre {
                 regles::url_recherche(langue, nom, *id_extension)
             }
             Cible::Numero(numero) => regles::url_recherche_numero(langue, numero),
+        }
+    }
+
+    /// L'adresse à ouvrir pour la carte `set_code` : celle de [`Offre::url`],
+    /// et, sur la page même du produit, les annonces dans la langue des
+    /// exemplaires ([`regles::filtre_des_annonces`]). Une recherche n'est pas
+    /// filtrée : elle liste des cartes, pas des annonces.
+    ///
+    /// ```
+    /// use ygo_app::cardmarket::{Cible, Offre, PrixOffre, Raison};
+    /// use ygo_core::cardmarket::LangueDesAnnonces;
+    /// let o = Offre { cible: Cible::Produit(782049), version: None, prix: PrixOffre::Aucun,
+    ///     raison: Raison::Ordonnee, extension: None, prix_du: String::new() };
+    /// assert!(o.url_pour("fr", "RA05-EN136", LangueDesAnnonces::Francais).ends_with("&language=2"));
+    /// assert!(!o.url_pour("fr", "CORI-JP001", LangueDesAnnonces::Francais).contains("language"));
+    /// ```
+    #[must_use]
+    pub fn url_pour(&self, langue: &str, set_code: &str, annonces: LangueDesAnnonces) -> String {
+        match &self.cible {
+            Cible::Produit(id) => regles::url_produit_filtre(
+                langue,
+                *id,
+                regles::filtre_des_annonces(set_code, annonces),
+            ),
+            _ => self.url(langue),
         }
     }
 

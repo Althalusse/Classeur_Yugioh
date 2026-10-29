@@ -988,6 +988,161 @@ pub fn langue_du_site(francais: bool) -> &'static str {
     }
 }
 
+/// La langue des annonces sur laquelle ouvrir la page d'une carte
+/// (2026-10-23).
+///
+/// Chez Cardmarket, une carte TCG n'a qu'**une** page pour toutes les langues
+/// occidentales (`RA05-FR136` et `RA05-EN136` sont le même produit) : la
+/// langue est celle de chaque annonce. Les prix des fichiers publics les
+/// mélangent toutes ; la page, elle, se filtre — c'est ce que fait ce
+/// réglage, sans rien changer aux prix affichés dans l'application.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum LangueDesAnnonces {
+    /// Pas de filtre.
+    Toutes,
+    /// Annonces en anglais.
+    Anglais,
+    /// Annonces en français — le défaut : la collection de l'utilisateur.
+    #[default]
+    Francais,
+    /// Annonces en allemand.
+    Allemand,
+    /// Annonces en italien.
+    Italien,
+    /// Annonces en espagnol.
+    Espagnol,
+    /// Annonces en portugais.
+    Portugais,
+}
+
+impl LangueDesAnnonces {
+    /// Toutes, dans l'ordre de la liste déroulante.
+    #[must_use]
+    pub fn toutes() -> [Self; 7] {
+        [
+            Self::Francais,
+            Self::Anglais,
+            Self::Allemand,
+            Self::Italien,
+            Self::Espagnol,
+            Self::Portugais,
+            Self::Toutes,
+        ]
+    }
+
+    /// Le code enregistré (`app_config.json`, `meta` du classeur).
+    #[must_use]
+    pub fn code(self) -> &'static str {
+        match self {
+            Self::Toutes => "toutes",
+            Self::Anglais => "en",
+            Self::Francais => "fr",
+            Self::Allemand => "de",
+            Self::Italien => "it",
+            Self::Espagnol => "es",
+            Self::Portugais => "pt",
+        }
+    }
+
+    /// Relit un code enregistré — `None` s'il est inconnu.
+    ///
+    /// ```
+    /// use ygo_core::cardmarket::LangueDesAnnonces;
+    /// for l in LangueDesAnnonces::toutes() {
+    ///     assert_eq!(LangueDesAnnonces::depuis_code(l.code()), Some(l));
+    /// }
+    /// assert_eq!(LangueDesAnnonces::depuis_code(" FR "), Some(LangueDesAnnonces::Francais));
+    /// assert_eq!(LangueDesAnnonces::depuis_code("klingon"), None);
+    /// ```
+    #[must_use]
+    pub fn depuis_code(code: &str) -> Option<Self> {
+        let code = code.trim().to_ascii_lowercase();
+        Self::toutes().into_iter().find(|l| l.code() == code)
+    }
+
+    /// Le libellé de la liste déroulante.
+    #[must_use]
+    pub fn libelle(self) -> &'static str {
+        match self {
+            Self::Toutes => "toutes langues",
+            Self::Anglais => "en anglais",
+            Self::Francais => "en français",
+            Self::Allemand => "en allemand",
+            Self::Italien => "en italien",
+            Self::Espagnol => "en espagnol",
+            Self::Portugais => "en portugais",
+        }
+    }
+
+    /// L'identifiant de la langue chez Cardmarket, paramètre `language` de
+    /// la page d'un produit — `None` sans filtre.
+    #[must_use]
+    pub fn id_cardmarket(self) -> Option<u8> {
+        match self {
+            Self::Toutes => None,
+            Self::Anglais => Some(1),
+            Self::Francais => Some(2),
+            Self::Allemand => Some(3),
+            Self::Espagnol => Some(4),
+            Self::Italien => Some(5),
+            Self::Portugais => Some(8),
+        }
+    }
+}
+
+/// Le filtre de langue à poser sur la page d'une carte : l'identifiant
+/// Cardmarket de `langue`, sauf pour une carte asiatique (`CORI-JP001`,
+/// `…-KR…`), qui a ses propres produits, en une seule langue.
+///
+/// ```
+/// use ygo_core::cardmarket::{filtre_des_annonces, LangueDesAnnonces};
+/// let fr = LangueDesAnnonces::Francais;
+/// assert_eq!(filtre_des_annonces("RA05-EN136", fr), Some(2));
+/// assert_eq!(filtre_des_annonces("RA04-FR052", fr), Some(2));
+/// assert_eq!(filtre_des_annonces("LDK2-ENK22", fr), Some(2));
+/// assert_eq!(filtre_des_annonces("SDK-001", fr), Some(2), "ancien code TCG");
+/// assert_eq!(filtre_des_annonces("CORI-JP001", fr), None);
+/// assert_eq!(filtre_des_annonces("LOCR-KR001", fr), None);
+/// assert_eq!(filtre_des_annonces("RA05-EN136", LangueDesAnnonces::Toutes), None);
+/// ```
+#[must_use]
+pub fn filtre_des_annonces(set_code: &str, langue: LangueDesAnnonces) -> Option<u8> {
+    /// Les langues dont les cartes ont leurs propres produits.
+    const ASIATIQUES: [&str; 7] = ["JP", "JA", "KR", "AE", "TC", "SC", "CN"];
+    let code = set_code.trim().to_ascii_uppercase();
+    let asiatique = code
+        .rsplit_once('-')
+        .and_then(|(_, reste)| reste.get(..2))
+        .is_some_and(|l| ASIATIQUES.contains(&l));
+    if asiatique {
+        return None;
+    }
+    langue.id_cardmarket()
+}
+
+/// La page d'un produit, ouverte sur les annonces d'une langue
+/// ([`filtre_des_annonces`]) — sans filtre, [`url_produit`].
+///
+/// ```
+/// use ygo_core::cardmarket::url_produit_filtre;
+/// assert_eq!(
+///     url_produit_filtre("fr", 782049, Some(2)),
+///     "https://www.cardmarket.com/fr/YuGiOh/Products?idProduct=782049&language=2"
+/// );
+/// assert_eq!(
+///     url_produit_filtre("fr", 782049, None),
+///     "https://www.cardmarket.com/fr/YuGiOh/Products?idProduct=782049"
+/// );
+/// ```
+#[must_use]
+pub fn url_produit_filtre(langue: &str, id_produit: i64, annonces: Option<u8>) -> String {
+    let url = url_produit(langue, id_produit);
+    match annonces {
+        Some(id) => format!("{url}&language={id}"),
+        None => url,
+    }
+}
+
 /// La page d'un produit. Cardmarket redirige vers l'adresse canonique
 /// (`…/Singles/<Extension>/<Carte>-V2-Secret-Rare`) en gardant les filtres.
 ///

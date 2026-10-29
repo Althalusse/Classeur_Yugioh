@@ -332,7 +332,7 @@ fn colonne(ui: &mut egui::Ui, fiche: &Fiche, langue: &str, francais: bool, cjk: 
             ui.set_min_size(taille);
             if let Some(offre) = &fiche.cardmarket {
                 bloc = Some(
-                    ui.scope(|ui| cardmarket(ui, offre, &fiche.set_code, francais))
+                    ui.scope(|ui| cardmarket(ui, offre, &fiche.set_code, fiche.annonces, francais))
                         .response
                         .rect,
                 );
@@ -370,7 +370,13 @@ fn colonne(ui: &mut egui::Ui, fiche: &Fiche, langue: &str, francais: bool, cjk: 
 ///
 /// Appelée dans une mise en page de bas en haut (cf. [`colonne`]) : les
 /// lignes sont posées dans l'ordre inverse de la lecture.
-fn cardmarket(ui: &mut egui::Ui, offre: &Offre, set_code: &str, francais: bool) {
+fn cardmarket(
+    ui: &mut egui::Ui,
+    offre: &Offre,
+    set_code: &str,
+    annonces: ygo_core::cardmarket::LangueDesAnnonces,
+    francais: bool,
+) {
     // La date et la portée des prix, quand il y en a un à dater.
     if offre.prix != PrixOffre::Aucun {
         ui.label(egui::RichText::new(note_des_prix(offre)).small().weak());
@@ -382,10 +388,19 @@ fn cardmarket(ui: &mut egui::Ui, offre: &Offre, set_code: &str, francais: bool) 
         ui.label(egui::RichText::new(texte).small());
     }
     ui.add_space(4.0);
-    let url = offre.url(ygo_core::cardmarket::langue_du_site(francais));
+    let url = offre.url_pour(
+        ygo_core::cardmarket::langue_du_site(francais),
+        set_code,
+        annonces,
+    );
+    let mut aide = aide_du_lien(offre);
+    if let Some(filtre) = filtre_du_lien(offre, set_code, annonces) {
+        aide.push('\n');
+        aide.push_str(&filtre);
+    }
     if ui
         .button(texte_du_bouton(offre, set_code))
-        .on_hover_text(aide_du_lien(offre))
+        .on_hover_text(aide)
         .clicked()
     {
         ui.ctx().open_url(egui::OpenUrl::new_tab(url));
@@ -599,6 +614,38 @@ pub fn aide_du_lien(offre: &ygo_app::cardmarket::Offre) -> String {
     lignes.join("\n")
 }
 
+/// Ce que l'info-bulle dit du filtre de langue, quand le lien en porte un.
+///
+/// ```
+/// use ygo_app::cardmarket::{Cible, Offre, PrixOffre, Raison};
+/// use ygo_core::cardmarket::LangueDesAnnonces;
+/// use ygo_ui::fiche::filtre_du_lien;
+/// let mut o = Offre { cible: Cible::Produit(1), version: None, prix: PrixOffre::Aucun,
+///     raison: Raison::Ordonnee, extension: None, prix_du: String::new() };
+/// assert_eq!(
+///     filtre_du_lien(&o, "RA05-EN136", LangueDesAnnonces::Francais).unwrap(),
+///     "La page s'ouvre sur les annonces en français (Options › Affichage, ou réglages du classeur)."
+/// );
+/// assert!(filtre_du_lien(&o, "CORI-JP001", LangueDesAnnonces::Francais).is_none());
+/// o.cible = Cible::Numero("RA05-EN136".into());
+/// assert!(filtre_du_lien(&o, "RA05-EN136", LangueDesAnnonces::Francais).is_none());
+/// ```
+#[must_use]
+pub fn filtre_du_lien(
+    offre: &Offre,
+    set_code: &str,
+    annonces: ygo_core::cardmarket::LangueDesAnnonces,
+) -> Option<String> {
+    if !offre.est_directe() {
+        return None;
+    }
+    ygo_core::cardmarket::filtre_des_annonces(set_code, annonces)?;
+    Some(format!(
+        "La page s'ouvre sur les annonces {} (Options › Affichage, ou réglages du classeur).",
+        annonces.libelle()
+    ))
+}
+
 /// `2026-10-20T02:44:58+0200` → `20/10/2026`.
 pub(crate) fn date_courte(horodatage: &str) -> Option<String> {
     let jour = horodatage.get(..10)?;
@@ -809,6 +856,7 @@ mod tests {
             resolution: Resolution::Uuid,
             textes,
             cardmarket: None,
+            annonces: Default::default(),
         }
     }
 

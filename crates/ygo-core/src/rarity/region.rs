@@ -39,6 +39,28 @@ use crate::config::SUFFIXES_OCG;
 /// Les raretés à double nom : `(nom OCG, nom TCG)`.
 pub const NOMS_REGIONAUX: [(&str, &str); 1] = [("Holographic Rare", "Ghost Rare")];
 
+/// Les raretés à double nom **sans** lien avec la région : `(autre nom, nom
+/// de référence)`. Même rareté, même clé, même priorité — mais aucun nom n'est
+/// réécrit selon le numéro.
+///
+/// Relevé par `ygo-cli comparer-raretes` (2026-10-29) : Yugipedia redirige
+/// `Common Parallel Rare` vers `Normal Parallel Rare`, sa variante Duel
+/// Terminal de même, et `Super Short Print` vers `Short Print`. La liste des
+/// Options portait les deux noms des Parallel comme deux raretés distinctes.
+pub const SYNONYMES: [(&str, &str); 3] = [
+    ("Common Parallel Rare", "Normal Parallel Rare"),
+    (
+        "Duel Terminal Common Parallel Rare",
+        "Duel Terminal Normal Parallel Rare",
+    ),
+    ("Super Short Print", "Short Print"),
+];
+
+/// Toutes les paires `(autre nom, nom de référence)`.
+fn paires() -> impl Iterator<Item = &'static (&'static str, &'static str)> {
+    NOMS_REGIONAUX.iter().chain(SYNONYMES.iter())
+}
+
 /// Le nom TCG d'une rareté — le libellé lui-même s'il n'a pas de nom
 /// régional.
 ///
@@ -47,11 +69,11 @@ pub const NOMS_REGIONAUX: [(&str, &str); 1] = [("Holographic Rare", "Ghost Rare"
 /// assert_eq!(nom_de_reference("Holographic Rare"), "Ghost Rare");
 /// assert_eq!(nom_de_reference("Ghost Rare"), "Ghost Rare");
 /// assert_eq!(nom_de_reference("Ultra Rare"), "Ultra Rare");
+/// assert_eq!(nom_de_reference("Common Parallel Rare"), "Normal Parallel Rare");
 /// ```
 #[must_use]
 pub fn nom_de_reference(libelle: &str) -> &str {
-    NOMS_REGIONAUX
-        .iter()
+    paires()
         .find(|(ocg, _)| *ocg == libelle)
         .map_or(libelle, |(_, tcg)| tcg)
 }
@@ -63,10 +85,11 @@ pub fn nom_de_reference(libelle: &str) -> &str {
 /// assert_eq!(jumelle("Holographic Rare"), Some("Ghost Rare"));
 /// assert_eq!(jumelle("Ghost Rare"), Some("Holographic Rare"));
 /// assert_eq!(jumelle("Secret Rare"), None);
+/// assert_eq!(jumelle("Normal Parallel Rare"), Some("Common Parallel Rare"));
 /// ```
 #[must_use]
 pub fn jumelle(libelle: &str) -> Option<&'static str> {
-    NOMS_REGIONAUX.iter().find_map(|(ocg, tcg)| {
+    paires().find_map(|(ocg, tcg)| {
         if *ocg == libelle {
             Some(*tcg)
         } else if *tcg == libelle {
@@ -150,6 +173,28 @@ mod tests {
             let code_tcg = crate::rarity::reference::nom_vers_code(tcg).unwrap();
             assert_ne!(code_ocg, code_tcg, "{ocg} / {tcg}");
             assert_eq!(crate::rarity::reference::code_vers_nom_en(code_ocg), ocg);
+        }
+    }
+
+    /// Un nom n'appartient qu'à une paire : sans quoi `jumelle` serait
+    /// ambiguë.
+    #[test]
+    fn chaque_nom_n_a_qu_une_jumelle() {
+        let mut vus = std::collections::HashSet::new();
+        for (a, b) in paires() {
+            assert!(vus.insert(*a), "{a}");
+            assert!(vus.insert(*b), "{b}");
+        }
+    }
+
+    /// Un synonyme ne se réécrit jamais selon le numéro.
+    #[test]
+    fn un_synonyme_n_est_pas_regional() {
+        for (autre, reference) in SYNONYMES {
+            for numero in ["DT01-JP001", "DT01-EN001", "LOB-001"] {
+                assert_eq!(nom_pour_le_numero(autre, numero), None);
+                assert_eq!(nom_pour_le_numero(reference, numero), None);
+            }
         }
     }
 

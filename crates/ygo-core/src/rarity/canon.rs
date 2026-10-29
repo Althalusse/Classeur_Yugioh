@@ -320,7 +320,7 @@ pub fn canoniser(libelle: &str, reference: &Priorites) -> Option<Canon> {
 
     if let Some(a) = index_alias().get(&cle).and_then(|i| table().get(*i)) {
         return Some(Canon {
-            libelle: a.canonique.clone(),
+            libelle: selon_les_options(a.canonique.clone(), reference),
             origine: Origine::Abreviation,
         });
     }
@@ -329,7 +329,7 @@ pub fn canoniser(libelle: &str, reference: &Priorites) -> Option<Canon> {
     // larges (« Short Print » y vaut « Common »). Il n'est atteint que par un
     // libellé que la liste des Options ne connaît sous aucune orthographe.
     let code = crate::rarity::reference::nom_vers_code(libelle)?;
-    let nom = super::reference::code_vers_nom_en(code);
+    let nom = selon_les_options(super::reference::code_vers_nom_en(code), reference);
     // Un libellé qui EST son propre nom canonique est reconnu, pas rejeté.
     //
     // Ce `if` rendait `None` — au motif d'éviter une canonisation qui ne
@@ -351,6 +351,32 @@ pub fn canoniser(libelle: &str, reference: &Priorites) -> Option<Canon> {
         libelle: nom,
         origine,
     })
+}
+
+/// Le nom que la liste des Options donne à cette rareté.
+///
+/// `nom` lui-même s'il y figure — ou si son synonyme ([`super::region::SYNONYMES`])
+/// n'y figure pas ; sinon le synonyme. `NPR` devient ainsi `Common Parallel
+/// Rare` chez un utilisateur dont les Options portent ce nom-là, et garde
+/// une priorité. Les noms **régionaux** ne passent pas par ici : leur forme
+/// dépend du numéro ([`super::region::nom_pour_le_numero`]).
+fn selon_les_options(nom: String, reference: &Priorites) -> String {
+    if reference.brute(&nom).is_some() {
+        return nom;
+    }
+    super::region::SYNONYMES
+        .iter()
+        .find_map(|(autre, refe)| {
+            if *autre == nom {
+                Some(*refe)
+            } else if *refe == nom {
+                Some(*autre)
+            } else {
+                None
+            }
+        })
+        .filter(|synonyme| reference.brute(synonyme).is_some())
+        .map_or(nom, ToOwned::to_owned)
 }
 
 /// Clé de comparaison d'une rareté, **canonisée**.
@@ -390,6 +416,8 @@ pub fn canoniser(libelle: &str, reference: &Priorites) -> Option<Canon> {
 /// // Deux noms, une rareté.
 /// assert_eq!(cle("Holographic Rare", &options), cle("Ghost Rare", &options));
 /// assert_eq!(cle("HGR", &options), "ghostrare");
+/// // Deux noms, une rareté — sans lien avec la région (2026-10-29).
+/// assert_eq!(cle("Common Parallel Rare", &options), cle("Normal Parallel Rare", &options));
 /// ```
 #[must_use]
 pub fn cle(libelle: &str, reference: &Priorites) -> String {
@@ -424,7 +452,11 @@ mod tests {
 
     #[test]
     fn la_table_extraite_se_charge_sans_conflit() {
-        assert_eq!(alias().len(), 28);
+        assert_eq!(
+            alias().len(),
+            35,
+            "dont AltR, EScR, PGR, NPR, NR, SSP et Super Short Print (2026-10-29)"
+        );
         let mut cles: Vec<String> = alias().iter().map(|a| normaliser(&a.abreviation)).collect();
         cles.sort();
         let avant = cles.len();
@@ -846,7 +878,7 @@ mod tests {
         }
     }
 
-    /// La propriété générale, sur les 44 entrées du référentiel : un nom
+    /// La propriété générale, sur toutes les entrées du référentiel : un nom
     /// canonique n'est jamais rejeté, même quand la liste des Options est
     /// quasi vide — le cas d'une installation neuve.
     #[test]
@@ -880,5 +912,76 @@ mod tests {
         let c = canoniser("Short Print", &sans).expect("alias Scanflip");
         assert_eq!(c.libelle, "Common");
         assert_eq!(c.origine, Origine::Alias);
+    }
+
+    /// `Alternate Rare` n'est pas une rareté à part : c'est l'ancien nom de
+    /// la Starlight Rare (« alternate foil », avant janvier 2020), que les
+    /// Set lists TCG-FR de Rising Rampage et Chaos Impact écrivent encore —
+    /// Yugipedia redirige `AltR` et `Alternate Rare` vers « Starlight Rare »
+    /// (simulation du 2026-10-29).
+    #[test]
+    fn alternate_rare_est_la_starlight_rare() {
+        let o = Priorites::depuis_paires([("Ultra Rare", 4), ("Starlight Rare", 12)]);
+        assert_eq!(canoniser("AltR", &o).unwrap().libelle, "Starlight Rare");
+        assert_eq!(
+            canoniser("Alternate Rare", &o).unwrap().libelle,
+            "Starlight Rare"
+        );
+        assert_eq!(cle("Alternate Rare", &o), cle("Starlight Rare", &o));
+    }
+
+    /// Comparaison Yugipedia du 2026-10-29 : les abréviations qu'elle emploie
+    /// et que l'application ignorait.
+    #[test]
+    fn les_abreviations_de_yugipedia_sont_reconnues() {
+        let o = options();
+        for (abreviation, attendu) in [
+            ("EScR", "Extra Secret Rare"),
+            ("PGR", "Premium Gold Rare"),
+            ("SSP", "Short Print"),
+            ("Super Short Print", "Short Print"),
+            // Le nom des Options, pas celui de Yugipedia : la priorité suit.
+            ("NPR", "Common Parallel Rare"),
+        ] {
+            assert_eq!(
+                canoniser(abreviation, &o).unwrap().libelle,
+                attendu,
+                "{abreviation}"
+            );
+        }
+        // Rareté OCG du slot rare : distincte de la Common.
+        let sans = Priorites::depuis_paires([("Common", 1)]);
+        for libelle in ["NR", "Normal Rare"] {
+            assert_eq!(canoniser(libelle, &sans).unwrap().libelle, "Normal Rare");
+        }
+        assert_ne!(cle("Normal Rare", &o), cle("Common", &o));
+    }
+
+    /// `Common Parallel Rare` et `Normal Parallel Rare` : une rareté, deux
+    /// noms — la liste des Options les déclarait toutes deux.
+    #[test]
+    fn common_et_normal_parallel_sont_la_meme_rarete() {
+        let o = options();
+        assert_eq!(
+            cle("Common Parallel Rare", &o),
+            cle("Normal Parallel Rare", &o)
+        );
+        assert_eq!(cle("NPR", &o), cle("Common Parallel Rare", &o));
+        assert_eq!(
+            cle("Duel Terminal Common Parallel Rare", &o),
+            cle("Duel Terminal Normal Parallel Rare", &o)
+        );
+        assert_eq!(
+            cle("DNPR", &o),
+            cle("Duel Terminal Common Parallel Rare", &o)
+        );
+        // Pharaoh's Rare reste à part.
+        assert_ne!(cle("Pharaoh's Rare", &o), cle("Ultra Rare", &o));
+        // Sans les Options, le nom de Yugipedia.
+        let sans = Priorites::depuis_paires([("Common", 1)]);
+        assert_eq!(
+            canoniser("NPR", &sans).unwrap().libelle,
+            "Normal Parallel Rare"
+        );
     }
 }

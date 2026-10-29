@@ -189,11 +189,15 @@ mod tests {
     fn la_table_extraite_se_charge() {
         assert_eq!(
             table().len(),
-            45,
-            "44 codes extraits du Python, plus Holographic Rare"
+            46,
+            "44 codes extraits du Python, plus Holographic Rare et Normal Rare"
         );
         let alias: usize = table().iter().map(|r| r.alias.len()).sum();
-        assert_eq!(alias, 11);
+        assert_eq!(
+            alias, 11,
+            "« Super Short Print » n'est plus un alias de Common : c'est un \
+             Short Print (Yugipedia, 2026-10-29)"
+        );
         assert_eq!(table()[0].code, "C");
         assert_eq!(table()[0].en, "Common");
     }

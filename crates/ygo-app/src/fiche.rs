@@ -140,6 +140,9 @@ pub struct Fiche {
     /// de Cardmarket n'ont pas été téléchargés et indexés
     /// (cf. [`crate::cardmarket`]).
     pub cardmarket: Option<crate::cardmarket::Offre>,
+    /// La langue des annonces sur laquelle ouvrir sa page Cardmarket : celle
+    /// du classeur, à défaut celle des Options (2026-10-23).
+    pub annonces: ygo_core::cardmarket::LangueDesAnnonces,
 }
 
 /// L'ordre dans lequel les langues sont proposées.
@@ -222,7 +225,7 @@ impl Fiche {
     /// #         qualite: None, edition: None, extended_art: false, card_image_id: 0,
     /// #         fichier_image: None,
     /// #         resolution: ygo_app::fiche::Resolution::Uuid, textes: Vec::new(),
-    /// #         cardmarket: None }
+    /// #         cardmarket: None, annonces: Default::default() }
     /// # }
     /// assert_eq!(
     ///     f(Some(3000), Some(2500), Some(8)).statistiques(),
@@ -444,6 +447,10 @@ pub fn lire(
         });
         fiche.cardmarket = offre;
     }
+    fiche.annonces = crate::classeur::annonces_du_classeur(
+        &chemin,
+        ygo_core::config::Config::charger(paths.app_config()).annonces_cardmarket(),
+    );
     Ok(Some(fiche))
 }
 
@@ -515,6 +522,7 @@ fn lire_ligne(
         resolution: Resolution::Aucune,
         textes: Vec::new(),
         cardmarket: None,
+        annonces: Default::default(),
     };
     let card_uuid: String = l.get(16)?;
     Ok(Some((fiche, card_uuid)))
@@ -562,6 +570,7 @@ mod tests {
             resolution: Resolution::Uuid,
             textes,
             cardmarket: None,
+            annonces: Default::default(),
         }
     }
 

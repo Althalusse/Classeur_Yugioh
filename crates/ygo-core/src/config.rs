@@ -33,6 +33,7 @@
 //! | `maj_appli_pre_versions` | booléen | `false` | proposer aussi les Releases marquées « pre-release » |
 //! | `classeurs_alignes_version` | texte | — | version de l'application qui a réaligné les classeurs sur Yugipedia ; une autre version au démarrage relance le réalignement |
 //! | `prix_sur_les_cartes` | booléen | `true` | le prix Cardmarket au bas de chaque carte du classeur |
+//! | `annonces_cardmarket` | `"fr"`, `"en"`, `"de"`, `"it"`, `"es"`, `"pt"`, `"toutes"` | `fr` | langue des annonces sur laquelle s'ouvre la page Cardmarket d'une carte TCG ; valeur inconnue → défaut |
 //! | `inclure_sets_ocg_jp` | booléen | — | **ignorée** : l'inclusion OCG-JP est forcée depuis la V1.0.4 |
 
 use std::path::{Path, PathBuf};
@@ -60,6 +61,7 @@ const CLE_MAJ_APPLI_VERIFIER: &str = "maj_appli_verifier";
 const CLE_MAJ_APPLI_PRE: &str = "maj_appli_pre_versions";
 const CLE_CLASSEURS_ALIGNES: &str = "classeurs_alignes_version";
 const CLE_PRIX_SUR_LES_CARTES: &str = "prix_sur_les_cartes";
+const CLE_ANNONCES_CARDMARKET: &str = "annonces_cardmarket";
 
 /// Plus petite grille acceptée (`preferences._GRILLE_MIN`).
 pub const GRILLE_MIN: u8 = 3;
@@ -524,6 +526,16 @@ impl Config {
             .unwrap_or(true)
     }
 
+    /// La langue des annonces sur laquelle s'ouvre la page Cardmarket d'une
+    /// carte. Défaut : le français.
+    pub fn annonces_cardmarket(&self) -> crate::cardmarket::LangueDesAnnonces {
+        self.brut(CLE_ANNONCES_CARDMARKET)
+            .as_ref()
+            .and_then(Value::as_str)
+            .and_then(crate::cardmarket::LangueDesAnnonces::depuis_code)
+            .unwrap_or_default()
+    }
+
     /// La version de l'application qui a réaligné les classeurs sur Yugipedia
     /// pour la dernière fois. `None` : jamais, ou avant que la clé existe.
     ///
@@ -687,6 +699,19 @@ impl Config {
         Ok(actif)
     }
 
+    /// Retient la langue des annonces Cardmarket.
+    ///
+    /// # Errors
+    ///
+    /// Si `app_config.json` n'a pas pu être écrit.
+    pub fn definir_annonces_cardmarket(
+        &self,
+        langue: crate::cardmarket::LangueDesAnnonces,
+    ) -> Result<crate::cardmarket::LangueDesAnnonces> {
+        self.definir(CLE_ANNONCES_CARDMARKET, Value::from(langue.code()))?;
+        Ok(langue)
+    }
+
     /// Note la version de l'application qui vient de réaligner les classeurs.
     ///
     /// # Errors
@@ -828,6 +853,26 @@ mod tests {
         let relu = Config::charger(tmp.path().join("app_config.json"));
         assert!(relu.maj_appli_pre_versions());
         assert!(!relu.maj_appli_verifier());
+    }
+
+    #[test]
+    fn les_annonces_cardmarket_sont_en_francais_par_defaut_et_se_retiennent() {
+        use crate::cardmarket::LangueDesAnnonces;
+        let tmp = tempfile::tempdir().unwrap();
+        let chemin = tmp.path().join("app_config.json");
+        let cfg = Config::charger(&chemin);
+        assert_eq!(cfg.annonces_cardmarket(), LangueDesAnnonces::Francais);
+        cfg.definir_annonces_cardmarket(LangueDesAnnonces::Toutes)
+            .unwrap();
+        assert_eq!(
+            Config::charger(&chemin).annonces_cardmarket(),
+            LangueDesAnnonces::Toutes
+        );
+        std::fs::write(&chemin, r#"{"annonces_cardmarket": "klingon"}"#).unwrap();
+        assert_eq!(
+            Config::charger(&chemin).annonces_cardmarket(),
+            LangueDesAnnonces::Francais
+        );
     }
 
     #[test]

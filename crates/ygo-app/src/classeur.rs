@@ -42,6 +42,7 @@ use std::collections::BTreeMap;
 use std::path::Path;
 
 use rusqlite::Connection;
+use ygo_core::cardmarket::LangueDesAnnonces;
 use ygo_core::config::{CritereTri, SourceImage, GRILLE_MAX, GRILLE_MIN};
 use ygo_core::rarity::Priorites;
 use ygo_core::tri::CarteTriable;
@@ -871,14 +872,28 @@ pub struct Reglages {
     pub grille: Option<Grille>,
     /// L'ordre de tri propre au classeur.
     pub ordre: Option<[CritereTri; 3]>,
+    /// La langue des annonces Cardmarket propre au classeur — celle de ses
+    /// exemplaires (2026-10-23).
+    pub annonces: Option<LangueDesAnnonces>,
 }
 
 impl Reglages {
     /// Le classeur suit-il les Options en tout ?
     #[must_use]
     pub fn suit_les_options(&self) -> bool {
-        self.grille.is_none() && self.ordre.is_none()
+        self.grille.is_none() && self.ordre.is_none() && self.annonces.is_none()
     }
+}
+
+/// La clé de `meta` qui porte la langue des annonces Cardmarket d'un
+/// classeur — le même code que dans `app_config.json`.
+pub const CLE_ANNONCES: &str = "annonces_cardmarket";
+
+/// La langue des annonces d'un classeur, ou celle des Options s'il n'en a
+/// pas.
+#[must_use]
+pub fn annonces_du_classeur(chemin_db: &Path, defaut: LangueDesAnnonces) -> LangueDesAnnonces {
+    reglages_du_classeur(chemin_db).annonces.unwrap_or(defaut)
 }
 
 /// La clé de `meta` qui porte l'ordre de tri d'un classeur.
@@ -918,7 +933,12 @@ pub fn reglages_du_classeur(chemin_db: &Path) -> Reglages {
         let codes: Vec<&str> = v.split(',').map(str::trim).collect();
         ygo_core::config::normaliser_ordre_tri(&codes)
     });
-    Reglages { grille, ordre }
+    let annonces = valeur(CLE_ANNONCES).and_then(|v| LangueDesAnnonces::depuis_code(&v));
+    Reglages {
+        grille,
+        ordre,
+        annonces,
+    }
 }
 
 /// L'ordre de tri d'un classeur, ou celui des Options s'il n'en a pas.
@@ -984,6 +1004,18 @@ pub fn definir_reglages_sur(conn: &mut Connection, reglages: &Reglages) -> Resul
         }
         None => {
             transaction.execute("DELETE FROM meta WHERE key = ?1", [CLE_ORDRE])?;
+        }
+    }
+    match reglages.annonces {
+        Some(langue) => {
+            transaction.execute(
+                "INSERT INTO meta (key, value) VALUES (?1, ?2)
+                 ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+                (CLE_ANNONCES, langue.code()),
+            )?;
+        }
+        None => {
+            transaction.execute("DELETE FROM meta WHERE key = ?1", [CLE_ANNONCES])?;
         }
     }
     transaction.commit()?;
@@ -1216,6 +1248,7 @@ mod tests {
                 lignes: 4,
             }),
             ordre: Some([CritereTri::Artwork, CritereTri::Rarete, CritereTri::Numero]),
+            annonces: Some(LangueDesAnnonces::Anglais),
         };
         definir_reglages(&chemin, &voulu).unwrap();
 
@@ -1232,6 +1265,10 @@ mod tests {
         assert_eq!(
             ordre_du_classeur(&chemin, ygo_core::config::ORDRE_TRI_DEFAUT),
             [CritereTri::Artwork, CritereTri::Rarete, CritereTri::Numero]
+        );
+        assert_eq!(
+            annonces_du_classeur(&chemin, LangueDesAnnonces::Francais),
+            LangueDesAnnonces::Anglais
         );
 
         // Réécrire remplace, ne double pas : `meta.key` est une clé primaire.
@@ -1256,6 +1293,7 @@ mod tests {
                     lignes: 4,
                 }),
                 ordre: Some([CritereTri::Artwork, CritereTri::Rarete, CritereTri::Numero]),
+                annonces: Some(LangueDesAnnonces::Toutes),
             },
         )
         .unwrap();
@@ -1265,8 +1303,8 @@ mod tests {
         let conn = rusqlite::Connection::open(&chemin).unwrap();
         let restantes: i64 = conn
             .query_row(
-                "SELECT COUNT(*) FROM meta WHERE key IN ('colonnes','lignes',?1)",
-                [CLE_ORDRE],
+                "SELECT COUNT(*) FROM meta WHERE key IN ('colonnes','lignes',?1,?2)",
+                [CLE_ORDRE, CLE_ANNONCES],
                 |l| l.get(0),
             )
             .unwrap();
@@ -1293,6 +1331,7 @@ mod tests {
                     lignes: 1,
                 }),
                 ordre: None,
+                annonces: None,
             },
         )
         .unwrap();

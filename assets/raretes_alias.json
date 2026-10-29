@@ -141,5 +141,47 @@
     "abreviation": "UtR",
     "canonique": "Ultimate Rare",
     "source": "ygoprodeck"
+  },
+  {
+    "abreviation": "AltR",
+    "canonique": "Starlight Rare",
+    "source": "yugipedia",
+    "preuve": "https://yugipedia.com/wiki/AltR et https://yugipedia.com/wiki/Alternate_Rare redirigent vers « Starlight Rare » : l'ancien nom (« alternate foil ») de la rareté, avant qu'elle soit nommée en janvier 2020 ; les Set lists TCG-FR de Rising Rampage et Chaos Impact l'écrivent encore ainsi"
+  },
+  {
+    "abreviation": "EScR",
+    "canonique": "Extra Secret Rare",
+    "source": "yugipedia",
+    "preuve": "https://yugipedia.com/wiki/EScR redirige vers « Extra Secret Rare »"
+  },
+  {
+    "abreviation": "PGR",
+    "canonique": "Premium Gold Rare",
+    "source": "yugipedia",
+    "preuve": "https://yugipedia.com/wiki/PGR redirige vers « Premium Gold Rare »"
+  },
+  {
+    "abreviation": "NPR",
+    "canonique": "Normal Parallel Rare",
+    "source": "yugipedia",
+    "preuve": "https://yugipedia.com/wiki/NPR redirige vers « Normal Parallel Rare » (la « Common Parallel Rare » des Options)"
+  },
+  {
+    "abreviation": "NR",
+    "canonique": "Normal Rare",
+    "source": "yugipedia",
+    "preuve": "https://yugipedia.com/wiki/NR redirige vers « Normal Rare » : rareté OCG du slot rare, imprimée comme une Common"
+  },
+  {
+    "abreviation": "SSP",
+    "canonique": "Short Print",
+    "source": "yugipedia",
+    "preuve": "https://yugipedia.com/wiki/SSP redirige vers « Short Print »"
+  },
+  {
+    "abreviation": "Super Short Print",
+    "canonique": "Short Print",
+    "source": "yugipedia",
+    "preuve": "https://yugipedia.com/wiki/Super_Short_Print redirige vers « Short Print »"
   }
 ]

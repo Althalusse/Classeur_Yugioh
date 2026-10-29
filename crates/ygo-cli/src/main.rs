@@ -136,6 +136,12 @@ async fn executer() -> anyhow::Result<bool> {
         "simuler-numeros" => {
             cmd_simuler_numeros(&cible.context("chemin de l'installation attendu")?, reste).await
         }
+        "comparer-raretes" => {
+            cmd_comparer_raretes(&cible.context("chemin de l'installation attendu")?).await
+        }
+        "simuler-langue" => {
+            cmd_simuler_langue(&cible.context("chemin de l'installation attendu")?, reste).await
+        }
         "raretes-fantomes" => {
             cmd_raretes_fantomes(&cible.context("chemin de l'installation attendu")?, reste).await
         }
@@ -223,6 +229,16 @@ USAGE
                                    connaît et que la base a perdus (LOCH-JP013…)
         [--corriger]                  écrit — sans lui, rien n'est modifié
         [--classeur CODE]             se limite à un classeur
+  ygo-cli comparer-raretes <installation>  chaque libellé de rareté connu (base, Options,
+                                   référentiel, alias, Set lists en cache) confronté à
+                                   Yugipedia (redirections suivies) ; rapport dans
+                                   comparaison_raretes.md, rien n'est modifié
+  ygo-cli simuler-langue <installation>  ESSAI À BLANC : les Set lists Yugipedia FR et
+                                   EN de chaque classeur TCG (et des sets demandés),
+                                   croisées numéro à numéro ; rapport dans
+                                   simulation_langue.md, rien n'est modifié
+        [--sets NOM1;NOM2]            sets non créés à ajouter, par nom anglais
+        [--nombre N] [--graine G]     N sets TCG de la base tirés au sort en plus
   ygo-cli raretes-fantomes <installation>  les raretés que ni la Set list Yugipedia ni
                                    la base ne connaissent au numéro (force-SMW sur
                                    RA05-EN136) ; les possédées ne sont que signalées
@@ -1197,6 +1213,590 @@ async fn cmd_raretes_fantomes(installation: &Path, args: &[String]) -> anyhow::R
         println!("Relancer avec --corriger pour écrire.");
     }
     Ok(true)
+}
+
+/// La place d'un numéro dans son set, langue retirée : `RA05-FR136` →
+/// `RA05|136`, `LDK2-ENK01` → `LDK2|K01`, `LOB-F001` / `LOB-E001` /
+/// `LOB-001` → `LOB|001`. C'est ce qui apparie une carte FR à sa jumelle EN.
+fn place_du_numero(numero: &str) -> Option<String> {
+    let numero = numero.trim().to_ascii_uppercase();
+    let (prefixe, reste) = numero.rsplit_once('-')?;
+    let mut place = reste;
+    for langue in [
+        "EN", "FR", "DE", "IT", "SP", "PT", "E", "F", "G", "I", "S", "P",
+    ] {
+        if let Some(apres) = reste.strip_prefix(langue) {
+            if apres
+                .chars()
+                .next()
+                .is_some_and(|c| c.is_ascii_alphanumeric())
+            {
+                place = apres;
+                break;
+            }
+        }
+    }
+    (!prefixe.is_empty() && !place.is_empty()).then(|| format!("{prefixe}|{place}"))
+}
+
+/// Ce qu'une Set list dit d'un set : place → (numéro, raretés canoniques).
+fn par_place(
+    entrees: &[ygo_sources::yugipedia::EntreeSetList],
+    raretes: &Priorites,
+) -> BTreeMap<String, (String, BTreeSet<String>)> {
+    let mut sortie: BTreeMap<String, (String, BTreeSet<String>)> = BTreeMap::new();
+    for e in entrees {
+        // Une entrée sans rareté n'est pas une carte : les « Strategy
+        // Cards » des Duelist Packs (`DP07-FR01` « Extra draw with Rainbow
+        // Ruins! »), simulation du 2026-10-29.
+        if e.raretes.iter().all(|r| r.trim().is_empty()) {
+            continue;
+        }
+        let Some(place) = place_du_numero(&e.numero) else {
+            continue;
+        };
+        let entree = sortie
+            .entry(place)
+            .or_insert_with(|| (e.numero.trim().to_uppercase(), BTreeSet::new()));
+        for r in &e.raretes {
+            entree.1.insert(ygo_core::rarity::canon::cle(r, raretes));
+        }
+    }
+    sortie
+}
+
+/// La page Set list d'une région précise — jamais celle d'une autre, à
+/// l'inverse de `choisir_page_du_set` : on mesure ce qui existe.
+fn page_de_region<'a>(titres: &'a [String], nom: &str, regions: &[&str]) -> Option<&'a str> {
+    regions.iter().find_map(|r| {
+        let exact = format!("Set Card Lists:{nom} ({r})");
+        titres.iter().find(|t| **t == exact).map(String::as_str)
+    })
+}
+
+/// `simuler-langue` — essai à blanc de la création en français, avec les
+/// règles retenues le 2026-10-29 : la Set list FR croisée avec l'EN, et un
+/// **bilan** où chaque numéro de la référence tombe dans une case.
+///
+/// - jumelle FR trouvée → ligne FR ;
+/// - préfixe étranger au set (`TKN5-EN006` dans INFO) → code EN repris ;
+/// - même préfixe, pas de jumelle FR → ligne gardée, « code FR à confirmer » ;
+/// - numéro FR sans jumelle EN → ligne FR seule (exclusivité européenne) ;
+/// - carte introuvable dans la base (jumelle, code FR, nom) → « sans fiche » ;
+/// - moins de 90 % d'appariement → on proposerait l'EN.
+///
+/// Rien n'est écrit, hormis le rapport. Les requêtes passent par le client
+/// de l'application : une par seconde, cache de trente jours.
+async fn cmd_simuler_langue(installation: &Path, args: &[String]) -> anyhow::Result<bool> {
+    use std::fmt::Write as _;
+    use ygo_sources::yugipedia;
+
+    let valeur = |cle: &str| {
+        args.iter()
+            .position(|a| a == cle)
+            .and_then(|i| args.get(i + 1))
+            .cloned()
+    };
+    let paths = Paths::depuis_racine(installation);
+    ygo_sources::cache::activer(&paths.cache_http());
+    let raretes = Priorites::charger(paths.rarity_config());
+    let client = ygo_sources::ClientHttp::new()?;
+    let cardinfo = connexion::ouvrir_lecture_seule(paths.cardinfo_db())?;
+
+    // (étiquette, nom du set) : les classeurs TCG, les sets demandés, puis
+    // un tirage au sort dans la base.
+    let mut sets: Vec<(String, String)> = Vec::new();
+    let mut ocg: Vec<String> = Vec::new();
+    let mut deja: BTreeSet<String> = BTreeSet::new();
+    for code in paths.classeurs_existants() {
+        if code.ends_with("-JP") || code.ends_with("-KR") {
+            ocg.push(code);
+            continue;
+        }
+        let Ok(conn) = connexion::ouvrir_lecture_seule(paths.classeur_db(&code)) else {
+            continue;
+        };
+        match artworks::lire_inventaire(&conn) {
+            Ok((_, nom)) if !nom.is_empty() => {
+                deja.insert(nom.clone());
+                sets.push((code, nom));
+            }
+            _ => println!("{code:10} nom du set inconnu — sauté"),
+        }
+    }
+    if let Some(liste) = valeur("--sets") {
+        for nom in liste.split(';').map(str::trim).filter(|n| !n.is_empty()) {
+            if deja.insert(nom.to_owned()) {
+                sets.push(("demandé".to_owned(), nom.to_owned()));
+            }
+        }
+    }
+    let nombre: usize = valeur("--nombre").and_then(|n| n.parse().ok()).unwrap_or(0);
+    if nombre > 0 {
+        let graine: u64 = valeur("--graine")
+            .and_then(|n| n.parse().ok())
+            .unwrap_or(20_261_029);
+        for nom in sets_tcg_au_hasard(&cardinfo, &deja, nombre, graine)? {
+            sets.push(("tirage".to_owned(), nom));
+        }
+    }
+    println!(
+        "{} set(s) à simuler — environ {} s de requêtes Yugipedia",
+        sets.len(),
+        sets.len() * 3
+    );
+
+    // Ce que la base connaît, par langue, pour un nom de set.
+    let en_base = |nom: &str, langue: &str| -> usize {
+        cardinfo
+            .query_row(
+                "SELECT COUNT(DISTINCT sp.set_code) FROM set_prints sp
+                   JOIN set_locales l ON l.id = sp.set_locale_id
+                   JOIN sets s ON s.uuid = l.set_uuid
+                  WHERE s.name_en = ?1 AND l.language = ?2",
+                [nom, langue],
+                |l| l.get::<_, i64>(0),
+            )
+            .map_or(0, |n| usize::try_from(n).unwrap_or(0))
+    };
+    let mut q_code = cardinfo.prepare("SELECT 1 FROM set_prints WHERE set_code = ?1 LIMIT 1")?;
+    let mut q_nom = cardinfo.prepare(
+        "SELECT 1 FROM card_texts WHERE language = 'en' AND name = ?1 COLLATE NOCASE LIMIT 1",
+    )?;
+    let mut a_une_fiche = |codes: &[&str], nom: &str| -> bool {
+        codes.iter().any(|c| q_code.exists([c]).unwrap_or(false))
+            || (!nom.is_empty() && q_nom.exists([nom]).unwrap_or(false))
+    };
+
+    let mut rapport = String::new();
+    writeln!(rapport, "# Simulation — classeurs en français (bilan)\n")?;
+    writeln!(
+        rapport,
+        "Essai à blanc du {} — {} set(s). Chaque numéro de la Set list EN et FR de \
+         Yugipedia est classé : **FR** (jumelle trouvée), **EN repris** (préfixe \
+         étranger au set, ex. tokens TKN5), **à confirmer** (pas encore de code FR), \
+         **FR seule** (sans jumelle EN). « Sans fiche » : ni la jumelle, ni le code, \
+         ni le nom ne sont dans la base (YGOPRODeck serait tenté). Rien n'a été \
+         modifié.\n",
+        chrono::Local::now().format("%Y-%m-%d %H:%M"),
+        sets.len()
+    )?;
+    writeln!(
+        rapport,
+        "| Origine | Set | Base EN / FR | Yugipedia EN / FR | FR | EN repris | \
+         À confirmer | FR seule | Raretés ≠ | Sans fiche | Appariement | Verdict |"
+    )?;
+    writeln!(rapport, "|---|---|---|---|---|---|---|---|---|---|---|---|")?;
+    let mut details = String::new();
+    let mut verdicts: BTreeMap<String, usize> = BTreeMap::new();
+
+    for (etiquette, nom) in &sets {
+        let (base_en, base_fr) = (en_base(nom, "en"), en_base(nom, "fr"));
+        let mut ligne_simple = |verdict: &str, rapport: &mut String| -> anyhow::Result<()> {
+            *verdicts.entry(verdict.to_owned()).or_default() += 1;
+            writeln!(
+                rapport,
+                "| {etiquette} | {nom} | {base_en} / {base_fr} | | | | | | | | | {verdict} |"
+            )?;
+            println!("{etiquette:8} {nom} — {verdict}");
+            Ok(())
+        };
+        let titres = match yugipedia::resoudre_pages(&client, nom, None).await {
+            Ok(t) => t,
+            Err(_) => {
+                ligne_simple("erreur Yugipedia", &mut rapport)?;
+                continue;
+            }
+        };
+        let page_en = page_de_region(&titres, nom, &["TCG-EN", "TCG-NA", "TCG-EU"]);
+        let page_fr = page_de_region(&titres, nom, &["TCG-FR"]);
+        let lire = |page: Option<&str>| {
+            let client = &client;
+            let page = page.map(str::to_owned);
+            async move {
+                match page {
+                    Some(p) => yugipedia::lire_set_list(client, &p)
+                        .await
+                        .map(|(e, _)| Some(e)),
+                    None => Ok(None),
+                }
+            }
+        };
+        // Une page qui existe mais ne se lit pas n'est pas une page absente.
+        let (en, fr) = match (lire(page_en).await, lire(page_fr).await) {
+            (Ok(en), Ok(fr)) => (en, fr),
+            _ => {
+                ligne_simple("Set list non lue", &mut rapport)?;
+                continue;
+            }
+        };
+        let Some(en_brut) = en else {
+            ligne_simple("pas de Set list EN", &mut rapport)?;
+            continue;
+        };
+        let Some(fr_brut) = fr else {
+            let v = if base_fr > 0 {
+                "pas de page FR (base seule)"
+            } else {
+                "pas de page FR"
+            };
+            ligne_simple(v, &mut rapport)?;
+            continue;
+        };
+        let noms_en: BTreeMap<String, String> = en_brut
+            .iter()
+            .filter_map(|e| Some((place_du_numero(&e.numero)?, e.nom.clone())))
+            .collect();
+        let noms_fr: BTreeMap<String, String> = fr_brut
+            .iter()
+            .filter_map(|e| Some((place_du_numero(&e.numero)?, e.nom.clone())))
+            .collect();
+        let en = par_place(&en_brut, &raretes);
+        let fr = par_place(&fr_brut, &raretes);
+
+        // Le préfixe du set : le plus fréquent de la liste EN.
+        let prefixe_de = |n: &str| n.split('-').next().unwrap_or_default().to_owned();
+        let mut frequences: BTreeMap<String, usize> = BTreeMap::new();
+        for (n, _) in en.values() {
+            *frequences.entry(prefixe_de(n)).or_default() += 1;
+        }
+        let prefixe = frequences
+            .iter()
+            .max_by_key(|(_, n)| **n)
+            .map(|(p, _)| p.clone())
+            .unwrap_or_default();
+
+        let (mut lignes_fr, mut repris, mut a_confirmer, mut fr_seules) = (0, 0, 0, 0);
+        let (mut sans_fiche, mut differentes) = (Vec::new(), Vec::new());
+        let (mut liste_confirmer, mut liste_seules) = (Vec::new(), Vec::new());
+        for (place, (numero_en, r_en)) in &en {
+            let nom_carte = noms_en.get(place).map_or("", String::as_str);
+            match fr.get(place) {
+                Some((numero_fr, r_fr)) => {
+                    lignes_fr += 1;
+                    if r_fr != r_en {
+                        differentes.push(format!("{numero_fr} : FR {r_fr:?} / EN {r_en:?}"));
+                    }
+                    if !a_une_fiche(&[numero_en, numero_fr], nom_carte) {
+                        sans_fiche.push(numero_fr.clone());
+                    }
+                }
+                None if prefixe_de(numero_en) != prefixe => {
+                    repris += 1;
+                    if !a_une_fiche(&[numero_en], nom_carte) {
+                        sans_fiche.push(numero_en.clone());
+                    }
+                }
+                None => {
+                    a_confirmer += 1;
+                    liste_confirmer.push(numero_en.clone());
+                    if !a_une_fiche(&[numero_en], nom_carte) {
+                        sans_fiche.push(numero_en.clone());
+                    }
+                }
+            }
+        }
+        for (place, (numero_fr, _)) in &fr {
+            if en.contains_key(place) {
+                continue;
+            }
+            fr_seules += 1;
+            liste_seules.push(numero_fr.clone());
+            let nom_carte = noms_fr.get(place).map_or("", String::as_str);
+            if !a_une_fiche(&[numero_fr], nom_carte) {
+                sans_fiche.push(numero_fr.clone());
+            }
+        }
+        // Le bilan : chaque numéro est dans une case, et une seule.
+        let classes = lignes_fr + repris + a_confirmer;
+        let bilan_juste = classes == en.len() && lignes_fr + fr_seules == fr.len();
+        let propres = en
+            .values()
+            .filter(|(n, _)| prefixe_de(n) == prefixe)
+            .count()
+            .max(1);
+        #[allow(clippy::cast_precision_loss)]
+        let appariement = lignes_fr as f64 * 100.0 / propres as f64;
+        let verdict = if !bilan_juste {
+            "BILAN FAUX"
+        } else if appariement < 90.0 {
+            "proposer l'EN (appariement < 90 %)"
+        } else if a_confirmer == 0
+            && fr_seules == 0
+            && differentes.is_empty()
+            && sans_fiche.is_empty()
+        {
+            "FR complet"
+        } else {
+            "FR avec signalements"
+        };
+        *verdicts.entry(verdict.to_owned()).or_default() += 1;
+        writeln!(
+            rapport,
+            "| {etiquette} | {nom} | {base_en} / {base_fr} | {} / {} | {lignes_fr} | {repris} | \
+             {a_confirmer} | {fr_seules} | {} | {} | {appariement:.0} % | {verdict} |",
+            en.len(),
+            fr.len(),
+            differentes.len(),
+            sans_fiche.len()
+        )?;
+        println!(
+            "{etiquette:8} {nom} — FR {lignes_fr} · EN repris {repris} · à confirmer {a_confirmer} · \
+             FR seule {fr_seules} · raretés ≠ {} · sans fiche {} · {appariement:.0} % · {verdict}",
+            differentes.len(),
+            sans_fiche.len()
+        );
+        let extrait = |v: &[String]| {
+            let mut t: Vec<String> = v.iter().take(12).cloned().collect();
+            if v.len() > 12 {
+                t.push(format!("… (+{})", v.len() - 12));
+            }
+            t.join(", ")
+        };
+        if !liste_confirmer.is_empty()
+            || !liste_seules.is_empty()
+            || !differentes.is_empty()
+            || !sans_fiche.is_empty()
+        {
+            writeln!(details, "\n### {nom} ({etiquette})\n")?;
+            if !liste_confirmer.is_empty() {
+                writeln!(details, "- à confirmer : {}", extrait(&liste_confirmer))?;
+            }
+            if !liste_seules.is_empty() {
+                writeln!(details, "- FR seule : {}", extrait(&liste_seules))?;
+            }
+            for d in differentes.iter().take(12) {
+                writeln!(details, "- rareté différente — {d}")?;
+            }
+            if !sans_fiche.is_empty() {
+                writeln!(
+                    details,
+                    "- sans fiche dans la base : {}",
+                    extrait(&sans_fiche)
+                )?;
+            }
+        }
+    }
+    writeln!(rapport, "\n## Synthèse\n")?;
+    for (v, n) in &verdicts {
+        writeln!(rapport, "- {v} : {n}")?;
+    }
+    if !ocg.is_empty() {
+        writeln!(
+            rapport,
+            "\nClasseurs japonais, sans objet (pas de version française) : {}.",
+            ocg.join(", ")
+        )?;
+    }
+    if !details.is_empty() {
+        writeln!(rapport, "\n## Détail des signalements\n{details}")?;
+    }
+    let chemin = installation.join("simulation_langue.md");
+    std::fs::write(&chemin, rapport)?;
+    println!("\nSynthèse :");
+    for (v, n) in &verdicts {
+        println!("  {v} : {n}");
+    }
+    println!("Rapport : {}", chemin.display());
+    Ok(true)
+}
+
+/// `comparer-raretes` — chaque libellé de rareté que l'application peut
+/// rencontrer, confronté à Yugipedia (2026-10-29).
+///
+/// Sur Yugipedia, une abréviation ou un ancien nom de rareté est une page qui
+/// **redirige** vers la page de la rareté (`AltR` → « Starlight Rare ») : la
+/// page d'arrivée dit le nom qui fait référence. Les libellés viennent de la
+/// base (YGOJSON), des Options, du référentiel et de ses alias (dont ceux de
+/// YGOPRODeck), et des Set lists déjà en cache. Une requête pour cinquante
+/// libellés, gardée trente jours.
+async fn cmd_comparer_raretes(installation: &Path) -> anyhow::Result<bool> {
+    use std::fmt::Write as _;
+    use ygo_core::rarity::canon::{canoniser, cle};
+
+    let paths = Paths::depuis_racine(installation);
+    ygo_sources::cache::activer(&paths.cache_http());
+    let priorites = Priorites::charger(paths.rarity_config());
+    let client = ygo_sources::ClientHttp::new()?;
+
+    // libellé → sources où on l'a vu (et nombre d'occurrences).
+    let mut vus: BTreeMap<String, BTreeMap<&'static str, usize>> = BTreeMap::new();
+    let mut noter = |libelle: &str, source: &'static str, n: usize| {
+        let l = libelle.trim();
+        if !l.is_empty() {
+            *vus.entry(l.to_owned())
+                .or_default()
+                .entry(source)
+                .or_default() += n;
+        }
+    };
+    if let Ok(cardinfo) = connexion::ouvrir_lecture_seule(paths.cardinfo_db()) {
+        let mut q = cardinfo.prepare(
+            "SELECT rarity, COUNT(*) FROM set_prints WHERE COALESCE(rarity, '') <> '' GROUP BY rarity",
+        )?;
+        let lignes = q.query_map([], |l| Ok((l.get::<_, String>(0)?, l.get::<_, i64>(1)?)))?;
+        for l in lignes {
+            let (r, n) = l?;
+            noter(&r, "base", usize::try_from(n).unwrap_or(0));
+        }
+    }
+    if let Ok(texte) = std::fs::read_to_string(paths.rarity_config()) {
+        if let Ok(serde_json::Value::Object(o)) = serde_json::from_str::<serde_json::Value>(&texte)
+        {
+            for k in o.keys() {
+                noter(k, "Options", 1);
+            }
+        }
+    }
+    for r in ygo_core::rarity::reference::table() {
+        noter(&r.en, "référentiel", 1);
+        for a in &r.alias {
+            noter(a, "référentiel (alias)", 1);
+        }
+    }
+    for a in ygo_core::rarity::canon::alias() {
+        let source = if a.source == "ygoprodeck" {
+            "YGOPRODeck"
+        } else {
+            "alias Yugipedia"
+        };
+        noter(&a.abreviation, source, 1);
+        noter(&a.canonique, source, 1);
+    }
+    let mut pages = 0usize;
+    if let Ok(dossier) = std::fs::read_dir(paths.cache_http().join("reponses")) {
+        for f in dossier.flatten() {
+            let Ok(texte) = std::fs::read_to_string(f.path()) else {
+                continue;
+            };
+            if !texte.contains("Set Card Lists:") {
+                continue;
+            }
+            let Ok(v) = serde_json::from_str::<serde_json::Value>(&texte) else {
+                continue;
+            };
+            let titre = v
+                .pointer("/parse/title")
+                .and_then(serde_json::Value::as_str);
+            let wikitext = v
+                .pointer("/parse/wikitext")
+                .and_then(serde_json::Value::as_str);
+            let (Some(titre), Some(wikitext)) = (titre, wikitext) else {
+                continue;
+            };
+            if !titre.starts_with("Set Card Lists:") {
+                continue;
+            }
+            pages += 1;
+            for e in ygo_sources::yugipedia::parse_set_list(wikitext) {
+                for r in &e.raretes {
+                    noter(r, "Set lists", 1);
+                }
+            }
+        }
+    }
+    let libelles: Vec<String> = vus.keys().cloned().collect();
+    println!(
+        "{} libellé(s) — {pages} Set list(s) en cache — {} requête(s) Yugipedia",
+        libelles.len(),
+        libelles.len().div_ceil(50)
+    );
+    let fiches = ygo_sources::yugipedia::fiches(&client, &libelles).await?;
+
+    let mut rapport = String::new();
+    writeln!(
+        rapport,
+        "# Raretés — l'application face à Yugipedia
+"
+    )?;
+    writeln!(
+        rapport,
+        "Comparaison du {} : {} libellés vus dans la base, les Options, le \
+         référentiel, ses alias (dont ceux de YGOPRODeck) et {pages} Set lists \
+         en cache. **Yugipedia** : la page où mène le libellé, redirections \
+         suivies. **Application** : ce que la canonisation en fait.\n",
+        chrono::Local::now().format("%Y-%m-%d %H:%M"),
+        libelles.len()
+    )?;
+    let mut groupes: BTreeMap<&str, Vec<String>> = BTreeMap::new();
+    for l in &libelles {
+        let sources = vus
+            .get(l)
+            .into_iter()
+            .flatten()
+            .map(|(s, n)| {
+                if *n > 1 {
+                    format!("{s} ({n})")
+                } else {
+                    (*s).to_owned()
+                }
+            })
+            .collect::<Vec<_>>()
+            .join(", ");
+        let appli = canoniser(l, &priorites).map(|c| c.libelle);
+        let yp = fiches.get(l).map(|f| f.titre.clone());
+        let verdict = match (&appli, &yp) {
+            (Some(a), Some(y)) if cle(a, &priorites) == cle(y, &priorites) => "1. accord",
+            (Some(_), Some(_)) => "2. désaccord",
+            (None, Some(_)) => "3. inconnu de l'application, connu de Yugipedia",
+            (Some(_), None) => "4. sans page Yugipedia",
+            (None, None) => "5. inconnu des deux",
+        };
+        groupes.entry(verdict).or_default().push(format!(
+            "| {l} | {} | {} | {sources} |",
+            appli.as_deref().unwrap_or("—"),
+            yp.as_deref().unwrap_or("—")
+        ));
+    }
+    for (verdict, lignes) in &groupes {
+        writeln!(rapport, "\n## {verdict} ({})\n", lignes.len())?;
+        writeln!(rapport, "| Libellé | Application | Yugipedia | Vu dans |")?;
+        writeln!(rapport, "|---|---|---|---|")?;
+        for l in lignes {
+            writeln!(rapport, "{l}")?;
+        }
+        println!("{verdict} : {}", lignes.len());
+    }
+    let chemin = installation.join("comparaison_raretes.md");
+    std::fs::write(&chemin, rapport)?;
+    println!("Rapport : {}", chemin.display());
+    Ok(true)
+}
+
+/// Des sets TCG de la base, tirés au sort : au moins vingt tirages en
+/// anglais, hors ceux déjà dans la liste. Un générateur congruentiel
+/// suffit : la même graine redonne le même échantillon.
+fn sets_tcg_au_hasard(
+    cardinfo: &rusqlite::Connection,
+    deja: &BTreeSet<String>,
+    nombre: usize,
+    graine: u64,
+) -> anyhow::Result<Vec<String>> {
+    let mut q = cardinfo.prepare(
+        "SELECT DISTINCT s.name_en FROM sets s
+           JOIN set_locales l ON l.set_uuid = s.uuid
+           JOIN set_prints sp ON sp.set_locale_id = l.id
+          WHERE l.language = 'en' AND COALESCE(s.name_en, '') <> ''
+          GROUP BY l.id HAVING COUNT(sp.id) >= 20",
+    )?;
+    let mut noms: Vec<String> = q
+        .query_map([], |l| l.get::<_, String>(0))?
+        .collect::<rusqlite::Result<BTreeSet<String>>>()?
+        .into_iter()
+        .filter(|n| !deja.contains(n))
+        .collect();
+    let mut etat = graine
+        .wrapping_mul(6_364_136_223_846_793_005)
+        .wrapping_add(1);
+    for i in (1..noms.len()).rev() {
+        etat = etat
+            .wrapping_mul(6_364_136_223_846_793_005)
+            .wrapping_add(1_442_695_040_888_963_407);
+        let j = usize::try_from((etat >> 33) % (i as u64 + 1)).unwrap_or(0);
+        noms.swap(i, j);
+    }
+    noms.truncate(nombre);
+    Ok(noms)
 }
 
 /// Les sets à simuler : ceux demandés, ou un tirage reproductible.
@@ -3277,4 +3877,23 @@ fn jauge(pourcentage: f64) -> String {
         .round()
         .clamp(0.0, LARGEUR as f64) as usize;
     format!("[{}{}]", "█".repeat(pleines), "░".repeat(LARGEUR - pleines))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::place_du_numero;
+
+    /// Une carte FR et sa jumelle EN ont la même place, quels que soient
+    /// l'époque et le format du code.
+    #[test]
+    fn une_carte_fr_et_sa_jumelle_en_ont_la_meme_place() {
+        assert_eq!(place_du_numero("RA05-FR136"), place_du_numero("RA05-EN136"));
+        assert_eq!(place_du_numero("RA05-FR136").as_deref(), Some("RA05|136"));
+        assert_eq!(place_du_numero("LDK2-FRK01"), place_du_numero("LDK2-ENK01"));
+        assert_eq!(place_du_numero("LDK2-ENK01").as_deref(), Some("LDK2|K01"));
+        assert_eq!(place_du_numero("LOB-F001"), place_du_numero("LOB-E001"));
+        assert_eq!(place_du_numero("LOB-F001"), place_du_numero("LOB-001"));
+        assert_ne!(place_du_numero("RA05-FR136"), place_du_numero("RA05-FR137"));
+        assert_eq!(place_du_numero("PROMO"), None);
+    }
 }

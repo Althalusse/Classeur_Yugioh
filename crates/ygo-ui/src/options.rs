@@ -162,6 +162,8 @@ pub struct EcranOptions {
     langue: Langue,
     ui_langue: Langue,
     source: SourceImage,
+    /// La langue des annonces Cardmarket.
+    annonces: ygo_core::cardmarket::LangueDesAnnonces,
     grille: (u8, u8),
     ordre: [CritereTri; 3],
     n_raretes: u8,
@@ -257,6 +259,7 @@ impl EcranOptions {
             langue: config.langue(),
             ui_langue: config.ui_langue(),
             source: config.source_image(),
+            annonces: config.annonces_cardmarket(),
             grille: config.grille_defaut(),
             ordre: config.ordre_tri(),
             n_raretes: config.n_raretes_par_artwork(),
@@ -527,6 +530,22 @@ impl EcranOptions {
                         self.consequences.relire_classeur = true;
                     }
                 }
+            });
+
+            ligne(ui, "Annonces Cardmarket", |ui| {
+                let mut annonces = self.annonces;
+                if choix_annonces(ui, "annonces-options", &mut annonces) {
+                    if let Some(v) = self.ecrire(
+                        "annonces Cardmarket",
+                        self.config.definir_annonces_cardmarket(annonces),
+                    ) {
+                        self.annonces = v;
+                    }
+                }
+                ui.small(
+                    "la page d'une carte s'ouvre sur les annonces dans la langue de vos \
+                     exemplaires — cartes TCG ; modifiable par classeur",
+                );
             });
 
             ligne(ui, "Grille par défaut", |ui| {
@@ -1277,6 +1296,24 @@ fn ligne(ui: &mut egui::Ui, intitule: &str, contenu: impl FnOnce(&mut egui::Ui))
         contenu(ui);
     });
     ui.add_space(6.0);
+}
+
+/// La liste des langues d'annonces Cardmarket. Rend `true` si le choix a
+/// changé.
+pub fn choix_annonces(
+    ui: &mut egui::Ui,
+    id: &str,
+    annonces: &mut ygo_core::cardmarket::LangueDesAnnonces,
+) -> bool {
+    let avant = *annonces;
+    egui::ComboBox::from_id_salt(id)
+        .selected_text(annonces.libelle())
+        .show_ui(ui, |ui| {
+            for l in ygo_core::cardmarket::LangueDesAnnonces::toutes() {
+                ui.selectable_value(annonces, l, l.libelle());
+            }
+        });
+    *annonces != avant
 }
 
 fn choix_langue(ui: &mut egui::Ui, id: &str, langue: &mut Langue) -> bool {

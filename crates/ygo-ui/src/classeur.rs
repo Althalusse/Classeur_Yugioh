@@ -1061,7 +1061,11 @@ impl EcranClasseur {
         };
         let defaut = {
             let config = Config::charger(self.paths.app_config());
-            (config.grille_defaut(), config.ordre_tri())
+            (
+                config.grille_defaut(),
+                config.ordre_tri(),
+                config.annonces_cardmarket(),
+            )
         };
         let mut ouverte = true;
         let mut valide = false;
@@ -1182,6 +1186,34 @@ impl EcranClasseur {
                     if let Some(neuf) = nouvel_ordre {
                         reglages.ordre = Some(neuf);
                     }
+                }
+
+                ui.add_space(12.0);
+
+                // ── La langue des exemplaires, pour Cardmarket ───────────
+                let mut suit_annonces = reglages.annonces.is_none();
+                if ui
+                    .checkbox(
+                        &mut suit_annonces,
+                        format!(
+                            "Annonces Cardmarket : suivre les Options ({})",
+                            defaut.2.libelle()
+                        ),
+                    )
+                    .on_hover_text(
+                        "La page Cardmarket d'une carte s'ouvre sur les annonces dans la \
+                         langue de vos exemplaires. Les prix affichés, eux, restent toutes \
+                         langues confondues.",
+                    )
+                    .changed()
+                {
+                    reglages.annonces = if suit_annonces { None } else { Some(defaut.2) };
+                }
+                if let Some(annonces) = &mut reglages.annonces {
+                    ui.horizontal(|ui| {
+                        ui.add_space(24.0);
+                        crate::options::choix_annonces(ui, "annonces-classeur", annonces);
+                    });
                 }
 
                 ui.add_space(14.0);

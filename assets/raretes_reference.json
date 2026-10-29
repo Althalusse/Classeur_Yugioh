@@ -4,8 +4,7 @@
   "fr": "Commune",
   "en": "Common",
   "alias": [
-   "Short Print",
-   "Super Short Print"
+   "Short Print"
   ]
  },
  {
@@ -234,7 +233,9 @@
   "code": "STR",
   "fr": "Starlight Rare",
   "en": "Starlight Rare",
-  "alias": []
+  "alias": [
+   "Alternate Rare"
+  ]
  },
  {
   "code": "GMR",
@@ -287,6 +288,12 @@
   "code": "HGR",
   "fr": "Holographic Rare",
   "en": "Holographic Rare",
+  "alias": []
+ },
+ {
+  "code": "NR",
+  "fr": "Normal Rare",
+  "en": "Normal Rare",
   "alias": []
  }
 ]

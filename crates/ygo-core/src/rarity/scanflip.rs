@@ -377,9 +377,9 @@ mod tests {
         seulement_python.sort_unstable();
         assert_eq!(
             seulement_python,
-            vec![&"GMR", &"HGR"],
-            "Grand Master Rare et Holographic Rare (2026-10-26) sont des raretés OCG \
-             que Scanflip ignore"
+            vec![&"GMR", &"HGR", &"NR"],
+            "Grand Master Rare, Holographic Rare (2026-10-26) et Normal Rare \
+             (2026-10-29) sont des raretés OCG que Scanflip ignore"
         );
     }
 

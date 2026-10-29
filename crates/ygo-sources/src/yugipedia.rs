@@ -173,8 +173,21 @@ fn trouver_ascii_insensible(foin: &[u8], aiguille: &[u8], depuis: usize) -> Opti
 /// Portage de `_clean` : `[[Blue-Eyes White Dragon|Blue-Eyes]]` devient
 /// `Blue-Eyes`, `[[Dark Magician]]` devient `Dark Magician`, puis les entités
 /// HTML sont décodées et les espaces de bord retirés.
+///
+/// Les modèles d'échappement de MediaWiki sont rendus à leur caractère :
+/// `{{=}}` → `=`, `{{!}}` → `|`. Sans cela, « Sky Striker Ace {{=}} Zero »
+/// ne retrouvait pas sa carte (simulation du 2026-10-29 : `DUAD-FR049`,
+/// `L26D-FRS34`, `TAEV-FR067` « Damage {{=}} Reptile »).
+///
+/// ```
+/// use ygo_sources::yugipedia::nettoyer;
+/// assert_eq!(nettoyer("Sky Striker Ace {{=}} Zero"), "Sky Striker Ace = Zero");
+/// assert_eq!(nettoyer("[[Damage {{=}} Reptile]]"), "Damage = Reptile");
+/// assert_eq!(nettoyer("A {{!}} B"), "A | B");
+/// ```
 pub fn nettoyer(texte: &str) -> String {
-    let sans_liens = regex_lien().replace_all(texte, "$1");
+    let texte = texte.replace("{{=}}", "=").replace("{{!}}", "|");
+    let sans_liens = regex_lien().replace_all(&texte, "$1");
     html_escape::decode_html_entities(&sans_liens)
         .chars()
         .filter(|c| !invisible(*c))
