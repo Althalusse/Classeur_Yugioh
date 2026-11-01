@@ -5,7 +5,7 @@ classeur : chaque tirage à sa place, avec sa rareté, son illustration et son
 édition, et pour chaque carte possédée, l'état de chaque exemplaire.
 
 Application de bureau pour **Windows**, écrite en **Rust** (interface egui).
-Version actuelle : **2.0.11**.
+Version actuelle : **2.0.12**.
 
 > Projet de fan, non officiel, sans lien avec Konami ni avec Cardmarket.
 > *Yu-Gi-Oh!* et les illustrations des cartes appartiennent à leurs ayants
@@ -18,7 +18,10 @@ Version actuelle : **2.0.11**.
 
 - **Un classeur par set** — toutes les cartes du set, page par page, dans
   l'ordre que vous choisissez (numéro, rareté, type…). Recherche, filtres,
-  saut de page, double page. La version TCG (française, anglaise…) et la
+  saut de page, double page. Au bas de chaque carte, un bandeau donne son nom,
+  son numéro, sa rareté et son prix, avec les badges *playset* et *overframe* ;
+  il se résume sur les petites cartes et se déplie au survol (on peut aussi le
+  réserver au survol). La version TCG (française, anglaise…) et la
   version japonaise (OCG) d'un set sont deux classeurs distincts, chacun avec
   ses numéros et ses raretés sous leur nom local — la Ghost Rare s'appelle
   *Holographic Rare* en OCG, comme sur la carte.

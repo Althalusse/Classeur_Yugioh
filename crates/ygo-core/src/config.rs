@@ -33,6 +33,7 @@
 //! | `maj_appli_pre_versions` | booléen | `false` | proposer aussi les Releases marquées « pre-release » |
 //! | `classeurs_alignes_version` | texte | — | version de l'application qui a réaligné les classeurs sur Yugipedia ; une autre version au démarrage relance le réalignement |
 //! | `prix_sur_les_cartes` | booléen | `true` | le prix Cardmarket au bas de chaque carte du classeur |
+//! | `bandeau_toujours_visible` | booléen | `true` | le bandeau (nom, numéro · rareté, badges et prix) au bas de chaque carte du classeur sans attendre le survol |
 //! | `annonces_cardmarket` | `"fr"`, `"en"`, `"de"`, `"it"`, `"es"`, `"pt"`, `"toutes"` | `fr` | langue des annonces sur laquelle s'ouvre la page Cardmarket d'une carte TCG ; valeur inconnue → défaut |
 //! | `inclure_sets_ocg_jp` | booléen | — | **ignorée** : l'inclusion OCG-JP est forcée depuis la V1.0.4 |
 
@@ -61,6 +62,7 @@ const CLE_MAJ_APPLI_VERIFIER: &str = "maj_appli_verifier";
 const CLE_MAJ_APPLI_PRE: &str = "maj_appli_pre_versions";
 const CLE_CLASSEURS_ALIGNES: &str = "classeurs_alignes_version";
 const CLE_PRIX_SUR_LES_CARTES: &str = "prix_sur_les_cartes";
+const CLE_BANDEAU_PERMANENT: &str = "bandeau_toujours_visible";
 const CLE_ANNONCES_CARDMARKET: &str = "annonces_cardmarket";
 
 /// Plus petite grille acceptée (`preferences._GRILLE_MIN`).
@@ -526,6 +528,15 @@ impl Config {
             .unwrap_or(true)
     }
 
+    /// Le bandeau de chaque carte du classeur — nom, numéro · rareté, badges
+    /// et prix — sans attendre le survol ? Défaut : oui.
+    pub fn bandeau_toujours_visible(&self) -> bool {
+        self.brut(CLE_BANDEAU_PERMANENT)
+            .as_ref()
+            .and_then(Value::as_bool)
+            .unwrap_or(true)
+    }
+
     /// La langue des annonces sur laquelle s'ouvre la page Cardmarket d'une
     /// carte. Défaut : le français.
     pub fn annonces_cardmarket(&self) -> crate::cardmarket::LangueDesAnnonces {
@@ -696,6 +707,16 @@ impl Config {
     /// Si `app_config.json` n'a pas pu être écrit.
     pub fn definir_prix_sur_les_cartes(&self, actif: bool) -> Result<bool> {
         self.definir(CLE_PRIX_SUR_LES_CARTES, Value::from(actif))?;
+        Ok(actif)
+    }
+
+    /// Écrit « le bandeau de chaque carte sans attendre le survol ».
+    ///
+    /// # Errors
+    ///
+    /// Si `app_config.json` n'a pas pu être écrit.
+    pub fn definir_bandeau_toujours_visible(&self, actif: bool) -> Result<bool> {
+        self.definir(CLE_BANDEAU_PERMANENT, Value::from(actif))?;
         Ok(actif)
     }
 
@@ -883,6 +904,19 @@ mod tests {
         cfg.definir_prix_sur_les_cartes(false).unwrap();
         let relu = Config::charger(tmp.path().join("app_config.json"));
         assert!(!relu.prix_sur_les_cartes());
+    }
+
+    #[test]
+    fn le_bandeau_est_permanent_par_defaut_et_se_retient() {
+        let tmp = tempfile::tempdir().unwrap();
+        let chemin = tmp.path().join("app_config.json");
+        let cfg = Config::charger(&chemin);
+        assert!(cfg.bandeau_toujours_visible());
+        cfg.definir_bandeau_toujours_visible(false).unwrap();
+        assert!(!Config::charger(&chemin).bandeau_toujours_visible());
+        // Une valeur qui n'est pas un booléen : le défaut.
+        std::fs::write(&chemin, r#"{"bandeau_toujours_visible": "non"}"#).unwrap();
+        assert!(Config::charger(&chemin).bandeau_toujours_visible());
     }
 
     #[test]

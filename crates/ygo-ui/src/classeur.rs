@@ -25,6 +25,15 @@
 //!
 //! Les badges **OVERFRAME** et **PLAYSET** gardent leur place d'origine, en bas
 //! à droite et en bas à gauche : ils sont bons et l'utilisateur les reconnaît.
+//!
+//! # Le bandeau (2026-11-01)
+//!
+//! Le nom, le numéro et la rareté ne s'affichaient qu'au survol, dans un
+//! bandeau qui cachait alors le prix et les badges. Ils forment désormais un
+//! seul bandeau, permanent : nom, puis numéro · rareté, puis PLAYSET — prix —
+//! OVERFRAME sur la ligne d'origine des badges. Sa forme suit la taille de la
+//! carte ; le dessin et ses règles vivent dans [`crate::bandeau`]. La case
+//! « Bandeau toujours visible » du menu « ⋯ » rend l'usage d'avant.
 
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
@@ -36,6 +45,7 @@ use ygo_core::paths::Paths;
 use ygo_core::rarity::Priorites;
 
 use crate::attenuation::Facteurs;
+use crate::bandeau;
 use crate::images::{Cache, Cle};
 
 /// Bornes de largeur d'une carte, en points.
@@ -139,6 +149,9 @@ pub struct EcranClasseur {
     chiffrage: crate::valeur::Calcul<Option<ygo_app::cardmarket::PrixDesLignes>>,
     /// Le prix au bas de chaque carte (Options : `prix_sur_les_cartes`) ?
     prix_sur_les_cartes: bool,
+    /// Le bandeau au bas de chaque carte sans attendre le survol (Options :
+    /// `bandeau_toujours_visible`) ?
+    bandeau_permanent: bool,
     /// L'ordre d'affichage : celui du classeur, ou par prix. Pas retenu à la
     /// fermeture, comme les filtres.
     tri_prix: TriPrix,
@@ -180,6 +193,7 @@ impl EcranClasseur {
         let francais = config.langue().code() == "FR";
         let source = config.source_image();
         let prix_sur_les_cartes = config.prix_sur_les_cartes();
+        let bandeau_permanent = config.bandeau_toujours_visible();
 
         let depart = Instant::now();
         let conn = ygo_db::connexion::ouvrir(&chemin)?;
@@ -262,6 +276,7 @@ impl EcranClasseur {
             prix: None,
             chiffrage,
             prix_sur_les_cartes,
+            bandeau_permanent,
             tri_prix: TriPrix::Classeur,
             depart: Instant::now(),
             premier_rendu: None,
@@ -951,7 +966,7 @@ impl EcranClasseur {
                 ));
                 ui.close();
             }
-            // Retenu dans les Options : il vaut pour tous les classeurs.
+            // Retenus dans les Options : ils valent pour tous les classeurs.
             if ui
                 .checkbox(&mut self.prix_sur_les_cartes, "Prix sur les cartes")
                 .on_hover_text(
@@ -963,6 +978,20 @@ impl EcranClasseur {
                 let config = Config::charger(self.paths.app_config());
                 if let Err(e) = config.definir_prix_sur_les_cartes(self.prix_sur_les_cartes) {
                     tracing::warn!(erreur = %e, "réglage « prix sur les cartes » non écrit");
+                }
+            }
+            if ui
+                .checkbox(&mut self.bandeau_permanent, "Bandeau toujours visible")
+                .on_hover_text(
+                    "Le nom, le numéro, la rareté, les badges et le prix au bas de chaque \
+                     carte, sans attendre le survol. Décoché : les badges et le prix seuls, \
+                     le bandeau au survol",
+                )
+                .changed()
+            {
+                let config = Config::charger(self.paths.app_config());
+                if let Err(e) = config.definir_bandeau_toujours_visible(self.bandeau_permanent) {
+                    tracing::warn!(erreur = %e, "réglage « bandeau toujours visible » non écrit");
                 }
             }
         })
@@ -1688,81 +1717,44 @@ impl EcranClasseur {
             );
         }
 
-        // ── Les badges du bas, à leur place d'origine ───────────────────
-        let mut badges = Vec::new();
-        if carte.quantite >= ygo_app::possession::SEUIL_PLAYSET {
-            badges.push(badge(
-                ui,
-                rect.left_bottom(),
-                false,
-                "PLAYSET",
-                COULEUR_PLAYSET,
-            ));
-        }
-        if carte.extended_art {
-            badges.push(badge(
-                ui,
-                rect.right_bottom(),
-                true,
-                "OVERFRAME",
-                COULEUR_OVERFRAME,
-            ));
-        }
-
-        // ── Le prix, au centre en bas ───────────────────────────────────
+        // ── Le bandeau : nom, numéro · rareté, badges et prix ───────────
         //
-        // Celui d'un exemplaire, tel que la valeur du classeur le compte —
-        // seulement quand la version est sûre. Sur une carte non possédée il
-        // s'atténue comme elle ; sur une carte étroite, il passe dans le coin
-        // qu'un badge laisse libre (cf. `zone_du_prix`).
-        if let Some(centimes) = self.prix_de(carte.rowid) {
-            let galee = ui.painter().layout_no_wrap(
-                crate::valeur::prix_sur_la_carte(centimes),
-                egui::FontId::proportional(10.0),
-                if possedee {
-                    egui::Color32::from_gray(240)
-                } else {
-                    egui::Color32::from_gray(150)
-                },
-            );
-            let taille = egui::vec2(galee.size().x + 12.0, HAUTEUR_BADGE);
-            if let Some(zone) = zone_du_prix(rect, taille, &badges) {
-                let fond = egui::Color32::from_black_alpha(if possedee { 200 } else { 130 });
-                ui.painter().rect_filled(zone, HAUTEUR_BADGE / 2.0, fond);
-                ui.painter().galley(
-                    zone.center() - galee.size() / 2.0,
-                    galee,
-                    egui::Color32::WHITE,
-                );
-            }
-        }
-
-        // ── Le bandeau de survol ────────────────────────────────────────
-        if survolee {
-            let bandeau = egui::Rect::from_min_max(
-                egui::pos2(rect.left(), rect.bottom() - 62.0),
-                rect.right_bottom(),
-            );
-            ui.painter()
-                .rect_filled(bandeau, 4.0, egui::Color32::from_black_alpha(205));
-            let mut haut = bandeau.left_top() + egui::vec2(6.0, 4.0);
-            for (texte, taille) in [
-                (carte.nom.as_str(), 11.0),
-                (carte.set_code.as_str(), 10.0),
-                (carte.rarete.as_str(), 10.0),
-            ] {
-                ui.painter().text(
-                    haut,
-                    egui::Align2::LEFT_TOP,
-                    texte,
-                    egui::FontId::proportional(taille),
-                    egui::Color32::from_gray(220),
-                );
-                haut.y += taille + 4.0;
-            }
-        }
+        // Le prix est celui d'un exemplaire, tel que la valeur du classeur le
+        // compte — seulement quand la version est sûre. Au repos, le bandeau
+        // prend la forme que la carte permet (ou les pastilles seules, si
+        // l'utilisateur l'a voulu) ; sous le pointeur, il est complet. Le
+        // pointeur se lit sur le rectangle et non sur `survolee` : les
+        // boutons − et + couvrent la carte, et le bandeau d'une petite carte
+        // rétrécirait à chaque passage sur eux.
+        let forme = if ui.rect_contains_pointer(rect) {
+            bandeau::Forme::Complete
+        } else if self.bandeau_permanent {
+            bandeau::Forme::au_repos(rect.height())
+        } else {
+            bandeau::Forme::Pastilles
+        };
+        let prix = self
+            .prix_de(carte.rowid)
+            .map(crate::valeur::prix_sur_la_carte);
+        let contenu = bandeau::Contenu {
+            nom: &carte.nom,
+            set_code: &carte.set_code,
+            rarete: &carte.rarete,
+            playset: carte.quantite >= ygo_app::possession::SEUIL_PLAYSET,
+            overframe: carte.extended_art,
+            prix: prix.as_deref(),
+            possedee,
+        };
+        let raccourci = bandeau::dessiner(ui.painter(), rect, &contenu, forme, survolee);
 
         // ── Le menu contextuel ──────────────────────────────────────────
+        //
+        // Et l'infobulle : ce que le bandeau a dû raccourcir s'y lit en
+        // entier.
+        let reponse = match raccourci {
+            Some(texte) => reponse.on_hover_text(texte),
+            None => reponse,
+        };
         self.menu(&reponse, carte);
     }
 
@@ -1904,10 +1896,6 @@ impl EcranClasseur {
 
 /// Doré des quantités — `C["gold"]`.
 const COULEUR_OR: egui::Color32 = egui::Color32::from_rgb(212, 175, 55);
-/// Violet du badge Overframe — `C["overframe"]`.
-const COULEUR_OVERFRAME: egui::Color32 = egui::Color32::from_rgb(138, 92, 200);
-/// Vert du badge Playset — `C["playset"]`.
-const COULEUR_PLAYSET: egui::Color32 = egui::Color32::from_rgb(64, 150, 108);
 /// Cyan du repère posé sur la carte qu'une proposition vient de montrer.
 ///
 /// Volontairement distinct de [`COULEUR_OR`] : le doré dit « tu la possèdes »,
@@ -2011,71 +1999,6 @@ pub fn texte_du_fantome(fantome: &ygo_app::raretes::Fantome) -> String {
             fantome.jumelles.join(", ")
         ),
     }
-}
-
-/// Hauteur des badges du bas de la carte, prix compris.
-const HAUTEUR_BADGE: f32 = 15.0;
-/// Écart entre un badge et le bord de la carte.
-const RETRAIT_BADGE: f32 = 4.0;
-
-/// Un badge d'angle, en bas de la carte. Rend la zone qu'il occupe.
-fn badge(
-    ui: &egui::Ui,
-    coin: egui::Pos2,
-    a_droite: bool,
-    texte: &str,
-    fond: egui::Color32,
-) -> egui::Rect {
-    let police = egui::FontId::proportional(9.0);
-    let largeur = texte.len() as f32 * 5.6 + 10.0;
-    let taille = egui::vec2(largeur, HAUTEUR_BADGE);
-    let min = if a_droite {
-        coin + egui::vec2(-taille.x - RETRAIT_BADGE, -taille.y - RETRAIT_BADGE)
-    } else {
-        coin + egui::vec2(RETRAIT_BADGE, -taille.y - RETRAIT_BADGE)
-    };
-    let zone = egui::Rect::from_min_size(min, taille);
-    ui.painter().rect_filled(zone, 3.0, fond);
-    ui.painter().text(
-        zone.center(),
-        egui::Align2::CENTER_CENTER,
-        texte,
-        police,
-        egui::Color32::WHITE,
-    );
-    zone
-}
-
-/// La place du prix, sur la ligne des badges d'angle : au centre ; sur une
-/// carte trop étroite pour l'y loger à côté d'un badge, dans le coin que ce
-/// badge laisse libre (le prix d'une Overframe reste visible) ; `None` s'il
-/// ne tient nulle part — une carte étroite, un PLAYSET et un OVERFRAME de
-/// part et d'autre.
-#[must_use]
-pub fn zone_du_prix(
-    carte: egui::Rect,
-    taille: egui::Vec2,
-    badges: &[egui::Rect],
-) -> Option<egui::Rect> {
-    let bas = carte.bottom() - RETRAIT_BADGE;
-    let a_partir_de = |gauche: f32| {
-        egui::Rect::from_min_max(
-            egui::pos2(gauche, bas - taille.y),
-            egui::pos2(gauche + taille.x, bas),
-        )
-    };
-    [
-        a_partir_de(carte.center().x - taille.x / 2.0),
-        a_partir_de(carte.left() + RETRAIT_BADGE),
-        a_partir_de(carte.right() - RETRAIT_BADGE - taille.x),
-    ]
-    .into_iter()
-    .find(|zone| {
-        let dedans = zone.left() >= carte.left() + RETRAIT_BADGE
-            && zone.right() <= carte.right() - RETRAIT_BADGE
-            && zone.top() >= carte.top() + RETRAIT_BADGE;
-        dedans && badges.iter().all(|b| !b.expand(2.0).intersects(*zone))
-    })
 }
 
 /// Ce qu'une commande de l'utilisateur demande.
@@ -2471,54 +2394,6 @@ mod tests {
                 occupe.y
             );
         }
-    }
-
-    /// La place du prix : au centre en bas, entre les badges d'angle quand
-    /// ils y tiennent, dans le coin libre sinon, nulle part s'il n'y en a
-    /// pas.
-    #[test]
-    fn le_prix_se_loge_entre_les_badges_ou_pas_du_tout() {
-        let taille = egui::vec2(48.0, HAUTEUR_BADGE);
-        let badges = |carte: egui::Rect| {
-            let gauche = egui::Rect::from_min_size(
-                carte.left_bottom() + egui::vec2(RETRAIT_BADGE, -HAUTEUR_BADGE - RETRAIT_BADGE),
-                egui::vec2(49.2, HAUTEUR_BADGE),
-            );
-            let droite = egui::Rect::from_min_size(
-                carte.right_bottom()
-                    + egui::vec2(-60.4 - RETRAIT_BADGE, -HAUTEUR_BADGE - RETRAIT_BADGE),
-                egui::vec2(60.4, HAUTEUR_BADGE),
-            );
-            [gauche, droite]
-        };
-
-        // Une carte comme celles de la capture (260 points) : centré, sur la
-        // ligne des badges.
-        let carte = egui::Rect::from_min_size(egui::pos2(0.0, 0.0), egui::vec2(260.0, 380.0));
-        let zone = zone_du_prix(carte, taille, &badges(carte)).unwrap();
-        assert!((zone.center().x - 130.0).abs() < 0.01);
-        assert!((zone.bottom() - (380.0 - RETRAIT_BADGE)).abs() < 0.01);
-        assert!(badges(carte).iter().all(|b| !b.intersects(zone)));
-
-        // Étroite, avec un PLAYSET et un OVERFRAME : pas de place.
-        let etroite = egui::Rect::from_min_size(egui::pos2(0.0, 0.0), egui::vec2(140.0, 204.0));
-        assert_eq!(zone_du_prix(etroite, taille, &badges(etroite)), None);
-        // La même sans badge : le prix y tient, au centre.
-        let zone = zone_du_prix(etroite, taille, &[]).unwrap();
-        assert!((zone.center().x - 70.0).abs() < 0.01);
-        // Avec l'OVERFRAME seul : dans le coin gauche, qu'il laisse libre.
-        let [_, overframe] = badges(etroite);
-        let zone = zone_du_prix(etroite, taille, &[overframe]).unwrap();
-        assert!((zone.left() - RETRAIT_BADGE).abs() < 0.01);
-        assert!(!zone.intersects(overframe));
-        // Avec le PLAYSET seul : dans le coin droit.
-        let [playset, _] = badges(etroite);
-        let zone = zone_du_prix(etroite, taille, &[playset]).unwrap();
-        assert!((zone.right() - (140.0 - RETRAIT_BADGE)).abs() < 0.01);
-        assert!(!zone.intersects(playset));
-        // Plus étroite que le prix lui-même : rien.
-        let minuscule = egui::Rect::from_min_size(egui::pos2(0.0, 0.0), egui::vec2(50.0, 73.0));
-        assert_eq!(zone_du_prix(minuscule, taille, &[]), None);
     }
 
     #[test]

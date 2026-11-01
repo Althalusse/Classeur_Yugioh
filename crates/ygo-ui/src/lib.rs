@@ -39,6 +39,7 @@
 pub mod accueil;
 pub mod artworks;
 pub mod attenuation;
+pub mod bandeau;
 pub mod classeur;
 pub mod corbeille;
 pub mod csv;
