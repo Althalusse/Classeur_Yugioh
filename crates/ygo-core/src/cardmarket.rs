@@ -97,6 +97,7 @@ const PRISMATIC: &str = "Prismatic Secret Rare";
 const QUARTER_CENTURY: &str = "Quarter Century Secret Rare";
 const VINGTIEME: &str = "20th Secret Rare";
 const GHOST: &str = "Ghost Rare";
+const ULTRA_PARALLEL: &str = "Ultra Parallel Rare";
 
 /// Les deux mondes du jeu, que Cardmarket range dans des extensions séparées.
 ///
@@ -333,6 +334,10 @@ pub fn avant(a: &str, b: &str, ctx: &ContexteOrdre<'_>) -> Option<bool> {
     }
     let (rarete_a, da) = decouper_cle(a);
     let (rarete_b, db) = decouper_cle(b);
+    // L5DD : la Common ferme la marche (cf. `commune_en_dernier`).
+    if commune_en_dernier(ctx.id_extension) && ((rarete_a == COMMON) != (rarete_b == COMMON)) {
+        return Some(rarete_b == COMMON);
+    }
     if da == Distinction::Aucune && db == Distinction::Aucune {
         return modele(a, b, ctx);
     }
@@ -375,6 +380,9 @@ fn modele(a: &str, b: &str, ctx: &ContexteOrdre<'_>) -> Option<bool> {
         (None, Some(_)) if est_speciale(a) => return Some(false),
         _ => {}
     }
+    if let Some(reponse) = face_a_l_ultra_parallele(a, b, ctx) {
+        return Some(reponse);
+    }
     if !(est_speciale(a) && est_speciale(b)) {
         return None;
     }
@@ -391,6 +399,23 @@ fn modele(a: &str, b: &str, ctx: &ContexteOrdre<'_>) -> Option<bool> {
             // LIOV et DAMA confirmés, ROTD, PHRA et BLVO d'après les prix.
             if paire(a, b, ULTIMATE, PRISMATIC) && ("2020-01"..="2022-05-99").contains(&sortie) {
                 return Some(a == ULTIMATE);
+            }
+            // Puis l'inverse, jusqu'au dernier booster qui a les deux avant
+            // 2025 : DABL (2022-07, page « Black-Winged Assault Dragon » :
+            // V.3 Prismatic — « Starlight Rare » chez Cardmarket —, V.4
+            // Ultimate), PHHY (2022-10, relevé), CYAC (2023-01, page « Albion
+            // the Sanctifire Dragon » : V.3 Prismatic, V.4 Ultimate). En 2025
+            // et après, chaque set a son ordre (DUAD, BPRO, DOOD, BLZD :
+            // relevés, et contradictoires).
+            if paire(a, b, ULTIMATE, PRISMATIC) && ("2022-06"..="2023-12-99").contains(&sortie) {
+                return Some(a == PRISMATIC);
+            }
+            // Les Rarity Collections OCG mettent la Collector's devant
+            // l'Ultimate : RC02 (2018, page « Ash Blossom & Joyous Spring »
+            // du 2026-11-02 : Secret, Collector's, Ultimate) et RC04 (relevé).
+            // La RA05 TCG fait l'inverse — confirmée, elle ne passe pas ici.
+            if paire(a, b, COLLECTOR, ULTIMATE) {
+                return Some(a == COLLECTOR);
             }
             // RC04, DUNE, AGOV : Ultimate puis QC ; PHNI à ALIN : l'inverse.
             if paire(a, b, ULTIMATE, QUARTER_CENTURY) {
@@ -416,6 +441,52 @@ fn modele(a: &str, b: &str, ctx: &ContexteOrdre<'_>) -> Option<bool> {
     None
 }
 
+/// `a` passe-t-il avant `b`, quand l'un des deux est l'Ultra Parallel Rare —
+/// `None` si l'autre n'est pas placé ici, ou si aucun n'est l'Ultra Parallel.
+///
+/// Sa place après l'Ultra vient de [`normale_de`]. Le reste, relevé sur les
+/// pages de l'utilisateur (2026-11-02) :
+///
+/// - après toute rareté normale qui passe avant l'Ultra — Deck Custom Pack 01
+///   « Breaker the Magical Warrior » : Common, Parallel (notre Common
+///   Parallel), Ultra Parallel ;
+/// - en OCG, **après la Secret** (et ce qui la précède) — Vol.7 « Mirror
+///   Force » (2000) : Secret, Ultra Parallel ; Tactical-Try Pack « Hu-Li the
+///   Jewel Mikanko » (2025) : Rare, Secret, Ultra Parallel ;
+/// - en OCG, **avant la Secret Parallel et les raretés spéciales** — Terminal
+///   World 2 « Fabled Grimro » : Parallel, Ultra Parallel, Secret Parallel,
+///   Quarter Century ; Terminal World 3 « Dragunity Lord - Georgius » : Ultra
+///   Parallel, Secret Parallel, (Prismatic) ; Pharaoh's Inheritance « Spirit
+///   of the Pharaoh » : Ultra, Ultra Parallel, Ultimate.
+///
+/// 20TH-JPC, où Cardmarket l'écrit « Ultra Rare », la range avant la Secret :
+/// son ordre relevé prime. En TCG, seule la première règle vaut (The Pot
+/// Collection n'est pas vérifiée).
+fn face_a_l_ultra_parallele(a: &str, b: &str, ctx: &ContexteOrdre<'_>) -> Option<bool> {
+    let (autre, a_est_l_ultra_parallele) = if a == ULTRA_PARALLEL {
+        (b, true)
+    } else if b == ULTRA_PARALLEL {
+        (a, false)
+    } else {
+        return None;
+    };
+    let rang_de_l_ultra = rang_normal(ULTRA)?;
+    let rang_de_la_secret = rang_normal(SECRET)?;
+    let rang = rang_normal(autre);
+    let autre_d_abord = if rang.is_some_and(|r| r < rang_de_l_ultra) {
+        true
+    } else if ctx.region != Region::Ocg {
+        return None;
+    } else if rang.is_some_and(|r| r <= rang_de_la_secret) {
+        true
+    } else if autre == "Secret Parallel Rare" || est_speciale(autre) {
+        false
+    } else {
+        return None;
+    };
+    Some(autre_d_abord != a_est_l_ultra_parallele)
+}
+
 /// Les raretés d'une carte dans l'ordre des versions Cardmarket, si cet
 /// ordre est **entièrement** déterminé.
 ///
@@ -435,13 +506,44 @@ fn modele(a: &str, b: &str, ctx: &ContexteOrdre<'_>) -> Option<bool> {
 /// ```
 #[must_use]
 pub fn ordonner(raretes: &[String], ctx: &ContexteOrdre<'_>) -> Option<Vec<String>> {
+    let uniques = sans_doublons(raretes);
+    let n = uniques.len();
+    let avant_que = relation(&uniques, ctx);
+    let mut rangs: Vec<(usize, &String)> = Vec::with_capacity(n);
+    for (i, r) in uniques.iter().enumerate() {
+        if avant_que.contains(&(i, i)) {
+            return None; // contradiction
+        }
+        let precedents = (0..n).filter(|&j| avant_que.contains(&(j, i))).count();
+        rangs.push((precedents, r));
+    }
+    rangs.sort_by_key(|(p, _)| *p);
+    // Ordre total : les rangs sont exactement 0, 1, …, n−1.
+    if rangs
+        .iter()
+        .enumerate()
+        .any(|(attendu, (p, _))| *p != attendu)
+    {
+        return None;
+    }
+    Some(rangs.into_iter().map(|(_, r)| r.clone()).collect())
+}
+
+/// Les raretés, chacune une fois, dans l'ordre où elles viennent.
+fn sans_doublons(raretes: &[String]) -> Vec<&String> {
     let mut uniques: Vec<&String> = Vec::new();
     for r in raretes {
         if !uniques.contains(&r) {
             uniques.push(r);
         }
     }
-    let n = uniques.len();
+    uniques
+}
+
+/// La relation « passe avant » entre les raretés, **fermée** : `(i, j)`
+/// quand `uniques[i]` précède `uniques[j]`, directement ou par transitivité
+/// (a < b et b < c donnent a < c).
+fn relation(uniques: &[&String], ctx: &ContexteOrdre<'_>) -> HashSet<(usize, usize)> {
     let mut avant_que: HashSet<(usize, usize)> = HashSet::new();
     for (i, a) in uniques.iter().enumerate() {
         for (j, b) in uniques.iter().enumerate().skip(i + 1) {
@@ -471,24 +573,60 @@ pub fn ordonner(raretes: &[String], ctx: &ContexteOrdre<'_>) -> Option<Vec<Strin
         }
         avant_que.extend(ajouts);
     }
-    let mut rangs: Vec<(usize, &String)> = Vec::with_capacity(n);
-    for (i, r) in uniques.iter().enumerate() {
-        if avant_que.contains(&(i, i)) {
-            return None; // contradiction
+    avant_que
+}
+
+/// Ce que la règle sait de l'ordre d'une carte, quand [`ordonner`] échoue.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Indetermination {
+    /// La règle se contredit (a < b et b < a).
+    Contradiction,
+    /// Les paires que rien ne tranche, même par transitivité, chacune avec
+    /// le nombre de raretés qui passent avant **les deux** ; chaque paire
+    /// dans l'ordre alphabétique.
+    Paires(Vec<(String, String, usize)>),
+}
+
+/// Les paires de raretés que la règle ne tranche pas — vide quand
+/// [`ordonner`] réussit.
+///
+/// Quand une seule paire reste, ses deux raretés sont **voisines** dans
+/// l'ordre (toute autre rareté passe avant les deux, ou après les deux) : le
+/// nombre de celles qui passent avant donne leur place, `k` et `k + 1`.
+///
+/// ```
+/// use ygo_core::cardmarket::{paires_indeterminees, ContexteOrdre, Indetermination, Region};
+/// let ctx = ContexteOrdre { id_extension: 0, region: Region::Tcg, sortie: Some("2026-09-04") };
+/// let r = ["Ultra Rare", "Starlight Rare", "Grand Master Rare"].map(String::from);
+/// assert_eq!(
+///     paires_indeterminees(&r, &ctx),
+///     Indetermination::Paires(vec![("Grand Master Rare".into(), "Starlight Rare".into(), 1)])
+/// );
+/// let r = ["Ultra Rare", "Secret Rare"].map(String::from);
+/// assert_eq!(paires_indeterminees(&r, &ctx), Indetermination::Paires(Vec::new()));
+/// ```
+#[must_use]
+pub fn paires_indeterminees(raretes: &[String], ctx: &ContexteOrdre<'_>) -> Indetermination {
+    let uniques = sans_doublons(raretes);
+    let avant_que = relation(&uniques, ctx);
+    if (0..uniques.len()).any(|i| avant_que.contains(&(i, i))) {
+        return Indetermination::Contradiction;
+    }
+    let mut paires = Vec::new();
+    for (i, a) in uniques.iter().enumerate() {
+        for (j, b) in uniques.iter().enumerate().skip(i + 1) {
+            if avant_que.contains(&(i, j)) || avant_que.contains(&(j, i)) {
+                continue;
+            }
+            let avant_les_deux = (0..uniques.len())
+                .filter(|&k| avant_que.contains(&(k, i)) && avant_que.contains(&(k, j)))
+                .count();
+            let (x, y) = if a <= b { (a, b) } else { (b, a) };
+            paires.push(((*x).clone(), (*y).clone(), avant_les_deux));
         }
-        let precedents = (0..n).filter(|&j| avant_que.contains(&(j, i))).count();
-        rangs.push((precedents, r));
     }
-    rangs.sort_by_key(|(p, _)| *p);
-    // Ordre total : les rangs sont exactement 0, 1, …, n−1.
-    if rangs
-        .iter()
-        .enumerate()
-        .any(|(attendu, (p, _))| *p != attendu)
-    {
-        return None;
-    }
-    Some(rangs.into_iter().map(|(_, r)| r.clone()).collect())
+    paires.sort();
+    Indetermination::Paires(paires)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -643,11 +781,13 @@ pub fn decouper_cle(cle: &str) -> (&str, Distinction) {
 ///     "Ghost Rare (illustration 2)"
 /// );
 /// assert_eq!(cle_de_reference("Ultra Rare (Overframe)"), "Ultra Rare (Overframe)");
+/// // Les synonymes, eux, ne passent pas : la base écrit « Common Parallel Rare ».
+/// assert_eq!(cle_de_reference("Common Parallel Rare"), "Common Parallel Rare");
 /// ```
 #[must_use]
 pub fn cle_de_reference(cle: &str) -> String {
     let (rarete, distinction) = decouper_cle(cle);
-    let reference = crate::rarity::region::nom_de_reference(rarete);
+    let reference = crate::rarity::region::nom_regional_de_reference(rarete);
     if reference == rarete {
         cle.to_owned()
     } else {
@@ -667,6 +807,10 @@ struct Table {
     /// dit pas lequel est l'illustration alternative.
     #[serde(default)]
     illustrations_saisies_a_part: HashMap<String, String>,
+    /// Par extension, ce qui montre que toute version y passe devant la
+    /// Common.
+    #[serde(default)]
+    commune_en_dernier: HashMap<String, String>,
     #[serde(default)]
     libelles: Libelles,
 }
@@ -742,6 +886,27 @@ pub fn illustration_suit_son_originale(id_extension: i64) -> bool {
 pub fn illustrations_saisies_a_part(id_extension: i64) -> bool {
     table()
         .illustrations_saisies_a_part
+        .contains_key(&id_extension.to_string())
+}
+
+/// L'extension met-elle la Common **après** toute autre version ?
+///
+/// L5DD (Legendary 5D's Decks), pages du 2026-11-02 : « Miracle Fertilizer »
+/// V.1 Ultra Rare, « Black Garden » V.2 Common, « Black Rose Dragon » V.1
+/// Secret Rare — l'inverse de la règle générale, où la Common ouvre. C'est une
+/// règle de **paire** : elle range la Common d'une carte face à ses autres
+/// versions connues, sans rien supposer d'une version que nous ne connaissons
+/// pas (un ordre relevé, lui, décrit les versions d'une carte entière).
+///
+/// ```
+/// use ygo_core::cardmarket::commune_en_dernier;
+/// assert!(commune_en_dernier(6370)); // L5DD
+/// assert!(!commune_en_dernier(5604)); // RA02
+/// ```
+#[must_use]
+pub fn commune_en_dernier(id_extension: i64) -> bool {
+    table()
+        .commune_en_dernier
         .contains_key(&id_extension.to_string())
 }
 
@@ -1324,14 +1489,26 @@ mod tests {
         // La règle TCG « Collector's avant Starlight et Quarter Century »
         // (VASM, PHRE…) ne vaut pas pour les Rarity Collections : confirmées,
         // elles ne passent jamais par le modèle.
+        // De même, la règle OCG « Collector's avant Ultimate » (RC02, RC04)
+        // ne vaut pas pour la RA05, set TCG : elle n'y est essayée que parce
+        // que ce test passe chaque ordre dans les deux régions.
+        //
+        // Et trois sets OCG font exception, relevés et nommés : 20TH-JPC
+        // (4592), où l'Ultra Parallel — que Cardmarket y écrit « Ultra Rare »
+        // — passe avant la Secret ; DOOD (6235) et BLZD (6458), qui mettent
+        // l'Ultimate en tête, avant la Secret (2026-11-02).
         for (id, region, a, b) in &ecarts {
             let (ra, _) = decouper_cle(a);
             let (rb, _) = decouper_cle(b);
+            let tcg = *region == Region::Tcg
+                && rb == COLLECTOR
+                && (ra == QUARTER_CENTURY || ra == STARLIGHT);
+            let ocg_sur_un_set_tcg = *region == Region::Ocg && ra == ULTIMATE && rb == COLLECTOR;
+            let rarity_collection = RARITY_COLLECTIONS.contains(id) && (tcg || ocg_sur_un_set_tcg);
+            let jpc = *id == 4592 && *region == Region::Ocg && ra == ULTRA_PARALLEL && rb == SECRET;
+            let ultimate_en_tete = (*id == 6235 || *id == 6458) && ra == ULTIMATE && rb == SECRET;
             assert!(
-                RARITY_COLLECTIONS.contains(id)
-                    && *region == Region::Tcg
-                    && rb == COLLECTOR
-                    && (ra == QUARTER_CENTURY || ra == STARLIGHT),
+                rarity_collection || jpc || ultimate_en_tete,
                 "extension {id} ({region:?}) : le modèle place {b} avant {a}"
             );
         }
@@ -1346,6 +1523,169 @@ mod tests {
                 }
             }
         }
+    }
+
+    /// Les pages du 2026-11-02 : l'Ultra Parallel, la Prismatic face à
+    /// l'Ultimate (OCG 2022), la Collector's face à l'Ultimate (OCG).
+    #[test]
+    fn les_pages_du_2026_11_02_sont_rendues() {
+        // Le modèle seul (extension 0) : la règle, pas les ordres relevés.
+        let ocg = |sortie: &'static str| ctx(0, Region::Ocg, Some(sortie));
+        assert_eq!(
+            ordonner(
+                &s(&["Ultra Parallel Rare", "Common Parallel Rare", "Common"]),
+                &ocg("2014-04-19")
+            )
+            .unwrap(),
+            s(&["Common", "Common Parallel Rare", "Ultra Parallel Rare"])
+        );
+        assert_eq!(
+            ordonner(
+                &s(&["Ultimate Rare", "Ultra Parallel Rare", "Ultra Rare"]),
+                &ocg("2004-02-26")
+            )
+            .unwrap(),
+            s(&["Ultra Rare", "Ultra Parallel Rare", "Ultimate Rare"])
+        );
+        assert_eq!(
+            ordonner(
+                &s(&["Ultra Parallel Rare", "Secret Rare"]),
+                &ocg("2000-01-27")
+            )
+            .unwrap(),
+            s(&["Secret Rare", "Ultra Parallel Rare"])
+        );
+        assert_eq!(
+            ordonner(
+                &s(&["Ultra Parallel Rare", "Secret Rare", "Rare"]),
+                &ocg("2025-06-28")
+            )
+            .unwrap(),
+            s(&["Rare", "Secret Rare", "Ultra Parallel Rare"]),
+            "TTP1 « Hu-Li »"
+        );
+        assert_eq!(
+            ordonner(
+                &s(&[
+                    "Quarter Century Secret Rare",
+                    "Secret Parallel Rare",
+                    "Ultra Parallel Rare",
+                    "Common Parallel Rare"
+                ]),
+                &ocg("2024-11-23")
+            )
+            .unwrap(),
+            s(&[
+                "Common Parallel Rare",
+                "Ultra Parallel Rare",
+                "Secret Parallel Rare",
+                "Quarter Century Secret Rare"
+            ]),
+            "TW2 « Fabled Grimro »"
+        );
+        assert_eq!(
+            ordonner(
+                &s(&[
+                    "Prismatic Secret Rare",
+                    "Secret Parallel Rare",
+                    "Ultra Parallel Rare"
+                ]),
+                &ocg("2025-11-22")
+            )
+            .unwrap(),
+            s(&[
+                "Ultra Parallel Rare",
+                "Secret Parallel Rare",
+                "Prismatic Secret Rare"
+            ]),
+            "TW3 « Dragunity Lord - Georgius »"
+        );
+        // En TCG, l'Ultra Parallel face à la Secret reste ouverte.
+        assert!(ordonner(
+            &s(&["Ultra Parallel Rare", "Secret Rare"]),
+            &ctx(0, Region::Tcg, Some("2025-06-28"))
+        )
+        .is_none());
+        // Rare, Super : avant l'Ultra Parallel, même sans Ultra pour relais.
+        assert_eq!(
+            ordonner(
+                &s(&["Ultra Parallel Rare", "Super Rare", "Rare"]),
+                &ocg("2025-06-28")
+            )
+            .unwrap(),
+            s(&["Rare", "Super Rare", "Ultra Parallel Rare"])
+        );
+        let dabl = s(&[
+            "Ultimate Rare",
+            "Prismatic Secret Rare",
+            "Secret Rare",
+            "Ultra Rare",
+        ]);
+        assert_eq!(
+            ordonner(&dabl, &ocg("2022-07-16")).unwrap(),
+            s(&[
+                "Ultra Rare",
+                "Secret Rare",
+                "Prismatic Secret Rare",
+                "Ultimate Rare"
+            ])
+        );
+        assert_eq!(
+            ordonner(&dabl, &ocg("2021-04-17")).unwrap(),
+            s(&[
+                "Ultra Rare",
+                "Secret Rare",
+                "Ultimate Rare",
+                "Prismatic Secret Rare"
+            ])
+        );
+        assert_eq!(
+            ordonner(&dabl, &ocg("2023-01-14")).unwrap(),
+            s(&[
+                "Ultra Rare",
+                "Secret Rare",
+                "Prismatic Secret Rare",
+                "Ultimate Rare"
+            ]),
+            "CYAC « Albion »"
+        );
+        // 2025 et après : set par set.
+        assert!(ordonner(&dabl, &ocg("2025-07-26")).is_none());
+        // L5DD (Legendary 5D's Decks), relevé : la plus rare devant la Common
+        // — « Miracle Fertilizer » V.1 Ultra, « Black Garden » V.2 Common,
+        // « Black Rose Dragon » V.1 Secret.
+        let l5dd = ctx(6370, Region::Tcg, None);
+        assert_eq!(
+            ordonner(&s(&["Common", "Ultra Rare"]), &l5dd).unwrap(),
+            s(&["Ultra Rare", "Common"])
+        );
+        assert_eq!(
+            ordonner(&s(&["Common", "Secret Rare"]), &l5dd).unwrap(),
+            s(&["Secret Rare", "Common"])
+        );
+        // DOOD et BLZD, relevés : l'Ultimate en tête.
+        assert_eq!(
+            ordonner(
+                &s(&["Prismatic Secret Rare", "Secret Rare", "Ultimate Rare"]),
+                &ctx(6235, Region::Ocg, Some("2025-07-26"))
+            )
+            .unwrap(),
+            s(&["Ultimate Rare", "Secret Rare", "Prismatic Secret Rare"])
+        );
+        assert_eq!(
+            ordonner(
+                &s(&["Ultimate Rare", "Collector's Rare", "Secret Rare"]),
+                &ocg("2018-02-10")
+            )
+            .unwrap(),
+            s(&["Secret Rare", "Collector's Rare", "Ultimate Rare"])
+        );
+        // En TCG, rien de tout cela ne s'applique.
+        assert!(ordonner(
+            &s(&["Ultimate Rare", "Collector's Rare"]),
+            &ctx(0, Region::Tcg, Some("2018-02-10"))
+        )
+        .is_none());
     }
 
     #[test]

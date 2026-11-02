@@ -139,6 +139,9 @@ async fn executer() -> anyhow::Result<bool> {
         "comparer-raretes" => {
             cmd_comparer_raretes(&cible.context("chemin de l'installation attendu")?).await
         }
+        "ordres-cardmarket" => {
+            cmd_ordres_cardmarket(&cible.context("chemin de l'installation attendu")?)
+        }
         "simuler-langue" => {
             cmd_simuler_langue(&cible.context("chemin de l'installation attendu")?, reste).await
         }
@@ -236,6 +239,11 @@ USAGE
                                    référentiel, alias, Set lists en cache) confronté à
                                    Yugipedia (redirections suivies) ; rapport dans
                                    comparaison_raretes.md, rien n'est modifié
+  ygo-cli ordres-cardmarket <installation>  la règle des versions Cardmarket (V.1, V.2…)
+                                   appliquée à tout le catalogue : paires de raretés
+                                   qu'elle ne tranche pas, témoins de prix, liens à
+                                   vérifier ; rapport dans ordres_cardmarket.md, aucune
+                                   requête
   ygo-cli simuler-langue <installation>  ESSAI À BLANC : les Set lists Yugipedia FR et
                                    EN de chaque classeur TCG (et des sets demandés),
                                    croisées numéro à numéro ; rapport dans
@@ -1625,6 +1633,58 @@ async fn cmd_simuler_langue(installation: &Path, args: &[String]) -> anyhow::Res
         println!("  {v} : {n}");
     }
     println!("Rapport : {}", chemin.display());
+    Ok(true)
+}
+
+/// `ordres-cardmarket` — la règle des versions Cardmarket mesurée sur tout
+/// le catalogue (cf. `ygo_app::ordres_cardmarket`).
+fn cmd_ordres_cardmarket(installation: &Path) -> anyhow::Result<bool> {
+    use ygo_app::ordres_cardmarket::{mesurer_installation, rapport};
+    use ygo_core::cardmarket::Region;
+
+    let paths = Paths::depuis_racine(installation);
+    let depart = std::time::Instant::now();
+    let Some(mesure) = mesurer_installation(&paths)? else {
+        println!(
+            "Pas d'index Cardmarket : lancez d'abord `ygo-cli cardmarket <installation> --telecharger`."
+        );
+        return Ok(false);
+    };
+    for (region, nom) in [(Region::Tcg, "TCG"), (Region::Ocg, "OCG")] {
+        if let Some(c) = mesure.comptes.get(&region) {
+            println!(
+                "{nom} : {} cartes à plusieurs versions — ordre trouvé {}, paire non tranchée {}, \
+                 contradiction {}, versions de même rareté {}, Cardmarket en a moins {}",
+                c.cartes,
+                c.ordonnees,
+                c.indeterminees,
+                c.contradictoires,
+                c.versions_en_plus,
+                c.versions_en_moins
+            );
+        }
+    }
+    println!("Paires les plus fréquentes :");
+    for p in mesure.paires.iter().take(12) {
+        println!(
+            "  {:?} {} / {} : {} cartes ({} seule), {} sets — témoins sûrs {}/{}, supposés {}/{}",
+            p.region,
+            p.a,
+            p.b,
+            p.cartes,
+            p.seule,
+            p.extensions.len(),
+            p.surs.a_avant_b,
+            p.surs.b_avant_a,
+            p.supposes.a_avant_b,
+            p.supposes.b_avant_a
+        );
+    }
+    let date = chrono::Local::now().format("%Y-%m-%d %H:%M").to_string();
+    let chemin = installation.join("ordres_cardmarket.md");
+    std::fs::write(&chemin, rapport(&mesure, &date))
+        .with_context(|| format!("écriture de {}", chemin.display()))?;
+    println!("Rapport : {} ({:?})", chemin.display(), depart.elapsed());
     Ok(true)
 }
 

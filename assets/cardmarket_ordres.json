@@ -1,5 +1,5 @@
 {
-  "_doc": "Ordres des versions relevés sur les pages Cardmarket (captures de l'utilisateur, octobre 2026), par idExpansion Cardmarket. Chaque liste donne les versions d'UNE carte, dans les noms de cardinfo.db, de V.1 à V.n. Une paire de versions présente dans une liste vaut pour tout le set. Deux versions de même rareté se distinguent par une précision entre parenthèses, lue au fichier d'image de la ligne du classeur : « (illustration 2) » pour la deuxième illustration (suffixe Yugipedia -AA, -B, -2), « (Overframe) » pour l'illustration qui déborde du cadre (-EA). Quand une liste montre une illustration alternative juste après son originale (RA02, RA04), toute alternative du set suit son originale ; ailleurs, seules les versions relevées sont placées (RA05 range ses alternatives en tête). « illustrations_saisies_a_part » : sets dont l'ordre de création des produits ne dit pas lequel est l'illustration alternative — le rang V.n reste sûr, pas le produit. Les libellés disent comment Cardmarket écrit une version quand il ne l'écrit pas comme la base.",
+  "_doc": "Ordres des versions relevés sur les pages Cardmarket (captures de l'utilisateur, octobre 2026), par idExpansion Cardmarket. Chaque liste donne les versions d'UNE carte, dans les noms de cardinfo.db, de V.1 à V.n. Une paire de versions présente dans une liste vaut pour tout le set. Deux versions de même rareté se distinguent par une précision entre parenthèses, lue au fichier d'image de la ligne du classeur : « (illustration 2) » pour la deuxième illustration (suffixe Yugipedia -AA, -B, -2), « (Overframe) » pour l'illustration qui déborde du cadre (-EA). Quand une liste montre une illustration alternative juste après son originale (RA02, RA04), toute alternative du set suit son originale ; ailleurs, seules les versions relevées sont placées (RA05 range ses alternatives en tête). « illustrations_saisies_a_part » : sets dont l'ordre de création des produits ne dit pas lequel est l'illustration alternative — le rang V.n reste sûr, pas le produit. Les libellés disent comment Cardmarket écrit une version quand il ne l'écrit pas comme la base. « commune_en_dernier » : sets dont toute version passe devant la Common (une règle de paire, pas l'ordre complet d'une carte : elle ne dit rien d'une version que nous ne connaissons pas).",
   "ordres": {
     "5404": [["Super Rare", "Ultra Rare", "Secret Rare", "Platinum Secret Rare", "Quarter Century Secret Rare", "Collector's Rare", "Ultimate Rare"]],
     "5604": [
@@ -19,6 +19,9 @@
       ["Super Rare", "Secret Rare", "Collector's Rare", "Prismatic Secret Rare"],
       ["Super Rare", "Secret Rare", "Ultimate Rare", "Prismatic Secret Rare"],
       ["Ultra Rare", "Secret Rare", "Ultra Rare (Overframe)", "Prismatic Secret Rare", "Grand Master Rare"]
+    ],
+    "6590": [
+      ["Ultra Rare", "Ultra Rare (Overframe)", "Starlight Rare", "Grand Master Rare"]
     ],
     "6508": [
       ["Super Rare", "Secret Rare", "Prismatic Secret Rare", "Collector's Rare"],
@@ -42,7 +45,17 @@
     ],
     "5200": [["Common", "Super Rare", "Secret Rare"]],
     "5036": [["Super Rare", "Secret Rare", "Ultimate Rare", "Prismatic Secret Rare"]],
-    "4626": [["Ultra Rare", "Secret Rare", "Collector's Rare"]],
+    "4626": [["Ultra Rare", "Secret Rare", "Collector's Rare"], ["Secret Rare", "Collector's Rare", "Ultimate Rare"]],
+    "5107": [["Ultra Rare", "Secret Rare", "Prismatic Secret Rare", "Ultimate Rare"]],
+    "4885": [["Ultra Rare", "Ultra Parallel Rare", "Ultimate Rare"]],
+    "4706": [["Common", "Common Parallel Rare", "Ultra Parallel Rare"]],
+    "4934": [["Secret Rare", "Ultra Parallel Rare"]],
+    "5242": [["Ultra Rare", "Secret Rare", "Prismatic Secret Rare", "Ultimate Rare"]],
+    "6235": [["Ultimate Rare", "Secret Rare", "Prismatic Secret Rare"]],
+    "6458": [["Ultimate Rare", "Secret Rare", "Prismatic Secret Rare"]],
+    "5965": [["Common Parallel Rare", "Ultra Parallel Rare", "Secret Parallel Rare", "Quarter Century Secret Rare"]],
+    "6420": [["Ultra Parallel Rare", "Secret Parallel Rare", "Prismatic Secret Rare"]],
+    "6195": [["Rare", "Secret Rare", "Ultra Parallel Rare"]],
     "4562": [["Ultra Rare", "Premium Gold Rare", "Secret Rare", "Collector's Rare"]],
     "4694": [["Ultra Rare", "Secret Rare", "Collector's Rare"]],
     "6500": [["Common Parallel Rare", "Super Rare", "Secret Rare", "Prismatic Secret Rare"]],
@@ -55,6 +68,9 @@
     "6365": [["Secret Rare", "Prismatic Secret Rare", "Ultimate Rare"]],
     "6129": [["Ultimate Rare", "Prismatic Secret Rare"]],
     "6069": [["Secret Rare", "Starlight Rare"]]
+  },
+  "commune_en_dernier": {
+    "6370": "L5DD (Legendary 5D's Decks) : la plus rare passe devant la Common. Pages du 2026-11-02 : « Miracle Fertilizer » V.1 Ultra Rare, « Black Garden » V.2 Common, « Black Rose Dragon » V.1 Secret Rare ; les 6 cartes à deux versions chiffrées ont toutes la plus chère créée d'abord."
   },
   "illustrations_saisies_a_part": {
     "5989": "El Shaddoll Winda : l'alternative Quarter Century (V.6) a été créée le 2025-04-04, quatre jours avant les sept autres versions (2025-04-08)."
@@ -73,6 +89,7 @@
     "par_extension": {
       "6508": { "Prismatic Secret Rare": "Secret Parallel Rare", "Ultra Rare (Overframe)": "Ultra Parallel Rare" },
       "6512": { "Prismatic Secret Rare": "Secret Parallel Rare", "Ultra Rare (Overframe)": "Ultra Rare" },
+      "6590": { "Ultra Rare (Overframe)": "Ultra Rare" },
       "6566": { "Prismatic Secret Rare": "Secret Parallel Rare" },
       "4592": { "Ultra Parallel Rare": "Ultra Rare", "Super Parallel Rare": "Super Rare" }
     }

@@ -48,6 +48,12 @@
 //! doivent alors coller à l'attribution ([`vraisemblable`]), sinon la fiche
 //! se rabat sur la recherche.
 //!
+//! Et quand le set n'a pas de sens — mélangé, ou trop peu chiffré —, la carte
+//! peut en avoir un (2026-11-02) : ses produits, créés dans l'ordre ou à
+//! rebours, collent à ses prix dans un seul des deux sens
+//! ([`sens_de_la_carte`], [`Raison::SensDeLaCarte`]). Pas pour une carte à
+//! versions de même rareté, que les prix ne départagent pas.
+//!
 //! Contrôle sur les pages relevées par l'utilisateur (COTD, SAST, LIOV, DAMA,
 //! BPRO, GS05, PHRE, BLMM, DUAD, 20TH-JPC, LOCH, LOCR, MAMA, MAGO) : 34 liens
 //! directs, **34 justes** ; les 30 autres versions passent par la recherche,
@@ -131,6 +137,11 @@ pub struct Empreinte {
     pub prix: String,
     /// Taille et date de `cardinfo.db`.
     pub cardinfo: String,
+    /// Les classeurs de l'installation, par leur code : un classeur créé
+    /// hors base (cf. [`Base::ajouter_classeurs_hors_base`]) entre dans
+    /// l'index dès sa création.
+    #[serde(default)]
+    pub classeurs: String,
 }
 
 /// Les prix d'un produit, **en centimes** — des entiers, pour que l'offre
@@ -314,6 +325,9 @@ pub struct Base {
     tirages: HashMap<i64, CartesDeLocale>,
     /// Set → son nom anglais, normalisé (cf. `rapprocher_par_le_nom`).
     noms_de_sets: HashMap<String, String>,
+    /// Tous les numéros de la base, toutes langues (cf.
+    /// [`Base::ajouter_classeurs_hors_base`]).
+    numeros: HashSet<String>,
 }
 
 impl Base {
@@ -372,8 +386,12 @@ impl Base {
                 l.get::<_, String>(3)?,
             ))
         })?;
+        let mut numeros = HashSet::new();
         for l in lignes {
             let (sl, uuid, code, rarete) = l?;
+            if !numeros.contains(&code) {
+                numeros.insert(code.clone());
+            }
             if rarete.trim().is_empty() || !locales.contains_key(&sl) {
                 continue;
             }
@@ -408,8 +426,175 @@ impl Base {
             locales,
             tirages,
             noms_de_sets,
+            numeros,
         })
     }
+
+    /// Ajoute les classeurs que `cardinfo.db` ignore, chacun comme une locale
+    /// de plus.
+    ///
+    /// # Pourquoi — 2026-11-02
+    ///
+    /// YGOJSON est figée au 2026-04-07 : un set sorti depuis
+    /// (*Magnificent Monsters*, `MAMO`) se crée par YGOPRODeck
+    /// ([`crate::sets_hors_base`]) et n'a **aucun** tirage dans la base.
+    /// L'index, bâti sur la base seule, ne pouvait pas le rapprocher de son
+    /// extension Cardmarket, qui existe pourtant (6590, 228 produits) : ni
+    /// lien direct, ni prix. Les lignes du classeur — numéro, nom anglais,
+    /// rareté — tiennent lieu de tirages.
+    ///
+    /// Un classeur dont **un seul** numéro est dans la base n'est pas repris :
+    /// la base fait foi pour lui. Un classeur illisible est ignoré.
+    pub fn ajouter_classeurs_hors_base(&mut self, paths: &Paths) {
+        for code in codes_des_classeurs(paths) {
+            let Ok(lignes) = lignes_du_classeur(&paths.classeur_db(&code)) else {
+                continue;
+            };
+            self.ajouter_hors_base(&code, &lignes);
+        }
+    }
+
+    /// Les cartes d'une locale, désignée par son set et sa langue — ce qu'une
+    /// [`Extension`] retient de la locale qui l'a rapprochée.
+    pub(crate) fn cartes_de(&self, set_uuid: &str, langue: &str) -> Option<&CartesDeLocale> {
+        self.locales
+            .iter()
+            .find(|(_, l)| l.set_uuid == set_uuid && l.langue == langue)
+            .and_then(|(sl, _)| self.tirages.get(sl))
+    }
+
+    /// Le classeur `code` comme une locale : le cœur, sans fichier.
+    ///
+    /// Sans effet si un seul numéro du classeur est dans la base.
+    pub fn ajouter_hors_base(&mut self, code: &str, lignes: &[LigneHorsBase]) {
+        if lignes.iter().any(|l| self.numeros.contains(&l.set_code)) {
+            return;
+        }
+        let Some(premier) = lignes.iter().find(|l| !l.set_code.trim().is_empty()) else {
+            return;
+        };
+        let id = -1 - i64::try_from(self.locales.len()).unwrap_or(0);
+        let set_uuid = format!("{UUID_HORS_BASE}{code}");
+        let langue = if ygo_core::rarity::region::numero_ocg(&premier.set_code) {
+            "jp"
+        } else {
+            "en"
+        };
+        let mut cartes = CartesDeLocale::new();
+        for l in lignes {
+            let nom = regles::normaliser_nom(&l.nom);
+            if l.set_code.trim().is_empty() || l.rarete.trim().is_empty() || nom.is_empty() {
+                continue;
+            }
+            cartes
+                .entry(nom)
+                .or_default()
+                .entry(l.set_code.clone())
+                .or_default()
+                .insert(l.rarete.clone());
+        }
+        if cartes.is_empty() {
+            return;
+        }
+        if let Some(nom) = lignes
+            .iter()
+            .map(|l| regles::normaliser_nom(&l.set_name))
+            .find(|n| !n.is_empty())
+        {
+            self.noms_de_sets.insert(set_uuid.clone(), nom);
+        }
+        self.locales.insert(
+            id,
+            Locale {
+                set_uuid,
+                langue: langue.to_owned(),
+                prefixe: prefixe_du_numero(&premier.set_code),
+                sortie: None,
+            },
+        );
+        self.tirages.insert(id, cartes);
+    }
+}
+
+/// Le `set_uuid` d'une locale faite d'un classeur hors base : ce préfixe,
+/// puis le code du classeur (`classeur:MAMO`).
+pub const UUID_HORS_BASE: &str = "classeur:";
+
+/// Une ligne de classeur, ce qu'il en faut pour en faire un tirage.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LigneHorsBase {
+    /// Numéro (`MAMO-EN001`).
+    pub set_code: String,
+    /// Nom anglais.
+    pub nom: String,
+    /// Rareté.
+    pub rarete: String,
+    /// Nom du set, s'il est écrit.
+    pub set_name: String,
+}
+
+/// Le préfixe d'un numéro, langue comprise : `MAMO-EN001` → `MAMO-EN`,
+/// `LOB-001` → `LOB-`.
+///
+/// ```
+/// use ygo_app::cardmarket::prefixe_du_numero;
+/// assert_eq!(prefixe_du_numero("MAMO-EN001"), "MAMO-EN");
+/// assert_eq!(prefixe_du_numero("CORI-JPS10"), "CORI-JP");
+/// assert_eq!(prefixe_du_numero("LOB-001"), "LOB-");
+/// ```
+#[must_use]
+pub fn prefixe_du_numero(set_code: &str) -> String {
+    let set_code = set_code.trim();
+    let Some((set, reste)) = set_code.split_once('-') else {
+        return set_code.to_owned();
+    };
+    let langue: String = reste.chars().take(2).collect();
+    if langue.chars().count() == 2 && langue.chars().all(|c| c.is_ascii_alphabetic()) {
+        format!("{set}-{langue}")
+    } else {
+        format!("{set}-")
+    }
+}
+
+/// Les codes des classeurs de l'installation, triés.
+fn codes_des_classeurs(paths: &Paths) -> Vec<String> {
+    let mut codes: Vec<String> = std::fs::read_dir(paths.classeurs())
+        .into_iter()
+        .flatten()
+        .filter_map(std::result::Result::ok)
+        .filter(|e| e.path().is_dir())
+        .filter_map(|e| e.file_name().into_string().ok())
+        .filter(|code| paths.classeur_db(code).is_file())
+        .collect();
+    codes.sort_unstable();
+    codes
+}
+
+/// Les lignes d'un classeur qui ont un numéro et une rareté.
+fn lignes_du_classeur(chemin: &std::path::Path) -> Result<Vec<LigneHorsBase>> {
+    let conn = ygo_db::connexion::ouvrir_lecture_seule(chemin)?;
+    let colonnes = ygo_db::migrations::colonnes(&conn, "cards")?;
+    let set_name = if colonnes.iter().any(|c| c == "set_name") {
+        "COALESCE(set_name, '')"
+    } else {
+        "''"
+    };
+    let sql = format!(
+        "SELECT COALESCE(set_code, ''), COALESCE(name, ''), COALESCE(rarity, ''), {set_name} \
+         FROM cards WHERE COALESCE(set_code, '') <> '' AND COALESCE(rarity, '') <> ''"
+    );
+    let mut q = conn.prepare(&sql)?;
+    let lignes = q
+        .query_map([], |l| {
+            Ok(LigneHorsBase {
+                set_code: l.get(0)?,
+                nom: l.get(1)?,
+                rarete: l.get(2)?,
+                set_name: l.get(3)?,
+            })
+        })?
+        .collect::<rusqlite::Result<Vec<_>>>()?;
+    Ok(lignes)
 }
 
 /// Reconstruit l'index depuis les fichiers et la base.
@@ -426,7 +611,8 @@ pub fn construire(paths: &Paths) -> Result<Index> {
         fichiers::lire_catalogue(&fichiers::chemin(&d, Fichier::Scelles)).unwrap_or_default();
     let guide = fichiers::lire_prix(&fichiers::chemin(&d, Fichier::Prix)).unwrap_or_default();
     let conn = ygo_db::connexion::ouvrir_lecture_seule(paths.cardinfo_db())?;
-    let base = Base::lire(&conn)?;
+    let mut base = Base::lire(&conn)?;
+    base.ajouter_classeurs_hors_base(paths);
     Ok(assembler(
         &cartes,
         &scelles,
@@ -456,6 +642,7 @@ pub fn empreinte_courante(paths: &Paths) -> Empreinte {
         scelles: date(Fichier::Scelles),
         prix: date(Fichier::Prix),
         cardinfo,
+        classeurs: codes_des_classeurs(paths).join(","),
     }
 }
 
@@ -1255,6 +1442,10 @@ pub enum Raison {
     /// Le rang est sûr ; le sens de saisie, supposé (extension TCG sans
     /// assez de prix pour le vérifier).
     OrdreDeSaisieSuppose,
+    /// Le rang est sûr ; le sens de saisie du set manque (mélangé, ou sans
+    /// assez de prix), celui de **la carte** se lit dans ses prix
+    /// ([`sens_de_la_carte`], 2026-11-02).
+    SensDeLaCarte,
     /// Le rang est sûr, mais l'extension a été saisie dans le désordre.
     SaisieMelangee,
     /// Le rang est sûr, mais les prix de la carte contredisent l'ordre de
@@ -1298,6 +1489,10 @@ impl Raison {
             Self::Ordonnee => "version identifiée".to_owned(),
             Self::OrdreDeSaisieSuppose => {
                 "version identifiée — ordre de saisie de ce set supposé".to_owned()
+            }
+            Self::SensDeLaCarte => {
+                "version identifiée — set saisi dans le désordre, produit reconnu à ses prix"
+                    .to_owned()
             }
             Self::SaisieMelangee => {
                 "ce set a été saisi dans le désordre chez Cardmarket".to_owned()
@@ -1559,7 +1754,9 @@ impl IndexCharge {
             )
             .optional()?;
         let Some((set_uuid, langue, uuid_du_code)) = ligne else {
-            return Ok(recherche(Raison::NumeroInconnu, None));
+            return Ok(self
+                .offre_hors_base(d, &prix_du)
+                .unwrap_or_else(|| recherche(Raison::NumeroInconnu, None)));
         };
         let card_uuid = if uuid_demande.is_empty() {
             uuid_du_code
@@ -1624,6 +1821,43 @@ impl IndexCharge {
             nom,
             &self.index.prix,
             prix_du,
+        ))
+    }
+}
+
+impl IndexCharge {
+    /// L'offre d'une ligne dont le numéro manque à la base, quand son
+    /// classeur est entré dans l'index ([`Base::ajouter_classeurs_hors_base`]) —
+    /// `None` sinon.
+    ///
+    /// Le classeur tient lieu de base : ses raretés au numéro de la ligne sont
+    /// les versions connues.
+    fn offre_hors_base(&self, d: &Demande<'_>, prix_du: &str) -> Option<Offre> {
+        let prefixe = prefixe_du_numero(d.set_code);
+        let cle = regles::normaliser_nom(d.nom);
+        let (ext, versions) = self
+            .index
+            .extensions
+            .iter()
+            .filter(|e| e.set_uuid.starts_with(UUID_HORS_BASE) && e.prefixe == prefixe)
+            .find_map(|e| e.cartes.get(&cle).map(|v| (e, v)))?;
+        let raretes: BTreeSet<String> = if d.raretes.is_empty() {
+            std::iter::once(d.rarete.to_owned()).collect()
+        } else {
+            d.raretes.iter().cloned().collect()
+        };
+        let connues = Connues {
+            base: BTreeMap::from([(d.set_code.to_owned(), raretes)]),
+            classeur: d.raretes.to_vec(),
+        };
+        Some(decider(
+            ext,
+            versions,
+            &connues,
+            d.rarete,
+            d.nom,
+            &self.index.prix,
+            prix_du.to_owned(),
         ))
     }
 }
@@ -1768,17 +2002,29 @@ pub fn decider(
             Raison::IllustrationsSaisiesAPart,
         );
     }
-    // L'identifiant de chaque version, selon le sens de saisie du set.
+    // L'identifiant de chaque version, selon le sens de saisie du set — à
+    // défaut, selon celui de la carte, lu dans ses prix (2026-11-02). Pas
+    // pour une carte à versions de même rareté : deux illustrations, ou une
+    // Overframe, ont la même valeur, et les prix ne les départagent pas.
     let attribution: Option<(Vec<i64>, Raison)> = match ext.sens {
         Sens::DansLOrdre => Some((versions.ids.clone(), Raison::Ordonnee)),
         Sens::Inverse => Some((
             versions.ids.iter().rev().copied().collect(),
             Raison::Ordonnee,
         )),
-        Sens::Inconnu if ext.region == Region::Tcg => {
-            Some((versions.ids.clone(), Raison::OrdreDeSaisieSuppose))
+        Sens::Inconnu | Sens::Melange => {
+            let sans_distinction = ordre
+                .iter()
+                .all(|c| regles::decouper_cle(c).1 == Distinction::Aucune);
+            sans_distinction
+                .then(|| sens_de_la_carte(&ordre, &versions.ids, prix))
+                .flatten()
+                .map(|ids| (ids, Raison::SensDeLaCarte))
+                .or_else(|| {
+                    (ext.sens == Sens::Inconnu && ext.region == Region::Tcg)
+                        .then(|| (versions.ids.clone(), Raison::OrdreDeSaisieSuppose))
+                })
         }
-        Sens::Inconnu | Sens::Melange => None,
     };
     let Some((ids, raison)) = attribution else {
         return offre(recherche, version, fourchette, Raison::SaisieMelangee);
@@ -1790,6 +2036,17 @@ pub fn decider(
     if !vraisemblable(&ordre, &ids, prix) {
         return offre(recherche, version, fourchette, Raison::SaisieDouteuse);
     }
+    // Une carte créée à rebours de l'ordre de ses raretés : le produit est sûr
+    // — ses prix le désignent —, son numéro V.n ne l'est pas. Cardmarket
+    // numérote tantôt selon l'ordre des raretés (BLMM, saisi à l'envers :
+    // Secret V.1, Starlight V.2), tantôt selon l'ordre de création (L5DD,
+    // pages du 2026-11-02 : « Black Garden » Ultra en V.1, Common en V.2 ;
+    // « Black Rose Dragon » Secret en V.1). Le lien reste, le V.n se tait.
+    let version = if raison == Raison::SensDeLaCarte && ids != versions.ids {
+        None
+    } else {
+        version
+    };
     match ids.get(k) {
         Some(id) => offre(Cible::Produit(*id), version, exact(*id), raison),
         None => offre(recherche, version, fourchette, Raison::SaisieMelangee),
@@ -1848,6 +2105,99 @@ pub fn vraisemblable(ordre: &[String], ids: &[i64], prix: &HashMap<i64, Prix>) -
         }
     }
     true
+}
+
+/// La valeur a priori d'une rareté pour lire un sens de saisie dans les prix :
+/// celle de la règle ([`regles::valeur`]), complétée des raretés qu'elle ne
+/// chiffre pas — la Grand Master Rare (LOCH, LOCR, MAMO : la plus chère de
+/// toutes) et la 10000 Secret Rare.
+#[must_use]
+pub(crate) fn valeur_indicative(rarete: &str) -> Option<f64> {
+    regles::valeur(rarete).or(match rarete {
+        "Grand Master Rare" | "10000 Secret Rare" => Some(9.0),
+        _ => None,
+    })
+}
+
+/// Une paire nette : deux raretés de valeurs écartées d'au moins deux crans,
+/// la plus précieuse au moins deux fois plus chère — et de dix centimes.
+fn temoin_net(ra: &str, rb: &str, pa: Option<u32>, pb: Option<u32>) -> bool {
+    let (Some(va), Some(vb), Some(pa), Some(pb)) =
+        (valeur_indicative(ra), valeur_indicative(rb), pa, pb)
+    else {
+        return false;
+    };
+    if (va - vb).abs() < 2.0 {
+        return false;
+    }
+    let (cher, autre) = if va > vb { (pa, pb) } else { (pb, pa) };
+    f64::from(cher) >= 2.0 * f64::from(autre)
+        && cher.saturating_sub(autre) >= ECART_DE_PRIX_SIGNIFICATIF
+}
+
+/// Le sens de saisie **de la carte**, quand celui de son set manque.
+///
+/// # Pourquoi — 2026-11-02
+///
+/// Un set saisi dans le désordre (86 extensions OCG), ou trop peu chiffré pour
+/// qu'on sache dans quel ordre (323 OCG), ne dit pas quel `idProduct` est
+/// quelle version : 6 481 tirages OCG de la base — 21 % — restaient sur la
+/// recherche alors que leur rang V.n était connu. Mais la carte elle-même
+/// a souvent été saisie d'un bloc, dans l'ordre ou à rebours, et ses prix le
+/// montrent.
+///
+/// Ses produits, dans l'ordre de création **ou** à rebours, doivent coller à
+/// ses prix ([`vraisemblable`]) avec au moins une paire nette (deux crans de
+/// valeur, prix du simple au double) — et **un seul** des deux sens doit
+/// convenir. Rend les identifiants dans l'ordre des versions.
+///
+/// Éprouvé sur les cartes des sets au sens connu (`ygo-cli ordres-cardmarket`,
+/// 2026-11-02) : 1 269 accords sur 1 269 en TCG, 1 405 sur 1 405 en OCG.
+///
+/// ```
+/// use std::collections::HashMap;
+/// use ygo_app::cardmarket::{sens_de_la_carte, Prix};
+/// let p = |t: u32| Prix { tendance: Some(t), ..Prix::default() };
+/// let ordre = ["Ultra Rare", "Starlight Rare"].map(String::from);
+/// // Créée à rebours : la Starlight, la plus chère, a le premier identifiant.
+/// let prix = HashMap::from([(1, p(5000)), (2, p(100))]);
+/// assert_eq!(sens_de_la_carte(&ordre, &[1, 2], &prix), Some(vec![2, 1]));
+/// // Des prix trop proches ne disent rien.
+/// let prix = HashMap::from([(1, p(100)), (2, p(150))]);
+/// assert_eq!(sens_de_la_carte(&ordre, &[1, 2], &prix), None);
+/// ```
+#[must_use]
+pub fn sens_de_la_carte(
+    ordre: &[String],
+    ids: &[i64],
+    prix: &HashMap<i64, Prix>,
+) -> Option<Vec<i64>> {
+    if ordre.len() != ids.len() {
+        return None;
+    }
+    let colle = |ids: &[i64]| {
+        let p: Vec<Option<u32>> = ids
+            .iter()
+            .map(|id| prix.get(id).and_then(Prix::reference))
+            .collect();
+        vraisemblable(ordre, ids, prix)
+            && (0..ordre.len()).any(|i| {
+                (i + 1..ordre.len()).any(|j| {
+                    temoin_net(
+                        ordre.get(i).map_or("", String::as_str),
+                        ordre.get(j).map_or("", String::as_str),
+                        p.get(i).copied().flatten(),
+                        p.get(j).copied().flatten(),
+                    )
+                })
+            })
+    };
+    let a_rebours: Vec<i64> = ids.iter().rev().copied().collect();
+    match (colle(ids), colle(&a_rebours)) {
+        (true, false) => Some(ids.to_vec()),
+        (false, true) => Some(a_rebours),
+        _ => None,
+    }
 }
 
 /// Écart de valeur à partir duquel une paire sert au contrôle de
@@ -2698,6 +3048,104 @@ mod tests {
         assert_eq!(o.cible, Cible::Produit(101));
     }
 
+    /// 2026-11-02 : un set mélangé — ou OCG sans assez de prix — garde le
+    /// lien direct quand la carte, elle, montre son sens par ses prix.
+    #[test]
+    fn le_sens_de_la_carte_supplee_celui_du_set() {
+        let index = IndexCharge::new(index_de_test());
+        let mut ext = index.extensions_du_set("set-a", Region::Tcg)[0].clone();
+        let gamma = ext.cartes["gamma"].clone();
+        assert_eq!(gamma.ids, vec![103, 104]);
+        let codes = BTreeMap::from([(
+            "AAA-EN003".to_owned(),
+            BTreeSet::from(["Super Rare".to_owned(), "Starlight Rare".to_owned()]),
+        )]);
+        let p = |t: u32| Prix {
+            tendance: Some(t),
+            ..Prix::default()
+        };
+        let dans_l_ordre = HashMap::from([(103, p(50)), (104, p(5000))]);
+        let a_rebours = HashMap::from([(103, p(5000)), (104, p(50))]);
+        for (sens, region) in [
+            (Sens::Melange, Region::Tcg),
+            (Sens::Melange, Region::Ocg),
+            (Sens::Inconnu, Region::Ocg),
+        ] {
+            ext.sens = sens;
+            ext.region = region;
+            let decide = |prix: &HashMap<i64, Prix>| {
+                decider(
+                    &ext,
+                    &gamma,
+                    &connues(codes.clone()),
+                    "Starlight Rare",
+                    "Gamma",
+                    prix,
+                    String::new(),
+                )
+            };
+            let o = decide(&dans_l_ordre);
+            assert_eq!(o.cible, Cible::Produit(104), "{sens:?} {region:?}");
+            assert_eq!(o.raison, Raison::SensDeLaCarte);
+            assert!(matches!(o.prix, PrixOffre::Exact(x) if x.tendance == Some(5000)));
+            assert_eq!(o.version.as_deref(), Some("V.2 · Starlight Rare"));
+            let o = decide(&a_rebours);
+            assert_eq!(o.cible, Cible::Produit(103), "{sens:?} {region:?}");
+            assert_eq!(o.raison, Raison::SensDeLaCarte);
+            // Créée à rebours : le produit est sûr, le V.n non (L5DD).
+            assert_eq!(o.version, None);
+            // Des prix muets : la recherche, comme avant.
+            let muets = HashMap::from([(103, p(100)), (104, p(120))]);
+            assert!(!decide(&muets).est_directe());
+        }
+        // Un set TCG au sens inconnu : la carte d'abord, la supposition ensuite.
+        ext.sens = Sens::Inconnu;
+        ext.region = Region::Tcg;
+        let o = decider(
+            &ext,
+            &gamma,
+            &connues(codes),
+            "Starlight Rare",
+            "Gamma",
+            &a_rebours,
+            String::new(),
+        );
+        assert_eq!(o.cible, Cible::Produit(103));
+        assert_eq!(o.raison, Raison::SensDeLaCarte);
+    }
+
+    /// Deux versions de même rareté : les prix ne les départagent pas, le
+    /// sens de la carte ne s'applique pas.
+    #[test]
+    fn le_sens_de_la_carte_ne_departage_pas_deux_illustrations() {
+        let index = IndexCharge::new(index_de_test());
+        let mut ext = index.extensions_du_set("set-a", Region::Tcg)[0].clone();
+        ext.sens = Sens::Melange;
+        let gamma = ext.cartes["gamma"].clone();
+        let p = |t: u32| Prix {
+            tendance: Some(t),
+            ..Prix::default()
+        };
+        let prix = HashMap::from([(103, p(50)), (104, p(5000))]);
+        let connues = Connues {
+            base: BTreeMap::new(),
+            classeur: vec![
+                "Starlight Rare".to_owned(),
+                "Starlight Rare (illustration 2)".to_owned(),
+            ],
+        };
+        let o = decider(
+            &ext,
+            &gamma,
+            &connues,
+            "Starlight Rare",
+            "Gamma",
+            &prix,
+            String::new(),
+        );
+        assert!(!o.est_directe());
+    }
+
     /// RA05 : la base n'a que des « Common » d'attente, le classeur a les
     /// vraies raretés — ce sont elles qui comptent.
     #[test]
@@ -3379,6 +3827,84 @@ mod tests {
         )
         .unwrap();
         conn
+    }
+
+    /// MAMO, 2026-11-02 : un classeur créé par YGOPRODeck, dont la base
+    /// n'a aucun numéro, est rapproché de son extension par ses lignes — lien
+    /// direct et prix.
+    #[test]
+    fn un_classeur_hors_base_a_son_lien_et_son_prix() {
+        let d = "2026-08-27 11:00:00";
+        let mut b = base();
+        let ligne = |code: &str, nom: &str, rarete: &str| LigneHorsBase {
+            set_code: code.into(),
+            nom: nom.into(),
+            rarete: rarete.into(),
+            set_name: "Magnificent Monsters".into(),
+        };
+        b.ajouter_hors_base(
+            "MMM",
+            &[
+                ligne("MMM-EN001", "Kuriboh", "Quarter Century Secret Rare"),
+                ligne("MMM-EN002", "Necromancer", "Common"),
+                ligne("MMM-EN003", "Hat Tricker", "Common"),
+                ligne("MMM-EN004", "Cyber Toon", "Common"),
+            ],
+        );
+        let cartes = catalogue(vec![
+            produit(300, "Kuriboh", 30, d),
+            produit(301, "Necromancer", 30, d),
+            produit(302, "Hat Tricker", 30, d),
+            produit(303, "Cyber Toon", 30, d),
+        ]);
+        let guide = GuidePrix {
+            cree_le: "2026-10-28".into(),
+            prix: vec![prix_publie(301, 0.14)],
+        };
+        let index = assembler(
+            &cartes,
+            &catalogue(vec![produit(950, "Magnificent Monsters Box", 30, d)]),
+            &guide,
+            &b,
+            Empreinte::default(),
+        );
+        let ext = index.extensions.iter().find(|e| e.id == 30).unwrap();
+        assert_eq!(ext.set_uuid, "classeur:MMM");
+        assert_eq!(ext.prefixe, "MMM-EN");
+        let index = IndexCharge::new(index);
+        let o = index
+            .offre(
+                &cardinfo_de_test(),
+                &Demande {
+                    set_code: "MMM-EN002",
+                    rarete: "Common",
+                    nom: "Necromancer",
+                    card_uuid: None,
+                    raretes: &["Common".to_owned()],
+                },
+            )
+            .unwrap();
+        assert_eq!(o.cible, Cible::Produit(301));
+        assert!(matches!(o.prix, PrixOffre::Exact(p) if p.tendance == Some(14)));
+    }
+
+    /// Un classeur dont la base connaît un numéro n'est pas repris : la base
+    /// fait foi.
+    #[test]
+    fn un_classeur_de_la_base_n_est_pas_repris() {
+        let mut b = base();
+        b.numeros.insert("AAA-EN001".into());
+        let avant = b.locales.len();
+        b.ajouter_hors_base(
+            "AAA",
+            &[LigneHorsBase {
+                set_code: "AAA-EN001".into(),
+                nom: "Alpha".into(),
+                rarete: "Ultra Rare".into(),
+                set_name: String::new(),
+            }],
+        );
+        assert_eq!(b.locales.len(), avant);
     }
 
     #[test]

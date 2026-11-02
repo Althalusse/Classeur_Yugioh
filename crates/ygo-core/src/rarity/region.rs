@@ -78,6 +78,30 @@ pub fn nom_de_reference(libelle: &str) -> &str {
         .map_or(libelle, |(_, tcg)| tcg)
 }
 
+/// Le nom TCG d'une rareté **régionale** — le libellé lui-même sinon, et
+/// **sans** les [`SYNONYMES`].
+///
+/// C'est le vocabulaire de `cardinfo.db`, donc des règles Cardmarket : la
+/// base écrit « Common Parallel Rare » (5 355 tirages) et jamais « Normal
+/// Parallel Rare ». [`nom_de_reference`], qui suit les synonymes, en ferait un
+/// nom que la base ne connaît pas — ce qu'il a fait du 2026-10-29 au
+/// 2026-11-02 : une ligne « Common Parallel Rare » perdait son lien
+/// Cardmarket (« rareté absente des versions connues »).
+///
+/// ```
+/// use ygo_core::rarity::region::nom_regional_de_reference;
+/// assert_eq!(nom_regional_de_reference("Holographic Rare"), "Ghost Rare");
+/// assert_eq!(nom_regional_de_reference("Common Parallel Rare"), "Common Parallel Rare");
+/// assert_eq!(nom_regional_de_reference("Ultra Rare"), "Ultra Rare");
+/// ```
+#[must_use]
+pub fn nom_regional_de_reference(libelle: &str) -> &str {
+    NOMS_REGIONAUX
+        .iter()
+        .find(|(ocg, _)| *ocg == libelle)
+        .map_or(libelle, |(_, tcg)| tcg)
+}
+
 /// L'autre nom d'une rareté à double nom, dans un sens comme dans l'autre.
 ///
 /// ```

@@ -1564,6 +1564,33 @@ fn actualiser_cardmarket(racine: &std::path::Path, travaux: &Travaux) {
     }
 }
 
+/// Refait l'index Cardmarket après une mise à jour de la base ou la
+/// création d'un classeur, sur un fil à lui.
+///
+/// Le fil Cardmarket du démarrage ne passe qu'une fois : une base mise à jour
+/// **après** lui — à la demande, ou par une mise à jour lancée au démarrage
+/// mais pas encore commencée quand il a regardé — laissait l'index sur
+/// l'ancienne jusqu'au lancement suivant. Les sets arrivés avec elle n'avaient
+/// ni lien ni prix : *Magnificent Monsters* (`MAMO`), 2026-11-02.
+///
+/// Sans effet si rien n'a changé : l'empreinte de l'index (taille et date de
+/// `cardinfo.db`, dates des fichiers) le dit à jour.
+fn reindexer_cardmarket(racine: &std::path::Path) {
+    let paths = Paths::depuis_racine(racine);
+    std::thread::Builder::new()
+        .name("ygo-cardmarket-index".to_owned())
+        .spawn(
+            move || match ygo_app::cardmarket::reconstruire_si_besoin(&paths, false) {
+                Ok(etat) => tracing::info!(?etat, "Cardmarket : index après mise à jour de la base"),
+                Err(e) => tracing::warn!(erreur = %e, "Cardmarket : index non refait après la mise à jour"),
+            },
+        )
+        .map_or_else(
+            |e| tracing::error!(erreur = %e, "fil de l'index Cardmarket non démarré"),
+            |_| (),
+        );
+}
+
 /// Le contrôle de version de l'application : une requête à GitHub, un
 /// événement, et le fil meurt.
 fn controler_appli(racine: &std::path::Path, envoi: &Sender<Evenement>, ctx: &egui::Context) {
@@ -1857,10 +1884,13 @@ fn travailler_donnees(fil: &Fil, commandes: &Receiver<Commande>, images: &Sender
     while let Ok(commande) = commandes.recv() {
         match commande {
             Commande::Init => {
-                // Le fil des images n'ouvre pas `cardinfo.db` tant que la
-                // garde vit — cf. `Travaux`.
-                let _garde = fil.travaux.ouvrir();
-                executer_maj(&runtime, &paths, &client, images, &signaler);
+                {
+                    // Le fil des images n'ouvre pas `cardinfo.db` tant que la
+                    // garde vit — cf. `Travaux`.
+                    let _garde = fil.travaux.ouvrir();
+                    executer_maj(&runtime, &paths, &client, images, &signaler);
+                }
+                reindexer_cardmarket(&fil.racine);
             }
             Commande::VerifierVersion => {
                 signaler(Evenement::Version {
@@ -1907,6 +1937,9 @@ fn travailler_donnees(fil: &Fil, commandes: &Receiver<Commande>, images: &Sender
                     &signaler,
                 );
                 if cree {
+                    // Un classeur hors base entre dans l'index Cardmarket
+                    // (cf. `Base::ajouter_classeurs_hors_base`).
+                    reindexer_cardmarket(&fil.racine);
                     // Les données sont prêtes : le classeur passe la main au
                     // fil des images, et attend son tour sans rien retenir.
                     signaler(Evenement::ImagesEnAttente { code: code.clone() });

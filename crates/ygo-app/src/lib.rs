@@ -54,6 +54,7 @@ pub mod maj;
 pub mod maj_appli;
 pub mod noms_fr;
 pub mod numeros_absents;
+pub mod ordres_cardmarket;
 pub mod overframe;
 pub mod possession;
 pub mod raretes;
