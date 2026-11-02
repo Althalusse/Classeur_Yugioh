@@ -44,6 +44,13 @@
 //! numéros sur 106). Sans majorité — les cartes de participation, qui mêlent
 //! cinquante préfixes — le set reste hors de la liste, comme avant ; et un
 //! code qu'un set préfixé porte déjà reste le sien.
+//!
+//! # Les sets que la base n'a pas — 2026-11-01
+//!
+//! YGOJSON est figée au 2026-04-07 : `MAMO` et les sets sortis depuis n'y
+//! sont pas. La liste leur ajoute ceux que `bdd/sets_hors_base.json` retient
+//! (cf. [`crate::sets_hors_base`]), marqués [`SetDisponible::via_api`] — leur
+//! création part par YGOPRODeck. Un code que la base porte reste le sien.
 
 use rusqlite::Connection;
 use ygo_core::paths::Paths;
@@ -73,6 +80,10 @@ pub struct SetDisponible {
     pub nb_cartes: usize,
     /// Un classeur existe-t-il déjà pour ce code ?
     pub deja_cree: bool,
+    /// Le set est-il absent de la base, et proposé d'après YGOPRODeck ?
+    ///
+    /// Sa création part alors par l'API (cf. [`crate::sets_hors_base`]).
+    pub via_api: bool,
 }
 
 /// Les sets déclarés par `cardinfo.db`, marqués de ceux qui ont déjà un
@@ -100,11 +111,35 @@ pub fn lister(paths: &Paths, francais: bool) -> Result<Vec<SetDisponible>> {
     }
 
     let mut sets = lire_sets(&conn, francais)?;
+    ajouter_hors_base(&mut sets, crate::sets_hors_base::lire(paths));
     for set in &mut sets {
         set.deja_cree = deja.contains(&set.code);
     }
     sets.sort_by(|a, b| a.code.cmp(&b.code));
     Ok(sets)
+}
+
+/// Ajoute les sets que la base n'a pas, d'après `bdd/sets_hors_base.json`.
+///
+/// Un code que la base propose déjà reste le sien, même quand le fichier a été
+/// calculé contre une base plus ancienne : le repli ne double jamais un set.
+fn ajouter_hors_base(
+    sets: &mut Vec<SetDisponible>,
+    hors_base: Vec<crate::sets_hors_base::SetHorsBase>,
+) {
+    let connus: std::collections::HashSet<String> = sets.iter().map(|s| s.code.clone()).collect();
+    sets.extend(
+        hors_base
+            .into_iter()
+            .filter(|h| !connus.contains(&h.code))
+            .map(|h| SetDisponible {
+                code: h.code,
+                nom: h.nom,
+                nb_cartes: h.nb_cartes,
+                deja_cree: false,
+                via_api: true,
+            }),
+    );
 }
 
 /// Les trois tables nécessaires sont-elles là ?
@@ -230,6 +265,7 @@ fn lire_requete(
             nom: nom_affiche(name_en.as_deref(), name_fr.as_deref(), francais),
             nb_cartes: nb.max(0) as usize,
             deja_cree: false,
+            via_api: false,
         });
     }
     Ok(())
@@ -313,6 +349,7 @@ mod tests {
             nom: nom.to_owned(),
             nb_cartes: nb,
             deja_cree: false,
+            via_api: false,
         }
     }
 
@@ -615,5 +652,51 @@ mod tests {
         let mut tries = codes.clone();
         tries.sort_unstable();
         assert_eq!(codes, tries);
+    }
+
+    /// Le repli du 2026-11-01 : un set que la base n'a pas — `MAMO` — est
+    /// proposé, marqué `via_api`, et compté comme déjà créé si son dossier
+    /// existe. Un code que la base porte n'est jamais doublé, même si le
+    /// fichier le cite.
+    #[test]
+    fn les_sets_hors_base_sont_proposes_sans_doubler_la_base() {
+        let (_tmp, paths) = installation();
+        let hors_base = |code: &str, nom: &str| crate::sets_hors_base::SetHorsBase {
+            code: code.to_owned(),
+            nom: nom.to_owned(),
+            nb_cartes: 126,
+            date: "2026-09-04".to_owned(),
+        };
+        crate::sets_hors_base::ecrire(
+            &paths,
+            &[
+                hors_base("MAMO", "Magnificent Monsters"),
+                hors_base("RA02", "Faux"),
+            ],
+        )
+        .unwrap();
+        std::fs::create_dir_all(paths.dossier_classeur("MAMO")).unwrap();
+
+        let sets = lister(&paths, true).unwrap();
+        let mamo = sets.iter().find(|s| s.code == "MAMO").unwrap();
+        assert!(mamo.via_api);
+        assert!(mamo.deja_cree);
+        assert_eq!(
+            mamo.nom, "Magnificent Monsters",
+            "pas de nom français connu"
+        );
+        let ra02: Vec<&SetDisponible> = sets.iter().filter(|s| s.code == "RA02").collect();
+        assert_eq!(ra02.len(), 1);
+        assert!(!ra02[0].via_api, "la base garde son set");
+        assert!(sets.iter().filter(|s| s.code != "MAMO").all(|s| !s.via_api));
+    }
+
+    /// Sans fichier, la liste est celle de la base, comme avant.
+    #[test]
+    fn sans_fichier_la_liste_est_celle_de_la_base() {
+        let (_tmp, paths) = installation();
+        let sets = lister(&paths, false).unwrap();
+        assert!(sets.iter().all(|s| !s.via_api));
+        assert!(!sets.iter().any(|s| s.code == "MAMO"));
     }
 }

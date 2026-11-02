@@ -5,7 +5,7 @@ classeur : chaque tirage à sa place, avec sa rareté, son illustration et son
 édition, et pour chaque carte possédée, l'état de chaque exemplaire.
 
 Application de bureau pour **Windows**, écrite en **Rust** (interface egui).
-Version actuelle : **2.0.12**.
+Version actuelle : **2.0.13**.
 
 > Projet de fan, non officiel, sans lien avec Konami ni avec Cardmarket.
 > *Yu-Gi-Oh!* et les illustrations des cartes appartiennent à leurs ayants
@@ -63,6 +63,10 @@ Version actuelle : **2.0.12**.
   de carte**.
 - **Mise à jour de la base** — un bandeau prévient quand une nouvelle version
   des données est disponible ; elle se reconstruit en quelques secondes.
+- **Les sets les plus récents** — un set sorti après la dernière base de
+  référence (YGOJSON n'évolue plus depuis avril 2026) est tout de même proposé
+  à la création, marqué « via YGOPRODeck » : il est construit depuis
+  YGOPRODeck, puis complété par Yugipedia comme les autres.
 
 ## Installer
 
@@ -95,7 +99,7 @@ choisi dans Options › Application.
 | Source | Ce qu'elle fournit | Règles appliquées |
 |---|---|---|
 | [YGOJSON](https://github.com/iconmaster5326/YGOJSON) | cartes, sets, tirages, textes multilingues | une archive par mise à jour |
-| [YGOPRODeck](https://ygoprodeck.com/api-guide/) | catalogue, statistiques, images par carte | ≤ 15 requêtes/s (limite : 20), données gardées en local, chaque image téléchargée **une seule fois** |
+| [YGOPRODeck](https://ygoprodeck.com/api-guide/) | catalogue, liste des sets, statistiques, images par carte | ≤ 15 requêtes/s (limite : 20), données gardées en local (liste des sets : une requête tous les deux jours au plus), chaque image téléchargée **une seule fois** |
 | [Yugipedia](https://yugipedia.com/wiki/Yugipedia:API) | image de chaque tirage, listes officielles des sets | ≤ 1 requête/s, **une seule requête à la fois**, cache de 30 jours, requêtes regroupées par 50, User-Agent avec contact |
 | [Cardmarket](https://www.cardmarket.com) | catalogue et guide des prix publics (fichiers ouverts à tous, sans compte) | **une vérification par jour au plus**, requête conditionnelle (rien ne redescend si rien n'a changé) ; **aucune requête vers le site** : l'application construit les liens, vous les ouvrez |
 

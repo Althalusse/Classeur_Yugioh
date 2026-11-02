@@ -61,6 +61,7 @@ pub mod replis;
 pub mod scanflip;
 pub mod scans;
 pub mod selecteur;
+pub mod sets_hors_base;
 pub mod statistiques;
 pub mod suppression;
 

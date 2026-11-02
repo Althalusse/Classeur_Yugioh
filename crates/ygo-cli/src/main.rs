@@ -150,6 +150,9 @@ async fn executer() -> anyhow::Result<bool> {
         }
         "doublons" => cmd_doublons(&cible.context("chemin de l'installation attendu")?, reste),
         "controle" => cmd_controle(&cible.context("chemin de l'installation attendu")?).await,
+        "sets-hors-base" => {
+            cmd_sets_hors_base(&cible.context("chemin de l'installation attendu")?).await
+        }
         "anomalies" => cmd_anomalies(&cible.context("chemin de l'installation attendu")?, reste),
         "images" => cmd_images(&cible.context("chemin de l'installation attendu")?, reste).await,
         "importer" => {
@@ -259,6 +262,8 @@ USAGE
                                    noms FR, numéros manquants et Overframe, images de
                                    tirage, replis : le bouton des Options › Maintenance.
                                    ÉCRIT (après une copie dans backups/avant_controle_…)
+  ygo-cli sets-hors-base <installation>  recalcule bdd/sets_hors_base.json : les sets
+                                   sortis après le gel de YGOJSON, proposés via YGOPRODeck
   ygo-cli doublons <installation>  retire les lignes insérées à tort par la passe artworks
         [--corriger]                  supprime — sans lui, rien n'est modifié
         [--classeur CODE]             se limite à un classeur
@@ -916,6 +921,28 @@ fn cmd_raretes(installation: &Path, args: &[String]) -> anyhow::Result<bool> {
 
 /// `controle` — le bouton « Contrôle complet » des Options, en ligne de
 /// commande ([`ygo_app::controle::complet`]). Il écrit, après sauvegarde.
+/// `sets-hors-base` — recalcule `bdd/sets_hors_base.json` et l'affiche : les
+/// sets que YGOPRODeck connaît et que la base, figée, n'a pas.
+async fn cmd_sets_hors_base(installation: &Path) -> anyhow::Result<bool> {
+    let paths = Paths::depuis_racine(installation);
+    ygo_sources::cache::activer(&paths.cache_http());
+    let client = ygo_sources::ClientHttp::new()?;
+    let sets = ygo_app::sets_hors_base::rafraichir(&paths, &client).await?;
+    println!(
+        "{} set(s) hors base, sortis depuis le {} :",
+        sets.len(),
+        ygo_app::sets_hors_base::DEPUIS
+    );
+    for s in &sets {
+        println!(
+            "  {:<8} {}  {:>4} cartes  {}",
+            s.code, s.date, s.nb_cartes, s.nom
+        );
+    }
+    println!("→ {}", ygo_app::sets_hors_base::chemin(&paths).display());
+    Ok(true)
+}
+
 async fn cmd_controle(installation: &Path) -> anyhow::Result<bool> {
     let paths = Paths::depuis_racine(installation);
     ygo_sources::cache::activer(&paths.cache_http());

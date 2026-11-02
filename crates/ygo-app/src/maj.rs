@@ -210,6 +210,8 @@ pub struct Bilan {
 /// 1. [`init::initialiser`] — archive, parsing, écriture, vérification ;
 /// 2. `checkDBVer.php` — la version que l'on vient d'obtenir ;
 /// 3. `bdd/last_update.txt` — pour que l'étape 2 du prochain démarrage sache ;
+///    puis `bdd/sets_hors_base.json`, les sets que la base n'a pas encore
+///    (cf. [`crate::sets_hors_base`]) ;
 /// 4. les classeurs existants : images de repli, noms FR, puis numéros
 ///    manquants rattrapés depuis leur Set list (cf. [`crate::numeros_absents`]).
 ///
@@ -235,6 +237,13 @@ pub async fn mettre_a_jour(
     // dire où.
     let comptages = init::initialiser(paths, options, progression).await?;
     let version = enregistrer_version(paths, client).await;
+    // Les sets sortis depuis le gel de YGOJSON, que la base ne peut pas
+    // contenir : le sélecteur les proposera via YGOPRODeck (cf.
+    // `sets_hors_base`). Une requête, gardée deux jours en cache ; son échec
+    // laisse la liste précédente et n'arrête rien.
+    if let Err(e) = crate::sets_hors_base::rafraichir(paths, client).await {
+        tracing::warn!(erreur = %e, "sets hors base : liste non recalculée");
+    }
     // Une nouvelle base peut porter de nouvelles adresses d'image : c'est le
     // moment de retenter ce que la source primaire avait refusé (demande du
     // 2026-10-02). Rien ne part ici — les images suivent à l'ouverture.

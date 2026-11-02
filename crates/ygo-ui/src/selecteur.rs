@@ -19,12 +19,21 @@
 //! sets d'un coup ne rend service à personne et coûte le prix de mille cinq
 //! cents widgets. En dessous de deux caractères, la liste reste vide et le
 //! dit — ce n'est pas « aucun résultat ».
+//!
+//! # Les sets hors base arrivent après, sans faire attendre — 2026-11-01
+//!
+//! Les sets que la base n'a pas (cf. [`ygo_app::sets_hors_base`]) sont lus
+//! dans un fichier que la MAJ BDD calcule. S'il manque ou date de plus de deux
+//! jours, le fil envoie d'abord la liste de la base — l'écran est utilisable
+//! aussitôt — puis la recalcule d'après YGOPRODeck et envoie la liste
+//! complétée, qui remplace la première.
 
 use std::path::PathBuf;
 use std::sync::mpsc::{Receiver, TryRecvError};
 
 use eframe::egui;
 use ygo_app::selecteur::{self, SetDisponible, MAX_RESULTATS, MIN_RECHERCHE};
+use ygo_app::sets_hors_base;
 use ygo_core::config::Config;
 use ygo_core::paths::Paths;
 
@@ -39,6 +48,9 @@ enum Chargement {
 /// L'écran de sélection d'un set.
 pub struct EcranSelecteur {
     chargement: Chargement,
+    /// La liste complétée des sets hors base, quand le fil la recalcule après
+    /// avoir envoyé celle de la base.
+    suite: Option<Receiver<Vec<SetDisponible>>>,
     terme: String,
     focus: bool,
 
@@ -87,8 +99,15 @@ impl EcranSelecteur {
                     sets.len(),
                     debut.elapsed()
                 );
+                // Sans base, rien à compléter : l'écran dit déjà quoi faire.
+                let completer = !sets.is_empty() && sets_hors_base::a_rafraichir(&paths);
                 let _ = envoi.send(sets);
                 ctx.request_repaint();
+                if completer && rafraichir_hors_base(&paths) {
+                    let sets = selecteur::lister(&paths, francais).unwrap_or_default();
+                    let _ = envoi.send(sets);
+                    ctx.request_repaint();
+                }
             });
         if let Err(e) = lecture {
             tracing::error!(erreur = %e, "lecture des sets non démarrée");
@@ -96,6 +115,7 @@ impl EcranSelecteur {
 
         Self {
             chargement: Chargement::EnCours(reception),
+            suite: None,
             terme: String::new(),
             focus: true,
             creer: None,
@@ -121,17 +141,35 @@ impl EcranSelecteur {
         self.avec_artworks
     }
 
-    /// Récupère la liste si le fil l'a rendue.
+    /// Récupère la liste si le fil l'a rendue — puis, le cas échéant, la
+    /// liste complétée des sets hors base, qui remplace la première.
     fn recevoir(&mut self) {
         if let Chargement::EnCours(reception) = &self.chargement {
             match reception.try_recv() {
-                Ok(sets) => self.chargement = Chargement::Prete(sets),
+                Ok(sets) => {
+                    let avant = std::mem::replace(&mut self.chargement, Chargement::Prete(sets));
+                    // Le même canal porte l'éventuelle liste complétée.
+                    if let Chargement::EnCours(reception) = avant {
+                        self.suite = Some(reception);
+                    }
+                }
                 Err(TryRecvError::Empty) => {}
                 // Le fil est mort sans rien envoyer : liste vide plutôt
                 // qu'attente éternelle.
                 Err(TryRecvError::Disconnected) => {
                     self.chargement = Chargement::Prete(Vec::new());
                 }
+            }
+            return;
+        }
+        if let Some(suite) = &self.suite {
+            match suite.try_recv() {
+                // Une liste vide ne remplace pas une liste pleine : la
+                // relecture a échoué, la première reste juste.
+                Ok(sets) if sets.is_empty() => {}
+                Ok(sets) => self.chargement = Chargement::Prete(sets),
+                Err(TryRecvError::Empty) => {}
+                Err(TryRecvError::Disconnected) => self.suite = None,
             }
         }
     }
@@ -280,6 +318,39 @@ impl EcranSelecteur {
     }
 }
 
+/// Recalcule `bdd/sets_hors_base.json` d'après YGOPRODeck. Rend `true` si
+/// le fichier a changé de contenu — sans quoi la liste n'est pas relue.
+///
+/// Sur le fil du sélecteur, jamais sur celui du rendu. `cardsets.php` est
+/// gardé deux jours dans le cache HTTP : le plus souvent, rien ne part.
+fn rafraichir_hors_base(paths: &Paths) -> bool {
+    let avant = sets_hors_base::lire(paths);
+    let runtime = match tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+    {
+        Ok(r) => r,
+        Err(e) => {
+            tracing::warn!(erreur = %e, "sets hors base : runtime indisponible");
+            return false;
+        }
+    };
+    let client = match ygo_sources::ClientHttp::new() {
+        Ok(c) => c,
+        Err(e) => {
+            tracing::warn!(erreur = %e, "sets hors base : client HTTP indisponible");
+            return false;
+        }
+    };
+    match runtime.block_on(sets_hors_base::rafraichir(paths, &client)) {
+        Ok(apres) => apres != avant,
+        Err(e) => {
+            tracing::warn!(erreur = %e, "sets hors base : liste non recalculée");
+            false
+        }
+    }
+}
+
 /// Une carte de set. Rend `true` si la création est demandée.
 fn carte_set(ui: &mut egui::Ui, set: &SetDisponible, lance: bool) -> bool {
     let mut demande = false;
@@ -294,6 +365,14 @@ fn carte_set(ui: &mut egui::Ui, set: &SetDisponible, lance: bool) -> bool {
                     egui::Label::new(egui::RichText::new(set.code.as_str()).strong().monospace()),
                 );
                 ui.add_space(8.0);
+                if set.via_api {
+                    ui.label(egui::RichText::new("via YGOPRODeck").small().weak())
+                        .on_hover_text(
+                            "Set sorti après la dernière base de référence : il sera créé \
+                             depuis YGOPRODeck, puis complété par Yugipedia.",
+                        );
+                    ui.add_space(4.0);
+                }
                 ui.add(egui::Label::new(set.nom.as_str()).truncate());
 
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
@@ -330,6 +409,7 @@ mod tests {
         let (envoi, reception) = std::sync::mpsc::channel::<Vec<SetDisponible>>();
         let mut ecran = EcranSelecteur {
             chargement: Chargement::EnCours(reception),
+            suite: None,
             terme: String::new(),
             focus: false,
             creer: None,
@@ -354,6 +434,7 @@ mod tests {
         let (_envoi, reception) = std::sync::mpsc::channel::<Vec<SetDisponible>>();
         let mut ecran = EcranSelecteur {
             chargement: Chargement::EnCours(reception),
+            suite: None,
             terme: String::new(),
             focus: false,
             creer: None,
@@ -372,6 +453,7 @@ mod tests {
         let (_envoi, reception) = std::sync::mpsc::channel::<Vec<SetDisponible>>();
         let mut ecran = EcranSelecteur {
             chargement: Chargement::EnCours(reception),
+            suite: None,
             terme: String::new(),
             focus: false,
             creer: None,
@@ -401,6 +483,7 @@ mod tests {
         let (_envoi, reception) = std::sync::mpsc::channel::<Vec<SetDisponible>>();
         let mut ecran = EcranSelecteur {
             chargement: Chargement::EnCours(reception),
+            suite: None,
             terme: String::new(),
             focus: false,
             creer: Some("RA02".to_owned()),
@@ -412,5 +495,63 @@ mod tests {
         assert_eq!(ecran.creation_demandee(), None, "une seule fois");
         assert!(ecran.retour_demande());
         assert!(!ecran.retour_demande(), "une seule fois");
+    }
+
+    fn set_test(code: &str) -> SetDisponible {
+        SetDisponible {
+            code: code.to_owned(),
+            nom: String::new(),
+            nb_cartes: 1,
+            deja_cree: false,
+            via_api: false,
+        }
+    }
+
+    /// La liste de la base s'affiche d'abord ; la liste complétée des sets
+    /// hors base la remplace quand elle arrive. Une relecture vide ne la
+    /// remplace pas.
+    #[test]
+    fn la_liste_completee_remplace_la_premiere() {
+        let (envoi, reception) = std::sync::mpsc::channel::<Vec<SetDisponible>>();
+        let mut ecran = EcranSelecteur {
+            chargement: Chargement::EnCours(reception),
+            suite: None,
+            terme: String::new(),
+            focus: false,
+            creer: None,
+            lances: Vec::new(),
+            retour: false,
+            avec_artworks: true,
+        };
+        envoi.send(vec![set_test("RA05")]).unwrap();
+        ecran.recevoir();
+        let codes = |e: &EcranSelecteur| match &e.chargement {
+            Chargement::Prete(sets) => sets.iter().map(|s| s.code.clone()).collect::<Vec<_>>(),
+            Chargement::EnCours(_) => panic!("l'écran attend encore"),
+        };
+        assert_eq!(codes(&ecran), vec!["RA05"]);
+        assert!(ecran.suite.is_some());
+
+        ecran.recevoir();
+        assert_eq!(codes(&ecran), vec!["RA05"], "rien de neuf, rien ne change");
+
+        envoi.send(Vec::new()).unwrap();
+        ecran.recevoir();
+        assert_eq!(
+            codes(&ecran),
+            vec!["RA05"],
+            "une liste vide ne remplace rien"
+        );
+
+        envoi
+            .send(vec![set_test("RA05"), set_test("MAMO")])
+            .unwrap();
+        ecran.recevoir();
+        assert_eq!(codes(&ecran), vec!["RA05", "MAMO"]);
+
+        drop(envoi);
+        ecran.recevoir();
+        assert!(ecran.suite.is_none(), "le fil a fini");
+        assert_eq!(codes(&ecran), vec!["RA05", "MAMO"]);
     }
 }
