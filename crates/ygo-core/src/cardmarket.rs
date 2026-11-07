@@ -1161,7 +1161,7 @@ pub fn langue_du_site(francais: bool) -> &'static str {
 /// langue est celle de chaque annonce. Les prix des fichiers publics les
 /// mélangent toutes ; la page, elle, se filtre — c'est ce que fait ce
 /// réglage, sans rien changer aux prix affichés dans l'application.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum LangueDesAnnonces {
     /// Pas de filtre.
     Toutes,
@@ -1497,6 +1497,10 @@ mod tests {
         // (4592), où l'Ultra Parallel — que Cardmarket y écrit « Ultra Rare »
         // — passe avant la Secret ; DOOD (6235) et BLZD (6458), qui mettent
         // l'Ultimate en tête, avant la Secret (2026-11-02).
+        //
+        // Et un set TCG : INFO (5687), où « Millennium Ankh » a sa Secret en
+        // V.1 et une Ultra — absente de la base — en V.2 (capture de
+        // l'utilisateur, 2026-11-06).
         for (id, region, a, b) in &ecarts {
             let (ra, _) = decouper_cle(a);
             let (rb, _) = decouper_cle(b);
@@ -1507,8 +1511,9 @@ mod tests {
             let rarity_collection = RARITY_COLLECTIONS.contains(id) && (tcg || ocg_sur_un_set_tcg);
             let jpc = *id == 4592 && *region == Region::Ocg && ra == ULTRA_PARALLEL && rb == SECRET;
             let ultimate_en_tete = (*id == 6235 || *id == 6458) && ra == ULTIMATE && rb == SECRET;
+            let info = *id == 5687 && ra == SECRET && rb == ULTRA;
             assert!(
-                rarity_collection || jpc || ultimate_en_tete,
+                rarity_collection || jpc || ultimate_en_tete || info,
                 "extension {id} ({region:?}) : le modèle place {b} avant {a}"
             );
         }

@@ -38,6 +38,7 @@ use ygo_ui::accueil::EcranAccueil;
 use ygo_ui::artworks::{EcranArtworks, Portee};
 use ygo_ui::classeur::EcranClasseur;
 use ygo_ui::corbeille::EcranCorbeille;
+use ygo_ui::envies::EcranEnvies;
 use ygo_ui::initialisation::EcranInitialisation;
 use ygo_ui::inventaire::EcranInventaire;
 use ygo_ui::options::EcranOptions;
@@ -173,6 +174,8 @@ enum Ecran {
     Artworks(Box<EcranArtworks>),
     Inventaire(Box<EcranInventaire>),
     Statistiques(Box<EcranStatistiques>),
+    /// Les listes d'envies Cardmarket.
+    Envies(Box<EcranEnvies>),
 }
 
 struct Application {
@@ -316,6 +319,14 @@ impl Application {
         )));
     }
 
+    /// Ouvre les listes d'envies Cardmarket, sur un classeur ou sur tous.
+    fn ouvrir_envies(&mut self, classeur: Option<String>) {
+        self.ecran = Ecran::Envies(Box::new(EcranEnvies::ouvrir(
+            self.accueil.paths().clone(),
+            classeur,
+        )));
+    }
+
     /// Ouvre les options, en retenant d'où l'on vient.
     fn ouvrir_options(&mut self) {
         self.retour_vers = match &self.ecran {
@@ -327,7 +338,8 @@ impl Application {
             | Ecran::Corbeille(_)
             | Ecran::Artworks(_)
             | Ecran::Inventaire(_)
-            | Ecran::Statistiques(_) => None,
+            | Ecran::Statistiques(_)
+            | Ecran::Envies(_) => None,
         };
         self.ecran = Ecran::Options(Box::new(EcranOptions::ouvrir(self.accueil.paths().clone())));
     }
@@ -364,6 +376,11 @@ impl Application {
             if a_rafraichir.iter().any(|code| code == classeur.code()) {
                 classeur.rafraichir_images();
             }
+        }
+        // L'inventaire montre des cartes de tous les classeurs : sa fiche
+        // retente l'illustration qui manquait dès qu'il en arrive (2026-11-05).
+        if let Ecran::Inventaire(inventaire) = &mut self.ecran {
+            inventaire.rafraichir_images();
         }
         // La base construite fait sortir du premier lancement : l'écran a fini
         // sa raison d'être, et l'accueil est enfin utile.
@@ -814,12 +831,17 @@ impl eframe::App for Application {
                 }
                 if self.accueil.demande_stats() {
                     self.ouvrir_stats();
+                } else if self.accueil.demande_envies() {
+                    self.ouvrir_envies(None);
                 }
             }
             Ecran::Classeur(classeur) => {
                 eframe::App::ui(classeur.as_mut(), ui, frame);
                 if classeur.options_demandees() {
                     self.ouvrir_options();
+                } else if classeur.envies_demandees() {
+                    let code = classeur.code().to_owned();
+                    self.ouvrir_envies(Some(code));
                 } else if let Some((set_code, rowid)) = classeur.artworks_demandes() {
                     // Détruire l'écran referme sa connexion en écriture :
                     // l'écran des artworks écrit dans la même base, et deux
@@ -932,6 +954,16 @@ impl eframe::App for Application {
                     self.ecran = Ecran::Accueil;
                 }
             }
+            Ecran::Envies(envies) => {
+                eframe::App::ui(envies.as_mut(), ui, frame);
+                if envies.retour_demande() {
+                    // Rien n'est modifié : on revient d'où l'on vient.
+                    match envies.classeur_d_origine().map(str::to_owned) {
+                        Some(code) => self.ouvrir_classeur(&code),
+                        None => self.ecran = Ecran::Accueil,
+                    }
+                }
+            }
             Ecran::Selecteur(selecteur) => {
                 eframe::App::ui(selecteur.as_mut(), ui, frame);
                 let avec_artworks = selecteur.avec_artworks();
@@ -967,6 +999,7 @@ impl eframe::App for Application {
             Ecran::Artworks(_) => "Artworks — Yu-Gi-Oh! Collection Manager".to_owned(),
             Ecran::Inventaire(_) => "Toutes mes cartes — Yu-Gi-Oh! Collection Manager".to_owned(),
             Ecran::Statistiques(_) => "Statistiques — Yu-Gi-Oh! Collection Manager".to_owned(),
+            Ecran::Envies(_) => "Listes d'envies — Yu-Gi-Oh! Collection Manager".to_owned(),
         };
         ui.ctx()
             .send_viewport_cmd(egui::ViewportCommand::Title(titre));

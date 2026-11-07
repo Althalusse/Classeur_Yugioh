@@ -45,10 +45,44 @@
 //! | glisser | l'intervalle balayé (avec `Ctrl` : ajouté) |
 //! | `Ctrl+A` / `Échap` / `Suppr` | tout / rien / retirer… |
 //! | clic droit | état, quantité, retrait — sur tout le lot |
+//! | clic sur un prix | la page Cardmarket de la ligne, dans le navigateur |
+//! | double-clic | la fiche de la carte ; `◀` `▶` et les flèches passent aux lignes voisines |
 //!
 //! Un clic droit sur une ligne **hors** de la sélection la sélectionne seule
 //! d'abord : c'est ce que fait Windows, et c'est ce qui évite d'agir sur un
 //! lot qu'on ne regarde plus.
+//!
+//! # La fiche, au double clic — 2026-11-05
+//!
+//! Partout ailleurs dans l'application, ouvrir une carte, c'est ouvrir sa
+//! fiche : illustration, textes, prix, bouton Cardmarket. L'inventaire fait
+//! de même, au **double** clic — le clic simple y sélectionne, c'est la
+//! raison d'être de l'écran. C'est la fiche du classeur
+//! ([`crate::fiche::EtatFiche`], lue par [`ygo_app::fiche::lire`]), à ceci
+//! près que ses voisines sont les lignes **de la liste affichée**, dans
+//! l'ordre du tri et des filtres : on feuillette ce qu'on a sous les yeux. La
+//! ligne montrée devient la sélection, et le tableau défile jusqu'à elle :
+//! la fiche fermée, on est sur la dernière carte regardée.
+//!
+//! Le double clic se fait sans `Ctrl` ni `Maj`, qui gardent leur sens de
+//! sélection. Sur le prix, il n'ouvre rien de plus : le premier clic a déjà
+//! ouvert la page Cardmarket. Fiche ouverte, `Échap` la ferme et ne
+//! désélectionne rien ; `Ctrl+A` et `Suppr` attendent qu'elle soit fermée.
+//!
+//! # La page Cardmarket d'une ligne — 2026-11-05
+//!
+//! Le prix d'une ligne — ou son tiret, quand le prix n'est pas sûr — ouvre
+//! sa page Cardmarket ; le clic droit la propose aussi, nommée par le numéro
+//! de la ligne cliquée, puisque le reste du menu sert toute la sélection.
+//! C'est la page du bouton de la fiche : la même offre, celle dont le prix
+//! remplit la colonne ([`ygo_app::cardmarket::Valorisation::url`]), sur les
+//! annonces dans la langue du classeur. L'application n'envoie rien à
+//! `www.cardmarket.com` : elle passe un lien au navigateur.
+//!
+//! Le montant ne capte pas le clic : la ligne le reçoit, comme partout dans
+//! le tableau, et regarde s'il est tombé sur le montant. Le glisser, le clic
+//! droit et `Ctrl`/`Maj` gardent donc leur sens ; seul un clic simple sur le
+//! montant ouvre la page — sans toucher à la sélection.
 //!
 //! # Pourquoi pas de sélecteur de fichier
 //!
@@ -63,9 +97,12 @@ use eframe::egui;
 use egui_extras::{Column, TableBuilder};
 
 use crate::csv::{Face, PanneauCsv};
+use ygo_app::cardmarket::{Cible, Offre, Valorisation};
 use ygo_app::exemplaires::{Demande, Etat, Exemplaire};
 use ygo_app::inventaire::{self, Carte, Colonne, Filtre};
 use ygo_app::scanflip;
+use ygo_core::cardmarket::LangueDesAnnonces;
+use ygo_core::config::{Config, SourceImage};
 use ygo_core::paths::Paths;
 use ygo_core::rarity::scanflip::{detail_qualite, guide_etats, libelle_qualite};
 
@@ -240,6 +277,19 @@ pub struct EcranInventaire {
     /// Le chiffrage en cours, sur son fil.
     chiffrage: crate::valeur::Calcul<Option<ygo_app::cardmarket::Valorisation>>,
 
+    /// La fiche d'une ligne, ouverte au double clic (2026-11-05).
+    fiche: crate::fiche::EtatFiche,
+    /// L'adresse de la ligne qu'elle montre : la fiche ne connaît que son
+    /// `rowid`, et deux classeurs ont chacun leur ligne 1.
+    ligne_de_la_fiche: Option<(String, i64)>,
+    /// Les illustrations de la fiche, décodées une fois.
+    images: crate::images::Cache,
+    /// La source des illustrations — celle des Options, comme au classeur.
+    source: SourceImage,
+    /// La ligne que le tableau doit amener sous les yeux à la prochaine
+    /// image : celle que la fiche vient de montrer.
+    a_montrer: Option<(String, i64)>,
+
     /// Ce qu'il faut dire à l'utilisateur, et si c'est une erreur.
     message: Option<(String, bool)>,
     retour: bool,
@@ -260,6 +310,7 @@ impl EcranInventaire {
     #[must_use]
     pub fn ouvrir(paths: Paths, francais: bool) -> Self {
         let csv = PanneauCsv::nouveau("inventaire", &paths);
+        let source = Config::charger(paths.app_config()).source_image();
         let mut ecran = Self {
             paths,
             francais,
@@ -281,6 +332,11 @@ impl EcranInventaire {
             creations: Vec::new(),
             valorisation: None,
             chiffrage: crate::valeur::Calcul::default(),
+            fiche: crate::fiche::EtatFiche::default(),
+            ligne_de_la_fiche: None,
+            images: crate::images::Cache::default(),
+            source,
+            a_montrer: None,
             message: None,
             retour: false,
             duree_lecture: std::time::Duration::ZERO,
@@ -323,6 +379,91 @@ impl EcranInventaire {
         self.deplies.retain(|a| vivantes.contains(a));
         self.ancre = None;
         self.glisse = None;
+        // La fiche ouverte se relit — sa ligne « Possédée » suit la quantité
+        // — ou se ferme, si sa ligne a quitté l'inventaire.
+        if let Some(adresse) = self.ligne_de_la_fiche.clone() {
+            if vivantes.contains(&adresse) {
+                self.ouvrir_la_fiche(&adresse);
+            } else {
+                self.fermer_la_fiche();
+            }
+        }
+    }
+
+    /// Ouvre la fiche d'une ligne.
+    ///
+    /// Une lecture ratée n'ouvre rien, comme dans le classeur : mieux vaut ne
+    /// rien voir se passer qu'une fenêtre vide. La trace, elle, est écrite.
+    fn ouvrir_la_fiche(&mut self, adresse: &(String, i64)) {
+        let (classeur, rowid) = (adresse.0.as_str(), adresse.1);
+        match ygo_app::fiche::lire(&self.paths, classeur, rowid, self.source) {
+            Ok(Some(f)) => {
+                self.fiche.ouvrir(f);
+                self.ligne_de_la_fiche = Some(adresse.clone());
+            }
+            Ok(None) => tracing::warn!(classeur, rowid, "fiche : ligne introuvable"),
+            Err(e) => tracing::warn!(classeur, rowid, erreur = %e, "fiche : lecture impossible"),
+        }
+    }
+
+    /// Ferme la fiche.
+    fn fermer_la_fiche(&mut self) {
+        self.fiche.fermer();
+        self.ligne_de_la_fiche = None;
+    }
+
+    /// Dessine la fiche par-dessus le tableau, et obéit à ce qu'elle demande.
+    fn montrer_la_fiche(&mut self, ctx: &egui::Context) {
+        if !self.fiche.est_ouverte() {
+            return;
+        }
+        let dossier = self.paths.img_small();
+        match self
+            .fiche
+            .afficher(ctx, &mut self.images, &dossier, self.francais)
+        {
+            crate::fiche::Demande::Rien => {}
+            crate::fiche::Demande::Fermer => self.fermer_la_fiche(),
+            crate::fiche::Demande::Precedente => self.deplacer_la_fiche(-1),
+            crate::fiche::Demande::Suivante => self.deplacer_la_fiche(1),
+        }
+    }
+
+    /// Passe à la ligne voisine **de la liste affichée** — son tri, ses
+    /// filtres —, sans boucler aux extrémités ([`crate::fiche::voisine`]).
+    /// La ligne montrée devient la sélection, et le tableau défile jusqu'à
+    /// elle.
+    fn deplacer_la_fiche(&mut self, pas: isize) {
+        let Some(actuelle) = self.ligne_de_la_fiche.clone() else {
+            return;
+        };
+        let adresses: Vec<(String, i64)> = self
+            .visibles()
+            .iter()
+            .map(|c| (c.classeur.clone(), c.rowid))
+            .collect();
+        // Une ligne que les filtres cachent depuis : on ne sait plus où l'on
+        // est, la fiche reste sur place.
+        let Some(i) = adresses.iter().position(|a| *a == actuelle) else {
+            return;
+        };
+        let vise = crate::fiche::voisine(i, adresses.len(), pas);
+        if vise == i {
+            return;
+        }
+        let Some(adresse) = adresses.get(vise).cloned() else {
+            return;
+        };
+        self.ouvrir_la_fiche(&adresse);
+        self.selection = BTreeSet::from([adresse.clone()]);
+        self.ancre = Some(vise);
+        self.a_montrer = Some(adresse);
+    }
+
+    /// Des illustrations sont arrivées : celles qui manquaient ont de
+    /// nouveau leur chance (cf. [`crate::images::Cache::oublier_manquants`]).
+    pub fn rafraichir_images(&mut self) {
+        self.images.oublier_manquants();
     }
 
     fn trier(&mut self) {
@@ -476,8 +617,13 @@ impl EcranInventaire {
     /// `Ctrl+A`, `Échap`, `Suppr` — seulement quand aucun champ de saisie
     /// n'a le focus : dans la recherche, `Ctrl+A` sélectionne le texte, pas
     /// sept cents lignes.
+    ///
+    /// Ni pendant que la fiche est ouverte : `Échap` est à elle — il la
+    /// ferme, il ne doit pas aussi vider la sélection —, et un retrait
+    /// demandé derrière une fenêtre qui cache le tableau se ferait à
+    /// l'aveugle.
     fn raccourcis(&mut self, ctx: &egui::Context) {
-        if ctx.memory(|m| m.focused().is_some()) || self.retrait {
+        if ctx.memory(|m| m.focused().is_some()) || self.retrait || self.fiche.est_ouverte() {
             return;
         }
         let (tout, rien, retirer) = ctx.input_mut(|i| {
@@ -552,23 +698,174 @@ fn largeur_de(colonne: Colonne) -> Column {
 /// L'écart entre un montant et la colonne qui le suit.
 const MARGE_EUROS: f32 = 12.0;
 
+/// Ce que dit le tiret d'une ligne sans prix sûr.
+const SANS_PRIX_SUR: &str =
+    "Pas de prix sûr : version incertaine, ou carte non retrouvée chez Cardmarket";
+
+/// Ce que propose le clic droit, et ce que le survol d'un prix annonce : la
+/// page qui s'ouvrira, nommée par le numéro de la ligne — le reste du menu
+/// sert toute la sélection, le lien ne vaut que pour la ligne cliquée. Les
+/// mêmes cas que le bouton de la fiche ([`crate::fiche::texte_du_bouton`]).
+///
+/// ```
+/// use ygo_app::cardmarket::{Cible, Offre, PrixOffre, Raison};
+/// use ygo_ui::inventaire::texte_du_lien;
+/// let mut o = Offre { cible: Cible::Produit(1), version: Some("V.3 · Ultimate Rare".into()),
+///     prix: PrixOffre::Aucun, raison: Raison::Ordonnee, extension: None,
+///     prix_du: String::new() };
+/// assert_eq!(
+///     texte_du_lien(&o, "RA02-EN001"),
+///     "Voir RA02-EN001 sur Cardmarket · V.3 Ultimate Rare"
+/// );
+/// o.version = None;
+/// assert_eq!(texte_du_lien(&o, "RA02-EN001"), "Voir RA02-EN001 sur Cardmarket");
+/// o.cible = Cible::Recherche { nom: "Rescue Cat".into(), id_extension: Some(5604) };
+/// assert_eq!(
+///     texte_du_lien(&o, "RA02-EN001"),
+///     "Voir les versions de RA02-EN001 sur Cardmarket"
+/// );
+/// o.cible = Cible::Recherche { nom: "Rescue Cat".into(), id_extension: None };
+/// assert_eq!(texte_du_lien(&o, "RA02-EN001"), "Chercher « Rescue Cat » sur Cardmarket");
+/// o.cible = Cible::Numero("CORI-JP001".into());
+/// assert_eq!(texte_du_lien(&o, "CORI-JP001"), "Chercher CORI-JP001 sur Cardmarket");
+/// ```
+#[must_use]
+pub fn texte_du_lien(offre: &Offre, set_code: &str) -> String {
+    match &offre.cible {
+        Cible::Produit(_) => match &offre.version {
+            Some(version) => format!(
+                "Voir {set_code} sur Cardmarket · {}",
+                version.replacen(" · ", " ", 1)
+            ),
+            None => format!("Voir {set_code} sur Cardmarket"),
+        },
+        Cible::Recherche {
+            id_extension: Some(_),
+            ..
+        } => format!("Voir les versions de {set_code} sur Cardmarket"),
+        Cible::Recherche {
+            nom,
+            id_extension: None,
+        } => format!("Chercher « {nom} » sur Cardmarket"),
+        Cible::Numero(numero) => format!("Chercher {numero} sur Cardmarket"),
+    }
+}
+
+/// La page Cardmarket d'une ligne chiffrée : son offre — celle dont le prix
+/// remplit la colonne, celle de sa fiche — et l'adresse à ouvrir.
+#[derive(Debug, Clone)]
+struct Lien<'a> {
+    offre: &'a Offre,
+    set_code: &'a str,
+    annonces: LangueDesAnnonces,
+    url: String,
+}
+
+impl<'a> Lien<'a> {
+    /// Le lien d'une carte — `None` sans prix chiffrés, ou pour une ligne
+    /// possédée depuis le chiffrage : elle l'aura au suivant.
+    fn de(
+        valorisation: Option<&'a Valorisation>,
+        carte: &'a Carte,
+        francais: bool,
+    ) -> Option<Self> {
+        let v = valorisation?;
+        Some(Self {
+            offre: v.offre(&carte.classeur, carte.rowid)?,
+            set_code: &carte.set_code,
+            annonces: v.annonces(&carte.classeur),
+            url: v.url(&carte.classeur, carte.rowid, &carte.set_code, francais)?,
+        })
+    }
+
+    /// Le texte du menu ([`texte_du_lien`]).
+    fn texte(&self) -> String {
+        texte_du_lien(self.offre, self.set_code)
+    }
+
+    /// L'info-bulle : la version à ouvrir quand le lien mène à une
+    /// recherche, puis ce que dit celle du bouton de la fiche.
+    ///
+    /// De l'indication que la fiche écrit sous son bouton, seule la version
+    /// à ouvrir est reprise : le reste — pourquoi une recherche — est la
+    /// raison que l'aide du bouton donne déjà, et la bulle la disait deux
+    /// fois (CORI-JP067, Xvfb, 2026-11-05).
+    fn aide(&self) -> String {
+        let mut lignes = Vec::new();
+        if let (false, Some(version)) = (self.offre.est_directe(), &self.offre.version) {
+            lignes.push(format!("Version à ouvrir : {version}"));
+        }
+        lignes.push(crate::fiche::aide_du_lien(self.offre));
+        if let Some(filtre) = crate::fiche::filtre_du_lien(self.offre, self.set_code, self.annonces)
+        {
+            lignes.push(filtre);
+        }
+        lignes.join("\n")
+    }
+
+    /// Ouvre la page dans le navigateur, dans un nouvel onglet.
+    fn ouvrir(&self, ctx: &egui::Context) {
+        ctx.open_url(egui::OpenUrl::new_tab(self.url.clone()));
+    }
+}
+
 /// Un montant, aligné à droite pour que les colonnes se lisent — un tiret
 /// quand il n'y a pas de prix sûr.
-fn cellule_euros(ui: &mut egui::Ui, centimes: Option<u64>) {
+///
+/// Avec un lien, le montant — ou le tiret — se souligne au survol, prend la
+/// main des liens et dit ce qu'un clic ouvrira. Il ne capte pas le clic pour
+/// autant : la cellule rend le rectangle du texte, et la ligne, qui reçoit
+/// le clic, regarde s'il y est tombé (cf. [`EcranInventaire::table`]).
+fn cellule_euros(
+    ui: &mut egui::Ui,
+    centimes: Option<u64>,
+    lien: Option<&Lien<'_>>,
+) -> Option<egui::Rect> {
     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
         ui.add_space(MARGE_EUROS);
-        match centimes {
-            Some(c) => {
-                ui.label(ygo_app::cardmarket::euros(c));
+        let Some(lien) = lien else {
+            match centimes {
+                Some(c) => {
+                    ui.label(ygo_app::cardmarket::euros(c));
+                }
+                None => {
+                    ui.weak("—").on_hover_text(SANS_PRIX_SUR);
+                }
             }
-            None => {
-                ui.weak("—").on_hover_text(
-                    "Pas de prix sûr : version incertaine, ou carte non retrouvée chez \
-                     Cardmarket",
-                );
-            }
+            return None;
+        };
+        let (texte, couleur) = match centimes {
+            Some(c) => (ygo_app::cardmarket::euros(c), ui.visuals().text_color()),
+            None => ("—".to_owned(), ui.visuals().weak_text_color()),
+        };
+        // Dessiné comme egui dessine ses liens, mais dans la couleur du
+        // tableau : une colonne de prix bleus crierait plus qu'elle ne dirait.
+        let (position, galley, reponse) = egui::Label::new(texte).layout_in_ui(ui);
+        if ui.is_rect_visible(reponse.rect) {
+            let soulignement = if reponse.hovered() {
+                egui::Stroke::new(1.0, couleur)
+            } else {
+                egui::Stroke::NONE
+            };
+            ui.painter().add(
+                egui::epaint::TextShape::new(position, galley, couleur)
+                    .with_underline(soulignement),
+            );
         }
-    });
+        let rect = reponse.rect;
+        reponse
+            .on_hover_cursor(egui::CursorIcon::PointingHand)
+            .on_hover_ui(|ui| {
+                if centimes.is_none() {
+                    ui.label(SANS_PRIX_SUR);
+                    ui.add_space(4.0);
+                }
+                ui.label(egui::RichText::new(format!("Clic : {}", lien.texte())).strong());
+                ui.label(lien.aide());
+            });
+        Some(rect)
+    })
+    .inner
 }
 
 /// Les rangées du tableau : chaque carte, et sous une carte dépliée de
@@ -603,8 +900,9 @@ enum Geste {
     Deselectionner,
 }
 
-/// Le menu d'un clic droit : il agit sur **toute** la sélection.
-fn menu_selection(ui: &mut egui::Ui, n: usize, geste: &mut Option<Geste>) {
+/// Le menu d'un clic droit : il agit sur **toute** la sélection — sauf la
+/// page Cardmarket, qui est celle de la ligne cliquée et le dit.
+fn menu_selection(ui: &mut egui::Ui, n: usize, lien: Option<&Lien<'_>>, geste: &mut Option<Geste>) {
     ui.label(egui::RichText::new(format!("{n} carte(s) sélectionnée(s)")).strong());
     ui.separator();
     ui.menu_button("État", |ui| {
@@ -641,6 +939,12 @@ fn menu_selection(ui: &mut egui::Ui, n: usize, geste: &mut Option<Geste>) {
         ui.small("Autre valeur : barre du bas");
     });
     ui.separator();
+    if let Some(lien) = lien {
+        if ui.button(lien.texte()).on_hover_text(lien.aide()).clicked() {
+            lien.ouvrir(ui.ctx());
+            ui.close();
+        }
+    }
     if ui.button("Copier les numéros").clicked() {
         *geste = Some(Geste::CopierNumeros(ui.ctx().clone()));
         ui.close();
@@ -675,6 +979,8 @@ impl eframe::App for EcranInventaire {
         self.appliquer_retour(retour);
         self.table(racine);
         self.confirmation_retrait(racine.ctx());
+        // En dernier : la fiche se pose par-dessus tout le reste.
+        self.montrer_la_fiche(racine.ctx());
     }
 }
 
@@ -840,10 +1146,17 @@ impl EcranInventaire {
         egui::Panel::bottom("actions-inventaire").show(racine, |ui| {
             ui.add_space(6.0);
             if self.selection.is_empty() {
+                // Le prix ne mène à Cardmarket qu'une fois chiffré.
+                let prix = if self.valorisation.is_some() {
+                    " ; clic sur un prix pour sa page Cardmarket"
+                } else {
+                    ""
+                };
                 ui.horizontal(|ui| {
                     ui.small(format!(
                         "{} carte(s) lues en {:?} — clic, Ctrl+clic, Maj+clic ou glisser \
-                         pour sélectionner ; Ctrl+A pour tout ; clic droit pour agir",
+                         pour sélectionner ; Ctrl+A pour tout ; clic droit pour agir ; \
+                         double-clic pour la fiche{prix}",
                         self.cartes.len(),
                         self.duree_lecture
                     ));
@@ -995,6 +1308,12 @@ impl EcranInventaire {
             let mut geste: Option<Geste> = None;
             let mut deplier: Option<(String, i64)> = None;
             let mut demande_exemplaire: Option<((String, i64), Demande)> = None;
+            // La page Cardmarket qu'un clic sur un prix a demandée.
+            let mut a_ouvrir: Option<String> = None;
+            // La ligne dont un double clic a demandé la fiche.
+            let mut fiche_demandee: Option<(String, i64)> = None;
+            let valorisation = self.valorisation.as_ref();
+            let francais = self.francais;
 
             // Les rangées affichées : chaque carte, et sous une carte
             // dépliée, chacun de ses exemplaires.
@@ -1044,6 +1363,17 @@ impl EcranInventaire {
                 .striped(true)
                 .cell_layout(egui::Layout::left_to_right(egui::Align::Center))
                 .sense(egui::Sense::click_and_drag());
+            // La ligne que la fiche vient de montrer, amenée sous les yeux —
+            // une fois : ensuite, la molette est à l'utilisateur.
+            if let Some(adresse) = self.a_montrer.take() {
+                let rang = affichage.iter().position(|r| {
+                    matches!(r, Rangee::Carte(i)
+                        if visibles.get(*i).is_some_and(|c| c.classeur == adresse.0 && c.rowid == adresse.1))
+                });
+                if let Some(rang) = rang {
+                    table = table.scroll_to_row(rang, None);
+                }
+            }
             for colonne in &colonnes {
                 table = table.column(largeur_de(*colonne));
             }
@@ -1182,6 +1512,9 @@ impl EcranInventaire {
 
                         ligne.set_selected(self.selection.contains(&adresse));
                         let deplie = self.deplies.contains(&adresse);
+                        let lien = Lien::de(valorisation, c, francais);
+                        // Le texte du prix, quand il mène à Cardmarket.
+                        let mut texte_du_prix: Option<egui::Rect> = None;
 
                         ligne.col(|ui| {
                             if glisse_active && !defilement_fait.replace(true) {
@@ -1246,8 +1579,13 @@ impl EcranInventaire {
                             }
                         });
                         if avec_prix {
-                            ligne.col(|ui| cellule_euros(ui, c.prix.map(u64::from)));
-                            ligne.col(|ui| cellule_euros(ui, c.valeur()));
+                            ligne.col(|ui| {
+                                texte_du_prix =
+                                    cellule_euros(ui, c.prix.map(u64::from), lien.as_ref());
+                            });
+                            ligne.col(|ui| {
+                                cellule_euros(ui, c.valeur(), None);
+                            });
                         }
                         ligne.col(|ui| {
                             let exemplaires = c.exemplaires();
@@ -1295,7 +1633,31 @@ impl EcranInventaire {
 
                         let reponse = ligne.response();
                         if reponse.clicked() {
-                            clic = Some(i);
+                            // Un clic simple sur le prix ouvre la page, sans
+                            // toucher à la sélection ; avec `Ctrl` ou `Maj`,
+                            // il sélectionne, comme ailleurs sur la ligne. Les
+                            // clics suivants d'un double ou d'un triple clic
+                            // n'ouvrent pas d'autre onglet.
+                            let sur_le_prix = texte_du_prix
+                                .zip(reponse.interact_pointer_pos())
+                                .is_some_and(|(r, p)| r.expand(2.0).contains(p));
+                            let simple = !reponse.double_clicked() && !reponse.triple_clicked();
+                            match &lien {
+                                Some(l) if sur_le_prix && !ctrl && !maj => {
+                                    if simple {
+                                        a_ouvrir = Some(l.url.clone());
+                                    }
+                                }
+                                _ => {
+                                    clic = Some(i);
+                                    // Le double clic ouvre la fiche ; son
+                                    // premier clic a déjà fait de la ligne la
+                                    // sélection.
+                                    if reponse.double_clicked() && !ctrl && !maj {
+                                        fiche_demandee = Some(adresse.clone());
+                                    }
+                                }
+                            }
                         }
                         if reponse.secondary_clicked() {
                             droit = Some(i);
@@ -1310,11 +1672,17 @@ impl EcranInventaire {
                             sous_pointeur = Some(i);
                         }
                         reponse.context_menu(|ui| {
-                            menu_selection(ui, n_selection.max(1), &mut geste);
+                            menu_selection(ui, n_selection.max(1), lien.as_ref(), &mut geste);
                         });
                     });
                 });
 
+            if let Some(url) = a_ouvrir {
+                ui.ctx().open_url(egui::OpenUrl::new_tab(url));
+            }
+            if let Some(adresse) = fiche_demandee {
+                self.ouvrir_la_fiche(&adresse);
+            }
             if let Some(adresse) = deplier {
                 if !self.deplies.remove(&adresse) {
                     self.deplies.insert(adresse);
@@ -1914,5 +2282,441 @@ mod tests {
         e.retour = true;
         assert!(e.retour_demande());
         assert!(!e.retour_demande());
+    }
+
+    // ── La page Cardmarket d'une ligne (2026-11-05) ─────────────────────────
+
+    /// Une offre sur la page d'un produit.
+    fn offre_produit(id: i64) -> Offre {
+        Offre {
+            cible: Cible::Produit(id),
+            version: Some("V.2 · Secret Rare".into()),
+            prix: ygo_app::cardmarket::PrixOffre::Aucun,
+            raison: ygo_app::cardmarket::Raison::Ordonnee,
+            extension: None,
+            prix_du: String::new(),
+        }
+    }
+
+    /// Un écran de deux lignes chiffrées, chacune avec sa page : RA02-EN001
+    /// à 3,88 € (deux exemplaires), RA02-EN002 à 1,50 € (trois).
+    fn ecran_chiffre() -> EcranInventaire {
+        let mut une = carte("RA02", 1);
+        une.quantite = 2;
+        une.prix = Some(388);
+        let mut deux = carte("RA02", 2);
+        deux.quantite = 3;
+        deux.prix = Some(150);
+        let mut e = ecran(vec![une, deux]);
+        e.valorisation = Some(Valorisation {
+            lignes: std::collections::HashMap::from([(
+                "RA02".to_owned(),
+                std::collections::HashMap::from([(1, Some(388)), (2, Some(150))]),
+            )]),
+            offres: std::collections::HashMap::from([(
+                "RA02".to_owned(),
+                std::collections::HashMap::from([
+                    (1, offre_produit(782_049)),
+                    (2, offre_produit(782_050)),
+                ]),
+            )]),
+            annonces: std::collections::HashMap::from([(
+                "RA02".to_owned(),
+                LangueDesAnnonces::Francais,
+            )]),
+            ..Valorisation::default()
+        });
+        e
+    }
+
+    /// Le tableau de l'écran, joué image par image dans un contexte sans
+    /// fenêtre — le vrai, pas une copie de sa logique.
+    struct Banc {
+        ctx: egui::Context,
+        temps: f64,
+        formes: Vec<egui::epaint::ClippedShape>,
+    }
+
+    impl Banc {
+        fn nouveau() -> Self {
+            Self {
+                ctx: egui::Context::default(),
+                temps: 0.0,
+                formes: Vec::new(),
+            }
+        }
+
+        /// Une image ; rend les adresses que l'écran a demandé d'ouvrir.
+        fn image(
+            &mut self,
+            e: &mut EcranInventaire,
+            evenements: Vec<egui::Event>,
+            modificateurs: egui::Modifiers,
+        ) -> Vec<String> {
+            self.temps += 0.05;
+            // Les touches tenues arrivent en événement, avant le reste.
+            let mut tous = vec![egui::Event::ModifiersChanged(modificateurs)];
+            tous.extend(evenements);
+            let entree = egui::RawInput {
+                screen_rect: Some(egui::Rect::from_min_size(
+                    egui::Pos2::ZERO,
+                    egui::vec2(1400.0, 500.0),
+                )),
+                time: Some(self.temps),
+                events: tous,
+                ..Default::default()
+            };
+            // L'ordre de `ui` : les raccourcis, le tableau, la fiche par-dessus.
+            // Ni les prix (le fil du chiffrage rendrait `None` et effacerait
+            // ceux du test), ni les barres, que les tests ne regardent pas.
+            let mut sortie = self.ctx.run_ui(entree, |racine| {
+                e.raccourcis(racine.ctx());
+                e.table(racine);
+                e.montrer_la_fiche(racine.ctx());
+            });
+            // Sans moteur de rendu, personne ne consomme les textures.
+            sortie.textures_delta.clear();
+            self.formes = sortie.shapes;
+            sortie
+                .platform_output
+                .commands
+                .into_iter()
+                .filter_map(|c| match c {
+                    egui::OutputCommand::OpenUrl(o) => Some(o.url),
+                    _ => None,
+                })
+                .collect()
+        }
+
+        /// Quelques images sans rien faire : les colonnes `auto` se mesurent
+        /// à la première, et les textes ne bougent plus ensuite.
+        fn poser(&mut self, e: &mut EcranInventaire) {
+            for _ in 0..3 {
+                self.image(e, Vec::new(), egui::Modifiers::NONE);
+            }
+        }
+
+        /// Le rectangle d'un texte de la dernière image.
+        fn rect_de(&self, texte: &str) -> egui::Rect {
+            fn chercher(forme: &egui::Shape, texte: &str) -> Option<egui::Rect> {
+                match forme {
+                    egui::Shape::Text(t) if t.galley.text() == texte => {
+                        Some(t.galley.rect.translate(t.pos.to_vec2()))
+                    }
+                    egui::Shape::Vec(formes) => formes.iter().find_map(|f| chercher(f, texte)),
+                    _ => None,
+                }
+            }
+            self.formes
+                .iter()
+                .find_map(|c| chercher(&c.shape, texte))
+                .unwrap_or_else(|| panic!("« {texte} » n'est pas dessiné"))
+        }
+
+        /// Un clic complet au centre d'un texte : rend les adresses ouvertes.
+        fn cliquer(
+            &mut self,
+            e: &mut EcranInventaire,
+            texte: &str,
+            bouton: egui::PointerButton,
+            modificateurs: egui::Modifiers,
+        ) -> Vec<String> {
+            let p = self.rect_de(texte).center();
+            let appui = |pressed| egui::Event::PointerButton {
+                pos: p,
+                button: bouton,
+                pressed,
+                modifiers: modificateurs,
+            };
+            let mut ouvertes = Vec::new();
+            for evenements in [
+                vec![egui::Event::PointerMoved(p)],
+                vec![appui(true)],
+                vec![appui(false)],
+                Vec::new(),
+            ] {
+                ouvertes.extend(self.image(e, evenements, modificateurs));
+            }
+            // Le clic suivant ne fera pas un double clic avec celui-ci.
+            self.temps += 1.0;
+            ouvertes
+        }
+
+        /// Un double clic au centre d'un texte — deux clics à un dixième de
+        /// seconde : rend les adresses ouvertes.
+        fn double_cliquer(
+            &mut self,
+            e: &mut EcranInventaire,
+            texte: &str,
+            modificateurs: egui::Modifiers,
+        ) -> Vec<String> {
+            let p = self.rect_de(texte).center();
+            let appui = |pressed| egui::Event::PointerButton {
+                pos: p,
+                button: egui::PointerButton::Primary,
+                pressed,
+                modifiers: modificateurs,
+            };
+            let mut ouvertes = Vec::new();
+            for evenements in [
+                vec![egui::Event::PointerMoved(p)],
+                vec![appui(true)],
+                vec![appui(false)],
+                vec![appui(true)],
+                vec![appui(false)],
+                Vec::new(),
+            ] {
+                ouvertes.extend(self.image(e, evenements, modificateurs));
+            }
+            self.temps += 1.0;
+            ouvertes
+        }
+
+        /// Une touche enfoncée puis relâchée.
+        fn touche(&mut self, e: &mut EcranInventaire, touche: egui::Key) {
+            let evenement = |pressed| egui::Event::Key {
+                key: touche,
+                physical_key: None,
+                pressed,
+                repeat: false,
+                modifiers: egui::Modifiers::NONE,
+            };
+            self.image(e, vec![evenement(true)], egui::Modifiers::NONE);
+            self.image(e, vec![evenement(false)], egui::Modifiers::NONE);
+        }
+    }
+
+    const PAGE_UNE: &str =
+        "https://www.cardmarket.com/fr/YuGiOh/Products?idProduct=782049&language=2";
+
+    /// Un clic sur le prix ouvre la page de la ligne — celle de sa fiche —
+    /// sans toucher à la sélection ; un clic sur le nom sélectionne sans
+    /// rien ouvrir ; `Ctrl+clic` sur un prix garde son sens de sélection.
+    #[test]
+    fn un_clic_sur_le_prix_ouvre_la_page_cardmarket() {
+        let mut e = ecran_chiffre();
+        let mut banc = Banc::nouveau();
+        let rien = egui::Modifiers::NONE;
+        let gauche = egui::PointerButton::Primary;
+        banc.poser(&mut e);
+
+        assert_eq!(banc.cliquer(&mut e, "3,88 €", gauche, rien), vec![PAGE_UNE]);
+        assert!(e.selection.is_empty(), "ouvrir n'est pas sélectionner");
+
+        // La valeur (2 × 3,88 €) n'est pas un lien : elle sélectionne.
+        assert!(banc.cliquer(&mut e, "7,76 €", gauche, rien).is_empty());
+        assert_eq!(e.selection.len(), 1);
+
+        assert!(banc.cliquer(&mut e, "Card 2", gauche, rien).is_empty());
+        assert!(e.selection.contains(&("RA02".to_owned(), 2)));
+
+        // Ctrl+clic sur le prix de la première : ajoutée, pas ouverte.
+        let ctrl = egui::Modifiers::COMMAND;
+        assert!(banc.cliquer(&mut e, "3,88 €", gauche, ctrl).is_empty());
+        assert_eq!(e.selection.len(), 2);
+    }
+
+    /// Le clic droit propose la page de la ligne cliquée, nommée par son
+    /// numéro, et l'ouvre.
+    #[test]
+    fn le_clic_droit_propose_la_page_cardmarket() {
+        let mut e = ecran_chiffre();
+        let mut banc = Banc::nouveau();
+        let rien = egui::Modifiers::NONE;
+        banc.poser(&mut e);
+
+        banc.cliquer(&mut e, "Card 1", egui::PointerButton::Secondary, rien);
+        let entree = "Voir RA02-EN001 sur Cardmarket · V.2 Secret Rare";
+        let ouvertes = banc.cliquer(&mut e, entree, egui::PointerButton::Primary, rien);
+        assert_eq!(ouvertes, vec![PAGE_UNE]);
+    }
+
+    /// La bulle ne dit pas deux fois pourquoi le lien mène à une recherche,
+    /// et donne la version à ouvrir quand on la connaît.
+    #[test]
+    fn l_aide_du_lien_ne_se_repete_pas() {
+        let mut absente = offre_produit(1);
+        absente.cible = Cible::Numero("CORI-JP067".into());
+        absente.version = None;
+        absente.raison = ygo_app::cardmarket::Raison::CarteAbsente;
+        let lien = Lien {
+            offre: &absente,
+            set_code: "CORI-JP067",
+            annonces: LangueDesAnnonces::Francais,
+            url: String::new(),
+        };
+        let aide = lien.aide().to_lowercase();
+        let raison = absente.raison.explication().to_lowercase();
+        assert_eq!(aide.matches(raison.as_str()).count(), 1, "{aide}");
+
+        let mut recherche = offre_produit(1);
+        recherche.cible = Cible::Recherche {
+            nom: "El Shaddoll Winda".into(),
+            id_extension: Some(5989),
+        };
+        recherche.version = Some("V.6 · Quarter Century Secret Rare".into());
+        let lien = Lien {
+            offre: &recherche,
+            set_code: "RA03-EN001",
+            annonces: LangueDesAnnonces::Francais,
+            url: String::new(),
+        };
+        assert!(lien
+            .aide()
+            .starts_with("Version à ouvrir : V.6 · Quarter Century Secret Rare\n"));
+    }
+
+    /// Une ligne possédée depuis le chiffrage n'a pas encore de page : son
+    /// tiret reste un tiret, et un clic dessus sélectionne, comme avant.
+    #[test]
+    fn une_ligne_sans_offre_garde_son_tiret_ordinaire() {
+        let mut e = ecran_chiffre();
+        for c in &mut e.cartes {
+            c.qualite = "NM".into();
+        }
+        e.cartes[1].prix = None;
+        if let Some(v) = &mut e.valorisation {
+            v.offres.get_mut("RA02").unwrap().remove(&2);
+            v.lignes.get_mut("RA02").unwrap().remove(&2);
+        }
+        let mut banc = Banc::nouveau();
+        let rien = egui::Modifiers::NONE;
+        banc.poser(&mut e);
+        assert!(banc
+            .cliquer(&mut e, "—", egui::PointerButton::Primary, rien)
+            .is_empty());
+        assert!(e.selection.contains(&("RA02".to_owned(), 2)));
+    }
+
+    // ── La fiche, au double clic (2026-11-05) ───────────────────────────────
+
+    /// Une installation de trois lignes possédées dans `RA02` : Carte A, B
+    /// et C, aux numéros `RA02-EN001` à `003`. La base des cartes manque :
+    /// la fiche s'ouvre quand même, sans texte.
+    fn installation_de_trois() -> (tempfile::TempDir, Paths) {
+        let tmp = tempfile::tempdir().unwrap();
+        let paths = Paths::depuis_racine(tmp.path());
+        std::fs::create_dir_all(paths.dossier_classeur("RA02")).unwrap();
+        let conn = ygo_db::rusqlite::Connection::open(paths.classeur_db("RA02")).unwrap();
+        conn.execute_batch(ygo_db::schema::DDL_CLASSEUR).unwrap();
+        for (rowid, nom) in [(1_i64, "Carte A"), (2, "Carte B"), (3, "Carte C")] {
+            conn.execute(
+                "INSERT INTO cards (rowid, name, set_code, rarity, possessed, quantite)
+                 VALUES (?1, ?2, ?3, 'Common', 1, 1)",
+                (rowid, nom, format!("RA02-EN00{rowid}")),
+            )
+            .unwrap();
+        }
+        drop(conn);
+        (tmp, paths)
+    }
+
+    /// Le double clic ouvre la fiche de la ligne, qui devient la sélection ;
+    /// avec `Ctrl`, il garde son sens de sélection et n'ouvre rien.
+    #[test]
+    fn un_double_clic_ouvre_la_fiche_de_la_ligne() {
+        let (_tmp, paths) = installation_de_trois();
+        let mut e = EcranInventaire::ouvrir(paths, true);
+        let mut banc = Banc::nouveau();
+        banc.poser(&mut e);
+
+        banc.double_cliquer(&mut e, "Carte A", egui::Modifiers::COMMAND);
+        assert!(
+            !e.fiche.est_ouverte(),
+            "Ctrl+double-clic : sélection seulement"
+        );
+
+        let ouvertes = banc.double_cliquer(&mut e, "Carte B", egui::Modifiers::NONE);
+        assert!(ouvertes.is_empty(), "rien dans le navigateur");
+        assert!(e.fiche.est_ouverte());
+        assert_eq!(e.ligne_de_la_fiche, Some(("RA02".to_owned(), 2)));
+        assert_eq!(
+            e.fiche.carte().map(|f| f.set_code.as_str()),
+            Some("RA02-EN002")
+        );
+        assert_eq!(e.selection, BTreeSet::from([("RA02".to_owned(), 2)]));
+    }
+
+    /// Un double clic sur le prix n'ouvre que la page Cardmarket — une fois
+    /// —, pas la fiche par-dessus.
+    #[test]
+    fn un_double_clic_sur_le_prix_n_ouvre_que_cardmarket() {
+        let (_tmp, paths) = installation_de_trois();
+        let mut e = EcranInventaire::ouvrir(paths, true);
+        e.valorisation = Some(Valorisation {
+            lignes: std::collections::HashMap::from([(
+                "RA02".to_owned(),
+                std::collections::HashMap::from([(2, Some(388))]),
+            )]),
+            offres: std::collections::HashMap::from([(
+                "RA02".to_owned(),
+                std::collections::HashMap::from([(2, offre_produit(782_049))]),
+            )]),
+            ..Valorisation::default()
+        });
+        e.poser_les_prix();
+        let mut banc = Banc::nouveau();
+        banc.poser(&mut e);
+
+        let ouvertes = banc.double_cliquer(&mut e, "3,88 €", egui::Modifiers::NONE);
+        assert_eq!(ouvertes, vec![PAGE_UNE], "un seul onglet");
+        assert!(!e.fiche.est_ouverte());
+    }
+
+    /// La fiche feuillette la liste affichée, sans boucler ; la ligne montrée
+    /// devient la sélection et le tableau est prié de l'amener sous les
+    /// yeux. Une relecture la tient à jour, et la ferme si sa ligne a quitté
+    /// l'inventaire.
+    #[test]
+    fn la_fiche_feuillette_la_liste_affichee() {
+        let (_tmp, paths) = installation_de_trois();
+        let mut e = EcranInventaire::ouvrir(paths.clone(), true);
+        let ligne = |rowid: i64| ("RA02".to_owned(), rowid);
+        e.ouvrir_la_fiche(&ligne(2));
+
+        e.deplacer_la_fiche(1);
+        assert_eq!(e.ligne_de_la_fiche, Some(ligne(3)));
+        assert_eq!(e.selection, BTreeSet::from([ligne(3)]));
+        assert_eq!(e.a_montrer, Some(ligne(3)));
+        e.deplacer_la_fiche(1);
+        assert_eq!(e.ligne_de_la_fiche, Some(ligne(3)), "pas de bouclage");
+
+        // Trié par nom descendant, la voisine « suivante » de C est B.
+        e.colonne = Colonne::Nom;
+        e.descendant = true;
+        e.trier();
+        e.deplacer_la_fiche(1);
+        assert_eq!(e.ligne_de_la_fiche, Some(ligne(2)), "l'ordre de l'écran");
+
+        // La quantité change : la fiche se relit.
+        ygo_app::inventaire::definir_quantite(&paths, &[ligne(2)], 3).unwrap();
+        e.relire();
+        assert!(e.fiche.est_ouverte());
+        let possession = e.fiche.carte().unwrap().possession();
+        assert!(possession.starts_with("×3"), "{possession}");
+        // Retirée de l'inventaire : la fiche se ferme.
+        ygo_app::inventaire::retirer(&paths, &[ligne(2)]).unwrap();
+        e.relire();
+        assert!(!e.fiche.est_ouverte());
+        assert_eq!(e.ligne_de_la_fiche, None);
+    }
+
+    /// Fiche ouverte, `Échap` la ferme et ne désélectionne rien ; fermée, il
+    /// désélectionne de nouveau.
+    #[test]
+    fn echap_ferme_la_fiche_sans_vider_la_selection() {
+        let (_tmp, paths) = installation_de_trois();
+        let mut e = EcranInventaire::ouvrir(paths, true);
+        let mut banc = Banc::nouveau();
+        banc.poser(&mut e);
+        banc.double_cliquer(&mut e, "Carte B", egui::Modifiers::NONE);
+        assert!(e.fiche.est_ouverte());
+
+        banc.touche(&mut e, egui::Key::Escape);
+        assert!(!e.fiche.est_ouverte(), "Échap ferme la fiche");
+        assert_eq!(e.selection.len(), 1, "… sans désélectionner");
+
+        banc.touche(&mut e, egui::Key::Escape);
+        assert!(e.selection.is_empty(), "fiche fermée, Échap désélectionne");
     }
 }

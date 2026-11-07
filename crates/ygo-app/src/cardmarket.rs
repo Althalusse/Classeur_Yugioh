@@ -1469,6 +1469,10 @@ pub enum Raison {
     },
     /// La carte porte plusieurs numéros dans le set.
     PlusieursNumeros,
+    /// Une seule des fiches de la carte est en vente, les autres sont vides :
+    /// c'est elle, et Cardmarket ne lui donne pas de numéro de version
+    /// (RA05, SDWD, 2026-11-07).
+    SeuleFicheEnVente,
     /// La rareté de la ligne n'est pas parmi celles de la carte.
     RareteInconnue,
     /// L'extension est connue, la carte n'y est pas.
@@ -1515,6 +1519,9 @@ impl Raison {
                 format!("{cardmarket} version(s) chez Cardmarket, {base} de notre côté")
             }
             Self::PlusieursNumeros => "la carte porte plusieurs numéros dans ce set".to_owned(),
+            Self::SeuleFicheEnVente => {
+                "une seule fiche en vente chez Cardmarket, les autres sont vides".to_owned()
+            }
             Self::RareteInconnue => "rareté absente des versions connues".to_owned(),
             Self::CarteAbsente => "carte introuvable dans ce set chez Cardmarket".to_owned(),
             Self::ExtensionInconnue => "set non rapproché d'une extension Cardmarket".to_owned(),
@@ -1592,6 +1599,40 @@ impl Offre {
     #[must_use]
     pub fn est_directe(&self) -> bool {
         matches!(self.cible, Cible::Produit(_))
+    }
+
+    /// Le numéro `n` de la version « V.n » chez Cardmarket — `None` quand
+    /// l'offre ne le donne pas.
+    ///
+    /// [`decider`] n'écrit la version que lorsque ce numéro est **sûr** :
+    /// des ajouts tardifs qui décalent la numérotation, ou une carte créée à
+    /// rebours de l'ordre de ses raretés, la font taire. Lire le numéro ici
+    /// plutôt que dans le libellé, ailleurs, garde la règle à un seul endroit
+    /// — c'est lui que la liste d'envies écrit (`ygo_app::envies`), et une
+    /// liste d'envies ne pardonne pas un numéro deviné : Cardmarket ajoute
+    /// la mauvaise version sans rien dire.
+    ///
+    /// ```
+    /// use ygo_app::cardmarket::{Cible, Offre, PrixOffre, Raison};
+    /// let mut o = Offre {
+    ///     cible: Cible::Produit(1),
+    ///     version: Some("V.3 · Ultimate Rare".to_owned()),
+    ///     prix: PrixOffre::Aucun,
+    ///     raison: Raison::Ordonnee,
+    ///     extension: None,
+    ///     prix_du: String::new(),
+    /// };
+    /// assert_eq!(o.rang(), Some(3));
+    /// o.version = Some("V.12 · Secret Rare (illustration 2)".to_owned());
+    /// assert_eq!(o.rang(), Some(12));
+    /// o.version = None;
+    /// assert_eq!(o.rang(), None);
+    /// ```
+    #[must_use]
+    pub fn rang(&self) -> Option<u32> {
+        let reste = self.version.as_deref()?.trim_start().strip_prefix("V.")?;
+        let chiffres: String = reste.chars().take_while(char::is_ascii_digit).collect();
+        chiffres.parse().ok().filter(|n| *n > 0)
     }
 
     /// Le prix, en clair — `None` s'il n'y en a pas.
@@ -1965,6 +2006,27 @@ pub fn decider(
         }
         sequence.clone()
     } else {
+        // Une seule fiche en vente, les autres vides et cachées de la
+        // recherche. RA05 « Tri-Horned Dragon » et SDWD « Indigo-Eyes Silver
+        // Dragon » (pages du 2026-11-07) : des fiches V.n sans offre, créées
+        // pour des raretés que la carte n'a pas, et la seule en vente — la
+        // vraie — sans numéro de version. Décision de l'utilisateur : pas de
+        // V.n pour elle.
+        let en_vente: Vec<i64> = tous
+            .iter()
+            .copied()
+            .filter(|id| prix.get(id).is_some_and(|p| p.bas.is_some()))
+            .collect();
+        if let [id] = en_vente.as_slice() {
+            if principale.len() == 1 && connues.base.len() <= 1 && tous.len() > 1 {
+                return offre(
+                    Cible::Produit(*id),
+                    None,
+                    exact(*id),
+                    Raison::SeuleFicheEnVente,
+                );
+            }
+        }
         let raison = if un_seul_numero {
             Raison::NombreDeVersions {
                 cardmarket: tous.len(),
@@ -2274,6 +2336,8 @@ pub struct OffreDeLigne {
     pub set_code: String,
     /// Sa version : la rareté, ou sa clé de version (cf. [`cles_de_version`]).
     pub version: String,
+    /// Sa rareté, telle que le classeur l'écrit.
+    pub rarete: String,
     /// Nom, tel que le classeur l'écrit.
     pub nom: String,
     /// Exemplaires possédés.
@@ -2398,6 +2462,7 @@ pub fn offres_du_classeur(
             rowid: l.version.rowid,
             set_code: l.set_code.clone(),
             version,
+            rarete: l.version.rarete.clone(),
             nom: l.nom.clone(),
             quantite: l.quantite,
             offre,
@@ -2533,6 +2598,13 @@ pub struct Valorisation {
     /// par `rowid` — `None` quand la version n'est pas sûre. C'est la
     /// matière des colonnes de l'inventaire (2026-10-23).
     pub lignes: HashMap<String, HashMap<i64, Option<u32>>>,
+    /// L'offre de chaque ligne possédée, par classeur puis par `rowid` :
+    /// celle dont le prix remplit la colonne, et dont l'inventaire ouvre la
+    /// page (2026-11-05). La même que montre la fiche de la ligne.
+    pub offres: HashMap<String, HashMap<i64, Offre>>,
+    /// La langue des annonces de chaque classeur chiffré — ses réglages,
+    /// sinon les Options : celle sur laquelle s'ouvre la page d'une carte.
+    pub annonces: HashMap<String, LangueDesAnnonces>,
     /// Date du guide des prix.
     pub prix_du: String,
 }
@@ -2578,6 +2650,59 @@ impl Valorisation {
         }
         total
     }
+
+    /// L'offre d'une ligne possédée — `None` pour une ligne qui n'a pas été
+    /// chiffrée (possédée depuis).
+    #[must_use]
+    pub fn offre(&self, classeur: &str, rowid: i64) -> Option<&Offre> {
+        self.offres.get(classeur)?.get(&rowid)
+    }
+
+    /// La langue des annonces d'un classeur chiffré. Un classeur qui ne
+    /// l'a pas été n'a pas d'offre à ouvrir : le défaut des Options, le
+    /// français, ne sert alors à rien.
+    #[must_use]
+    pub fn annonces(&self, classeur: &str) -> LangueDesAnnonces {
+        self.annonces.get(classeur).copied().unwrap_or_default()
+    }
+
+    /// L'adresse de la page Cardmarket d'une ligne possédée : celle
+    /// qu'ouvre le bouton de sa fiche — le produit, sur les annonces dans la
+    /// langue de son classeur, ou la recherche quand la version n'est pas
+    /// sûre. `None` pour une ligne qui n'a pas été chiffrée.
+    ///
+    /// ```
+    /// use std::collections::HashMap;
+    /// use ygo_app::cardmarket::{Cible, Offre, PrixOffre, Raison, Valorisation};
+    /// use ygo_core::cardmarket::LangueDesAnnonces;
+    /// let offre = Offre { cible: Cible::Produit(782049), version: None, prix: PrixOffre::Aucun,
+    ///     raison: Raison::Ordonnee, extension: None, prix_du: String::new() };
+    /// let v = Valorisation {
+    ///     offres: HashMap::from([("RA05".to_owned(), HashMap::from([(136, offre)]))]),
+    ///     annonces: HashMap::from([("RA05".to_owned(), LangueDesAnnonces::Anglais)]),
+    ///     ..Valorisation::default()
+    /// };
+    /// assert_eq!(
+    ///     v.url("RA05", 136, "RA05-EN136", true).unwrap(),
+    ///     "https://www.cardmarket.com/fr/YuGiOh/Products?idProduct=782049&language=1"
+    /// );
+    /// assert_eq!(v.url("RA05", 137, "RA05-EN137", true), None);
+    /// ```
+    #[must_use]
+    pub fn url(
+        &self,
+        classeur: &str,
+        rowid: i64,
+        set_code: &str,
+        francais: bool,
+    ) -> Option<String> {
+        let offre = self.offre(classeur, rowid)?;
+        Some(offre.url_pour(
+            regles::langue_du_site(francais),
+            set_code,
+            self.annonces(classeur),
+        ))
+    }
 }
 
 /// Chiffre les cartes possédées des classeurs donnés — `None` tant qu'il n'y
@@ -2586,6 +2711,10 @@ impl Valorisation {
 /// Un dixième de seconde pour les dix-sept classeurs de l'utilisateur (1 325
 /// lignes possédées, octobre 2026), plusieurs secondes sur un disque froid :
 /// à faire hors du fil de l'interface. Un classeur illisible est sauté.
+///
+/// L'offre de chaque ligne est gardée avec son prix, et la langue des
+/// annonces de chaque classeur avec elles : l'inventaire ouvre ainsi la page
+/// d'une ligne sans rien recalculer (2026-11-05).
 ///
 /// # Errors
 ///
@@ -2598,8 +2727,12 @@ pub fn valoriser(paths: &Paths, codes: &[String]) -> Result<Option<Valorisation>
         return Ok(None);
     }
     let cardinfo = ygo_db::connexion::ouvrir_lecture_seule(paths.cardinfo_db())?;
+    let annonces_des_options =
+        ygo_core::config::Config::charger(paths.app_config()).annonces_cardmarket();
     let mut classeurs = BTreeMap::new();
     let mut lignes = HashMap::new();
+    let mut offres_des_classeurs = HashMap::new();
+    let mut annonces = HashMap::new();
     for code in codes {
         let valeur = ygo_db::connexion::ouvrir_lecture_seule(paths.classeur_db(code))
             .map_err(crate::error::AppError::from)
@@ -2608,13 +2741,23 @@ pub fn valoriser(paths: &Paths, codes: &[String]) -> Result<Option<Valorisation>
             Ok(offres) => {
                 let mut v = Valeur::default();
                 let mut prix = HashMap::with_capacity(offres.len());
-                for l in &offres {
+                let mut du_classeur = HashMap::with_capacity(offres.len());
+                for l in offres {
                     let unitaire = l.offre.prix_unitaire();
                     v.ajouter(l.quantite, unitaire);
                     prix.insert(l.rowid, unitaire);
+                    du_classeur.insert(l.rowid, l.offre);
                 }
                 classeurs.insert(code.clone(), v);
                 lignes.insert(code.clone(), prix);
+                offres_des_classeurs.insert(code.clone(), du_classeur);
+                annonces.insert(
+                    code.clone(),
+                    crate::classeur::annonces_du_classeur(
+                        &paths.classeur_db(code),
+                        annonces_des_options,
+                    ),
+                );
             }
             Err(e) => {
                 tracing::warn!(classeur = %code, erreur = %e, "Cardmarket : classeur non chiffré")
@@ -2624,6 +2767,8 @@ pub fn valoriser(paths: &Paths, codes: &[String]) -> Result<Option<Valorisation>
     Ok(Some(Valorisation {
         classeurs,
         lignes,
+        offres: offres_des_classeurs,
+        annonces,
         prix_du: index.index.empreinte.prix.clone(),
     }))
 }
@@ -2712,7 +2857,7 @@ pub fn a_des_donnees(paths: &Paths) -> bool {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     #![allow(clippy::unwrap_used, clippy::indexing_slicing, clippy::panic)]
 
     use super::*;
@@ -2806,7 +2951,7 @@ mod tests {
     }
 
     /// Extension 10 : TCG, saisie dans l'ordre ; extension 20 : OCG.
-    fn index_de_test() -> Index {
+    pub(crate) fn index_de_test() -> Index {
         let d = "2024-05-02 10:00:00";
         let cartes = catalogue(vec![
             produit(100, "Alpha", 10, d),
@@ -2901,7 +3046,74 @@ mod tests {
         assert_eq!(o.cible, Cible::Produit(101));
         assert_eq!(o.raison, Raison::Ordonnee);
         assert_eq!(o.version.as_deref(), Some("V.2 · Secret Rare"));
+        // Le numéro que la liste d'envies écrira : celui du libellé.
+        assert_eq!(o.rang(), Some(2));
         assert!(matches!(o.prix, PrixOffre::Exact(p) if p.tendance == Some(900)));
+    }
+
+    /// RA05 « Tri-Horned Dragon » (page du 2026-11-07) : trois fiches V.1 à
+    /// V.3 sans offre, et la Starlight, seule en vente, sans numéro.
+    #[test]
+    fn la_seule_fiche_en_vente_est_la_carte_sans_numero_de_version() {
+        let index = IndexCharge::new(index_de_test());
+        let ext = index.extensions_du_set("set-a", Region::Tcg)[0];
+        let versions = Versions {
+            ids: vec![1, 2, 3, 4],
+            ajouts: Vec::new(),
+        };
+        let vide = |t| Prix {
+            tendance: Some(t),
+            bas: None,
+            moyenne30: Some(t),
+        };
+        let mut prix = HashMap::from([(1, vide(195)), (2, vide(295)), (3, vide(395))]);
+        prix.insert(
+            4,
+            Prix {
+                tendance: Some(373),
+                bas: Some(250),
+                moyenne30: Some(375),
+            },
+        );
+        let starlight = || {
+            connues(BTreeMap::from([(
+                "AAA-EN001".to_owned(),
+                BTreeSet::from(["Starlight Rare".to_owned()]),
+            )]))
+        };
+        let o = decider(
+            ext,
+            &versions,
+            &starlight(),
+            "Starlight Rare",
+            "Tri-Horned Dragon",
+            &prix,
+            String::new(),
+        );
+        assert_eq!(o.cible, Cible::Produit(4));
+        assert_eq!(o.raison, Raison::SeuleFicheEnVente);
+        assert_eq!(o.version, None, "pas de V.n");
+        assert!(o.est_directe());
+
+        // Deux fiches en vente : on ne choisit pas.
+        prix.insert(
+            2,
+            Prix {
+                tendance: Some(300),
+                bas: Some(200),
+                moyenne30: None,
+            },
+        );
+        let o = decider(
+            ext,
+            &versions,
+            &starlight(),
+            "Starlight Rare",
+            "Tri-Horned Dragon",
+            &prix,
+            String::new(),
+        );
+        assert!(matches!(o.raison, Raison::NombreDeVersions { .. }));
     }
 
     #[test]
@@ -3809,7 +4021,7 @@ mod tests {
     }
 
     /// Une base minimale : les tables que [`IndexCharge::offre`] interroge.
-    fn cardinfo_de_test() -> Connection {
+    pub(crate) fn cardinfo_de_test() -> Connection {
         let conn = Connection::open_in_memory().unwrap();
         conn.execute_batch(
             "CREATE TABLE set_locales (id INTEGER PRIMARY KEY, set_uuid TEXT, language TEXT);
@@ -3996,5 +4208,64 @@ mod tests {
                 non_chiffres: 4
             }
         );
+    }
+
+    /// 2026-11-05 : l'inventaire ouvre la page d'une ligne d'après la
+    /// valorisation, sans rien recalculer. Elle garde donc, avec chaque prix,
+    /// l'offre qui l'a donné — la page de la fiche — et la langue des
+    /// annonces du classeur.
+    #[test]
+    fn la_valorisation_garde_l_offre_et_la_langue_des_annonces() {
+        let dir = tempfile::tempdir().unwrap();
+        let paths = Paths::depuis_racine(dir.path());
+        std::fs::create_dir_all(paths.bdd()).unwrap();
+        ecrire(&paths, &index_de_test()).unwrap();
+        cardinfo_de_test()
+            .execute(
+                "VACUUM INTO ?1",
+                [paths.cardinfo_db().to_string_lossy().into_owned()],
+            )
+            .unwrap();
+        std::fs::create_dir_all(paths.dossier_classeur("AAA")).unwrap();
+        let classeur = Connection::open(paths.classeur_db("AAA")).unwrap();
+        classeur
+            .execute_batch(
+                "CREATE TABLE cards (name TEXT, set_code TEXT, rarity TEXT, quantite INTEGER,
+                                     sort_order INTEGER);
+                 INSERT INTO cards VALUES
+                     ('Alpha', 'AAA-EN001', 'Secret Rare', 2, 1),
+                     ('Alpha', 'AAA-EN001', 'Ultra Rare', 0, 2),
+                     ('Omega', 'AAA-EN099', 'Common', 3, 3);
+                 CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT);
+                 INSERT INTO meta VALUES ('annonces_cardmarket', 'en');",
+            )
+            .unwrap();
+        drop(classeur);
+
+        let v = valoriser(&paths, &["AAA".to_owned()]).unwrap().unwrap();
+        // L'offre est celle du prix : la Secret, produit 101, 6,75 €.
+        assert_eq!(v.prix("AAA", 1), Some(675));
+        assert_eq!(
+            v.offre("AAA", 1).map(|o| &o.cible),
+            Some(&Cible::Produit(101))
+        );
+        // Le classeur demande les annonces en anglais, les Options rien.
+        assert_eq!(v.annonces("AAA"), LangueDesAnnonces::Anglais);
+        assert_eq!(
+            v.url("AAA", 1, "AAA-EN001", true).unwrap(),
+            "https://www.cardmarket.com/fr/YuGiOh/Products?idProduct=101&language=1"
+        );
+        // Sans exemplaire : ni prix, ni page.
+        assert!(!v.chiffree("AAA", 2));
+        assert_eq!(v.url("AAA", 2, "AAA-EN001", true), None);
+        // Omega, non retrouvée : pas de prix sûr, mais une page quand même —
+        // la recherche, que la fiche propose aussi.
+        assert_eq!(v.prix("AAA", 3), None);
+        let omega = v.url("AAA", 3, "AAA-EN099", false).unwrap();
+        assert!(
+            omega.starts_with("https://www.cardmarket.com/en/"),
+            "{omega}"
+        );
+        assert!(!omega.contains("idProduct"), "{omega}");
     }
 }

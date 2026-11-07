@@ -32,6 +32,20 @@
 //! a jamais plus de `2 × colonnes × lignes` cartes, **dix-huit** dans la
 //! configuration par défaut, quel que soit le nombre de cartes du classeur.
 //!
+//! # Feuillet et feuille : deux mots, deux comptes (2026-11-03)
+//!
+//! Dans ce module, un **feuillet** est ce que l'écran montre d'un coup : la
+//! double page. Une **feuille** est la pochette qu'on achète et qu'on glisse
+//! dans un vrai classeur — la page 1 au recto, la page 2 au verso, la page 3
+//! au recto de la suivante. Un feuillet montre donc le verso d'une feuille et
+//! le recto de la suivante, et les deux comptes diffèrent d'un dès que le
+//! nombre de pages est pair : `RA04`, 110 pages, se feuillette en 56 doubles
+//! pages mais se range sur 55 feuilles.
+//!
+//! [`nb_feuilles`] est le compte qui dimensionne l'achat. L'écran dit
+//! « double page » pour l'autre, et plus « feuillet », pour que les deux
+//! chiffres ne se lisent pas comme un seul.
+//!
 //! # Ce que ce module ne fait pas
 //!
 //! Il ne dessine rien, ne décode aucune image et ne connaît aucun type
@@ -165,14 +179,14 @@ pub fn charger(
     } else {
         "0"
     };
-    let clause_custom = if a_custom { " OR is_custom = 1" } else { "" };
+    let affichees = clause_affichage(a_custom);
 
     let sql = format!(
         "SELECT rowid, card_image_url, {expression_nom}, rarity, set_code, \
                 possessed, set_name, card_image_id, COALESCE(quantite, 0), \
                 COALESCE(sort_order, 0), {expression_custom}, {expression_ext} \
          FROM cards \
-         WHERE card_image_url IS NOT NULL OR card_image_id IS NOT NULL{clause_custom} \
+         WHERE {affichees} \
          ORDER BY sort_order, rarity"
     );
 
@@ -200,6 +214,41 @@ pub fn charger(
         .collect::<rusqlite::Result<_>>()?;
 
     Ok(ygo_core::tri::trier(cartes, ordre, priorites))
+}
+
+/// Le critère d'affichage, tel que la requête l'écrit : une image — URL ou
+/// identifiant —, ou un ajout manuel quand la colonne existe.
+///
+/// Écrit **une fois**, pour [`charger`], qui montre les cartes, et pour
+/// [`nb_affichees`], qui les compte. L'accueil compte ses feuilles sur ce que
+/// l'écran du classeur montre : deux clauses jumelles finiraient par diverger,
+/// et la tuile annoncerait une feuille de plus ou de moins que le classeur.
+fn clause_affichage(a_custom: bool) -> &'static str {
+    if a_custom {
+        "card_image_url IS NOT NULL OR card_image_id IS NOT NULL OR is_custom = 1"
+    } else {
+        "card_image_url IS NOT NULL OR card_image_id IS NOT NULL"
+    }
+}
+
+/// Le nombre de cartes que l'écran du classeur montre, filtres à part — la
+/// longueur de ce que [`charger`] rendrait, sans charger une seule carte.
+///
+/// C'est sur ce compte que se calculent pages et feuilles : une ligne sans
+/// image ni ajout manuel n'a pas de case à l'écran, et n'en a donc pas non
+/// plus dans le vrai classeur qu'on range d'après lui.
+///
+/// # Errors
+///
+/// Si la table `cards` est illisible.
+pub fn nb_affichees(conn: &Connection) -> Result<usize> {
+    let colonnes = colonnes_presentes(conn)?;
+    let a_custom = colonnes.iter().any(|c| c == "is_custom");
+    let sql = format!(
+        "SELECT COUNT(*) FROM cards WHERE {}",
+        clause_affichage(a_custom)
+    );
+    Ok(conn.query_row(&sql, [], |l| l.get(0))?)
 }
 
 /// Les colonnes de la table `cards`.
@@ -513,6 +562,113 @@ pub fn derniere_page(feuillets: usize) -> usize {
         return 1;
     }
     2 * (feuillets - 1) + 1
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Les feuilles — ce qu'il faut acheter pour ranger le classeur
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Pages portées par une feuille : son recto et son verso.
+pub const PAGES_PAR_FEUILLE: usize = 2;
+
+/// Nombre de pages qu'occupent `nb_cartes` cartes.
+///
+/// La dernière page compte dès qu'elle porte une carte. Aucune carte, aucune
+/// page : c'est un compte de **matière**. L'écran, lui, montre une double
+/// page vide à un classeur vide ([`nb_doubles_pages`]) — ce n'est pas une
+/// feuille à acheter.
+///
+/// ```
+/// use ygo_app::classeur::{nb_pages, Grille};
+/// let g = Grille { colonnes: 3, lignes: 3 };
+/// assert_eq!(nb_pages(135, g), 15);
+/// assert_eq!(nb_pages(9, g), 1, "une page exactement pleine");
+/// assert_eq!(nb_pages(0, g), 0);
+/// ```
+#[must_use]
+pub fn nb_pages(nb_cartes: usize, grille: Grille) -> usize {
+    let par_page = grille.par_page();
+    if par_page == 0 {
+        return 0;
+    }
+    nb_cartes.div_ceil(par_page)
+}
+
+/// Nombre de feuilles recto verso qu'il faut pour ranger `nb_cartes` cartes.
+///
+/// Une feuille porte deux pages : la page 1 au recto, la page 2 au verso, la
+/// page 3 au recto de la feuille suivante. C'est la lecture de l'écran, qui
+/// ouvre le classeur sur la page 1 seule, à droite : le recto de la première
+/// feuille. Un nombre de pages impair laisse le verso de la dernière vide.
+///
+/// ```
+/// use ygo_app::classeur::{nb_feuilles, Grille};
+/// let g = Grille { colonnes: 3, lignes: 3 };
+/// assert_eq!(nb_feuilles(18, g), 1, "pages 1 et 2 : une seule feuille");
+/// assert_eq!(nb_feuilles(19, g), 2, "la page 3 ouvre la deuxième");
+/// assert_eq!(nb_feuilles(135, g), 8, "15 pages : la huitième n'a que son recto");
+/// assert_eq!(nb_feuilles(0, g), 0);
+/// ```
+#[must_use]
+pub fn nb_feuilles(nb_cartes: usize, grille: Grille) -> usize {
+    nb_pages(nb_cartes, grille).div_ceil(PAGES_PAR_FEUILLE)
+}
+
+/// « 8 feuilles », « 1 feuille », « aucune feuille ».
+#[must_use]
+pub fn texte_feuilles(feuilles: usize) -> String {
+    if feuilles == 0 {
+        return "aucune feuille".to_owned();
+    }
+    format!("{feuilles} feuille{}", pluriel(feuilles))
+}
+
+/// « 15 pages », « 1 page », « aucune page ».
+#[must_use]
+pub fn texte_pages(pages: usize) -> String {
+    if pages == 0 {
+        return "aucune page".to_owned();
+    }
+    format!("{pages} page{}", pluriel(pages))
+}
+
+/// Le compte de feuilles en une phrase : combien de cartes, dans quelle
+/// grille, sur combien de pages.
+///
+/// La grille fait partie de la réponse : 135 cartes tiennent sur 8 feuilles
+/// de 3×3 mais sur 6 de 4×3, et ce ne sont pas les mêmes feuilles en rayon.
+///
+/// ```
+/// use ygo_app::classeur::{detail_feuilles, Grille};
+/// let g = Grille { colonnes: 3, lignes: 3 };
+/// assert_eq!(
+///     detail_feuilles(135, g),
+///     "135 cartes en 3×3 : 15 pages, soit 8 feuilles recto verso"
+/// );
+/// assert_eq!(detail_feuilles(0, g), "aucune carte à ranger : aucune feuille");
+/// ```
+#[must_use]
+pub fn detail_feuilles(nb_cartes: usize, grille: Grille) -> String {
+    if nb_cartes == 0 {
+        return "aucune carte à ranger : aucune feuille".to_owned();
+    }
+    let pages = nb_pages(nb_cartes, grille);
+    if pages == 0 {
+        // Une grille sans case : les réglages l'interdisent, une table `meta`
+        // écrite à la main peut la porter.
+        return format!(
+            "grille {}×{} sans case : aucune feuille",
+            grille.colonnes, grille.lignes
+        );
+    }
+    format!(
+        "{nb_cartes} carte{} en {}×{} : {}, soit {} recto verso",
+        pluriel(nb_cartes),
+        grille.colonnes,
+        grille.lignes,
+        texte_pages(pages),
+        texte_feuilles(nb_feuilles(nb_cartes, grille)),
+    )
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1617,6 +1773,208 @@ mod tests {
         assert_eq!(numeros_de_page(0), (None, 1), "la page 1 est seule");
         assert_eq!(numeros_de_page(1), (Some(2), 3));
         assert_eq!(numeros_de_page(2), (Some(4), 5));
+    }
+
+    // ── Les feuilles : ce qu'il faut acheter ────────────────────────────────
+
+    const TROIS_TROIS: Grille = Grille {
+        colonnes: 3,
+        lignes: 3,
+    };
+
+    #[test]
+    fn une_feuille_porte_deux_pages_recto_verso() {
+        let g = TROIS_TROIS;
+        assert_eq!(nb_feuilles(1, g), 1, "la page 1 : recto de la première");
+        assert_eq!(nb_feuilles(9, g), 1);
+        assert_eq!(nb_feuilles(10, g), 1, "la page 2 : son verso");
+        assert_eq!(nb_feuilles(18, g), 1);
+        assert_eq!(nb_feuilles(19, g), 2, "la page 3 ouvre la deuxième feuille");
+        assert_eq!(nb_feuilles(36, g), 2);
+        assert_eq!(nb_feuilles(37, g), 3);
+    }
+
+    /// Page `k`, comptée depuis 1 : recto de la feuille `⌈k/2⌉` si `k` est
+    /// impair, verso sinon. Un classeur rempli jusqu'à la page `k` demande
+    /// donc `⌈k/2⌉` feuilles, quelle que soit la grille.
+    #[test]
+    fn chaque_page_tombe_sur_sa_feuille_quelle_que_soit_la_grille() {
+        for (colonnes, lignes) in [(3, 3), (4, 3), (4, 4), (2, 2), (1, 1), (5, 4)] {
+            let g = Grille { colonnes, lignes };
+            for k in 1..=40 {
+                let pleines = k * g.par_page();
+                assert_eq!(nb_pages(pleines, g), k, "{colonnes}×{lignes}, {k} pages");
+                assert_eq!(
+                    nb_feuilles(pleines, g),
+                    k.div_ceil(2),
+                    "{colonnes}×{lignes}, {k} pages pleines"
+                );
+                // Une carte de plus ouvre une page, pas forcément une feuille.
+                assert_eq!(
+                    nb_feuilles(pleines + 1, g),
+                    (k + 1).div_ceil(2),
+                    "{colonnes}×{lignes}, une carte après {k} pages pleines"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn les_feuilles_suivent_la_grille_choisie() {
+        // Les mêmes 100 cartes que pour les doubles pages.
+        for ((colonnes, lignes), pages, feuilles) in [
+            ((3, 3), 12, 6),
+            ((4, 3), 9, 5),
+            ((4, 4), 7, 4),
+            ((2, 2), 25, 13),
+        ] {
+            let g = Grille { colonnes, lignes };
+            assert_eq!(nb_pages(100, g), pages, "{colonnes}×{lignes}");
+            assert_eq!(nb_feuilles(100, g), feuilles, "{colonnes}×{lignes}");
+        }
+    }
+
+    /// Le piège que les deux mots évitent : l'écran compte ses doubles
+    /// pages, l'achat compte ses feuilles, et les deux diffèrent d'un dès
+    /// que le nombre de pages est pair.
+    #[test]
+    fn les_feuilles_ne_sont_pas_les_feuillets_de_l_ecran() {
+        for (colonnes, lignes) in [(3, 3), (4, 3), (2, 2), (1, 1)] {
+            let g = Grille { colonnes, lignes };
+            for n in 1..=300 {
+                let pages = nb_pages(n, g);
+                let ecart = nb_doubles_pages(n, g) - nb_feuilles(n, g);
+                assert_eq!(
+                    ecart,
+                    usize::from(pages % 2 == 0),
+                    "{colonnes}×{lignes}, {n} cartes, {pages} pages"
+                );
+            }
+        }
+        // `RA04` réel : 986 cartes en 3×3.
+        assert_eq!(nb_pages(986, TROIS_TROIS), 110);
+        assert_eq!(nb_doubles_pages(986, TROIS_TROIS), 56);
+        assert_eq!(nb_feuilles(986, TROIS_TROIS), 55);
+    }
+
+    #[test]
+    fn un_classeur_vide_ne_demande_aucune_feuille() {
+        // L'écran lui montre pourtant une double page : un compte d'écran,
+        // pas de matière.
+        assert_eq!(nb_doubles_pages(0, TROIS_TROIS), 1);
+        assert_eq!(nb_pages(0, TROIS_TROIS), 0);
+        assert_eq!(nb_feuilles(0, TROIS_TROIS), 0);
+        let sans_case = Grille {
+            colonnes: 0,
+            lignes: 3,
+        };
+        assert_eq!(nb_pages(50, sans_case), 0);
+        assert_eq!(nb_feuilles(50, sans_case), 0);
+    }
+
+    #[test]
+    fn le_compte_de_feuilles_s_ecrit_en_francais() {
+        assert_eq!(texte_feuilles(0), "aucune feuille");
+        assert_eq!(texte_feuilles(1), "1 feuille");
+        assert_eq!(texte_feuilles(8), "8 feuilles");
+        assert_eq!(texte_pages(0), "aucune page");
+        assert_eq!(texte_pages(1), "1 page");
+        assert_eq!(texte_pages(15), "15 pages");
+        assert_eq!(
+            detail_feuilles(1, TROIS_TROIS),
+            "1 carte en 3×3 : 1 page, soit 1 feuille recto verso"
+        );
+        assert_eq!(
+            detail_feuilles(
+                135,
+                Grille {
+                    colonnes: 4,
+                    lignes: 3
+                }
+            ),
+            "135 cartes en 4×3 : 12 pages, soit 6 feuilles recto verso"
+        );
+        assert_eq!(
+            detail_feuilles(0, TROIS_TROIS),
+            "aucune carte à ranger : aucune feuille"
+        );
+        assert_eq!(
+            detail_feuilles(
+                5,
+                Grille {
+                    colonnes: 0,
+                    lignes: 3
+                }
+            ),
+            "grille 0×3 sans case : aucune feuille"
+        );
+    }
+
+    /// L'accueil compte ses feuilles sur ce que l'écran du classeur montre :
+    /// une ligne sans image ni ajout manuel n'est ni montrée ni comptée.
+    #[test]
+    fn le_compte_des_affichees_est_la_longueur_de_ce_que_l_ecran_montre() {
+        let (_tmp, chemin) = classeur_vide();
+        let conn = Connection::open(&chemin).unwrap();
+        for (id, url, custom) in [
+            (Some(1_i64), None, 0_i64),
+            (None, Some("https://exemple.invalid/2.jpg"), 0),
+            (None, None, 1),
+            (None, None, 0),
+            (Some(5), Some("https://exemple.invalid/5.jpg"), 0),
+        ] {
+            conn.execute(
+                "INSERT INTO cards (card_image_id, card_image_url, is_custom, name, set_code, rarity) \
+                 VALUES (?1, ?2, ?3, 'Carte', 'S-EN001', 'Common')",
+                rusqlite::params![id, url, custom],
+            )
+            .unwrap();
+        }
+        let montrees = charger(
+            &conn,
+            false,
+            SourceImage::Ygoprodeck,
+            ygo_core::config::ORDRE_TRI_DEFAUT,
+            &Priorites::default(),
+        )
+        .unwrap();
+        assert_eq!(
+            montrees.len(),
+            4,
+            "la ligne sans image ni ajout manuel est écartée"
+        );
+        assert_eq!(nb_affichees(&conn).unwrap(), montrees.len());
+    }
+
+    /// Un classeur de première génération n'a pas `is_custom` : le compte ne
+    /// doit pas échouer sur la colonne absente, pas plus que le chargement.
+    #[test]
+    fn le_compte_des_affichees_tient_sans_la_colonne_des_ajouts_manuels() {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch(
+            "CREATE TABLE cards (card_image_id INTEGER, set_code TEXT, rarity TEXT, \
+                                 set_name TEXT, name TEXT, card_image_url TEXT, \
+                                 sort_order INTEGER DEFAULT 0, possessed INTEGER DEFAULT 0, \
+                                 quantite INTEGER DEFAULT 0);
+             INSERT INTO cards (card_image_id, name, set_code, rarity)
+                 VALUES (1, 'A', 'S-EN001', 'Common'), (NULL, 'B', 'S-EN002', 'Common');",
+        )
+        .unwrap();
+        let montrees = charger(
+            &conn,
+            false,
+            SourceImage::Ygoprodeck,
+            ygo_core::config::ORDRE_TRI_DEFAUT,
+            &Priorites::default(),
+        )
+        .unwrap();
+        assert_eq!(montrees.len(), 1);
+        assert_eq!(nb_affichees(&conn).unwrap(), 1);
+
+        // Sans table du tout, c'est une erreur — pas un zéro qu'on
+        // prendrait pour un classeur vide.
+        let vide = Connection::open_in_memory().unwrap();
+        assert!(nb_affichees(&vide).is_err());
     }
 
     // ── Les filtres ─────────────────────────────────────────────────────────

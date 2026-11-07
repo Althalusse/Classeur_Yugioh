@@ -43,6 +43,7 @@ pub mod bandeau;
 pub mod classeur;
 pub mod corbeille;
 pub mod csv;
+pub mod envies;
 pub mod exemplaires;
 pub mod fiche;
 pub mod images;

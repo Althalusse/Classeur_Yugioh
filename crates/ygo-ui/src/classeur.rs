@@ -34,6 +34,16 @@
 //! OVERFRAME sur la ligne d'origine des badges. Sa forme suit la taille de la
 //! carte ; le dessin et ses règles vivent dans [`crate::bandeau`]. La case
 //! « Bandeau toujours visible » du menu « ⋯ » rend l'usage d'avant.
+//!
+//! # Les feuilles (2026-11-03)
+//!
+//! La barre du haut dit combien de feuilles recto verso le classeur entier
+//! demande — une feuille porte deux pages —, le détail au survol ; le
+//! panneau des réglages le recalcule pour la grille qu'on essaie. Le compte
+//! vient de [`ygo_app::classeur::nb_feuilles`]. La barre du bas dit
+//! désormais « double page » là où elle disait « feuillet » : les deux
+//! chiffres diffèrent d'un sur un nombre de pages pair, et un même mot pour
+//! deux comptes les aurait fait prendre l'un pour l'autre.
 
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
@@ -155,6 +165,8 @@ pub struct EcranClasseur {
     /// L'ordre d'affichage : celui du classeur, ou par prix. Pas retenu à la
     /// fermeture, comme les filtres.
     tri_prix: TriPrix,
+    /// Un passage aux listes d'envies Cardmarket a été demandé (menu ⋯).
+    envies: bool,
 
     /// Mesures, affichées en bas — c'est l'épreuve que l'arbitrage n'a pas faite.
     duree_chargement: Duration,
@@ -278,6 +290,7 @@ impl EcranClasseur {
             prix_sur_les_cartes,
             bandeau_permanent,
             tri_prix: TriPrix::Classeur,
+            envies: false,
             depart: Instant::now(),
             premier_rendu: None,
         })
@@ -330,6 +343,11 @@ impl EcranClasseur {
     /// revient.
     pub fn options_demandees(&mut self) -> bool {
         std::mem::take(&mut self.options)
+    }
+
+    /// Reprend la demande des listes d'envies Cardmarket de ce classeur.
+    pub fn envies_demandees(&mut self) -> bool {
+        std::mem::take(&mut self.envies)
     }
 
     /// Reprend la carte dont on veut voir les artworks, s'il y en a une :
@@ -582,11 +600,15 @@ impl EcranClasseur {
                 ui.heading(&self.code);
                 ui.add_space(12.0);
                 let possedees = self.visibles.iter().filter(|c| c.quantite > 0).count();
-                let mut compteurs = format!(
+                let compteurs = format!(
                     "{} carte(s) affichée(s) sur {} · {possedees} possédée(s)",
                     self.visibles.len(),
                     self.toutes.len()
                 );
+                // Les feuilles du classeur **entier**, pas des cartes
+                // filtrées : c'est le vrai classeur qu'elles dimensionnent,
+                // et un filtre ne retire aucune carte de la pochette.
+                let feuilles = classeur::nb_feuilles(self.toutes.len(), self.grille);
                 // La valeur des possédées affichées — celle du classeur
                 // entier sans filtre, comme la pastille de l'accueil.
                 let valeur = self.valeurs().and_then(|(affichees, classeur)| {
@@ -603,15 +625,22 @@ impl EcranClasseur {
                     detail.push_str(&crate::valeur::detail(&affichees, prix_du));
                     Some((montant, detail))
                 });
-                match valeur {
-                    Some((montant, detail)) => {
-                        compteurs.push_str(&format!(" · {montant}"));
-                        ui.label(compteurs).on_hover_text(detail);
+                // Des libellés côte à côte plutôt qu'une chaîne : les
+                // feuilles et la valeur gardent chacune leur infobulle.
+                ui.horizontal(|ui| {
+                    ui.spacing_mut().item_spacing.x = 0.0;
+                    ui.label(compteurs);
+                    ui.label(format!(" · {}", classeur::texte_feuilles(feuilles)))
+                        .on_hover_text(format!(
+                            "{}\nUne feuille porte deux pages : la page 1 au recto, la 2 au \
+                             verso. La grille se change dans le menu ⋯, « Réglages du \
+                             classeur… ».",
+                            classeur::detail_feuilles(self.toutes.len(), self.grille)
+                        ));
+                    if let Some((montant, detail)) = valeur {
+                        ui.label(format!(" · {montant}")).on_hover_text(detail);
                     }
-                    None => {
-                        ui.label(compteurs);
-                    }
-                }
+                });
 
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     if ui.button("⚙").on_hover_text("Options").clicked() {
@@ -834,7 +863,7 @@ impl EcranClasseur {
                 for proposition in &self.propositions {
                     let ligne = ui.add(
                         egui::Button::new(format!(
-                            "{}   ·   {}   ·   {}   →  feuillet {}",
+                            "{}   ·   {}   ·   {}   →  double page {}",
                             proposition.set_code,
                             proposition.nom,
                             proposition.rarete,
@@ -954,6 +983,18 @@ impl EcranClasseur {
                 if !actif {
                     bouton.on_disabled_hover_text(raison);
                 }
+            }
+            ui.separator();
+            if ui
+                .button("Liste d'envies Cardmarket…")
+                .on_hover_text(
+                    "Les cartes qui manquent à ce classeur, prêtes à coller dans une liste \
+                     d'envies Cardmarket — de la moins chère à la plus chère",
+                )
+                .clicked()
+            {
+                self.envies = true;
+                ui.close();
             }
             ui.separator();
             if ui
@@ -1083,11 +1124,19 @@ impl EcranClasseur {
     /// l'ordre change la suite des cartes. C'est six millisecondes de lecture
     /// sur les 1 120 lignes de `RA02`, et c'est plus sûr que de recalculer
     /// deux états en place.
+    ///
+    /// # Les feuilles, sous la grille (2026-11-03)
+    ///
+    /// Le panneau dit ce que la grille retenue demande en feuilles recto
+    /// verso, et le redit à chaque cran : 3×3 ou 4×3 se décide ici, et c'est
+    /// donc ici qu'on voit combien de feuilles acheter pour l'un ou l'autre.
     fn panneau_reglages(&mut self, ctx: &egui::Context) {
         use ygo_app::classeur::Grille;
         let Some(mut reglages) = self.reglages else {
             return;
         };
+        // Les cartes du classeur entier : les feuilles se comptent sans filtre.
+        let nb_cartes = self.toutes.len();
         let defaut = {
             let config = Config::charger(self.paths.app_config());
             (
@@ -1159,6 +1208,17 @@ impl EcranClasseur {
                         );
                     });
                 }
+                // Ce que la grille retenue demande en feuilles, recalculé à
+                // chaque cran : c'est ici qu'on choisit la grille, donc ici
+                // qu'on dimensionne le vrai classeur à acheter.
+                let retenue = reglages.grille.unwrap_or(Grille {
+                    colonnes: defaut.0 .0,
+                    lignes: defaut.0 .1,
+                });
+                ui.horizontal(|ui| {
+                    ui.add_space(24.0);
+                    ui.small(classeur::detail_feuilles(nb_cartes, retenue));
+                });
 
                 ui.add_space(12.0);
 
@@ -1412,8 +1472,11 @@ impl EcranClasseur {
                     Some(g) => format!("pages {g} – {droite}"),
                     None => format!("page {droite}"),
                 };
+                // « double page » et non plus « feuillet » : le mot se lisait
+                // comme les feuilles de la barre du haut, et les deux
+                // chiffres diffèrent d'un sur un nombre de pages pair.
                 ui.label(format!(
-                    "{pages}   ·   feuillet {} / {total}",
+                    "{pages}   ·   double page {} / {total}",
                     self.double_page + 1
                 ));
                 if ui

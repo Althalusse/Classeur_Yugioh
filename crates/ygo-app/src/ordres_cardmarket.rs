@@ -104,6 +104,7 @@ pub fn libelle_de_raison(raison: &Raison) -> &'static str {
         Raison::OrdreDesVersionsInconnu => "recherche — paire de raretés non tranchée",
         Raison::PlusieursVersionsDeLaRarete => "recherche — versions de même rareté",
         Raison::IllustrationsSaisiesAPart => "recherche — illustrations saisies à part",
+        Raison::SeuleFicheEnVente => "direct — seule fiche en vente",
         Raison::NombreDeVersions { .. } => "recherche — nombre de versions différent",
         Raison::PlusieursNumeros => "recherche — plusieurs numéros",
         Raison::RareteInconnue => "recherche — rareté inconnue",

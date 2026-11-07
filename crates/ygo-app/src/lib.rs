@@ -40,6 +40,7 @@ pub mod controle;
 pub mod couverture;
 pub mod creation;
 pub mod doublons;
+pub mod envies;
 pub mod error;
 pub mod exemplaires;
 pub mod export;

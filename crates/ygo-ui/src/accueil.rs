@@ -24,6 +24,14 @@
 //! l'image mesure, et `paint_at` — qui déforme quand on lui donne un
 //! rectangle au mauvais ratio — reçoit ici un rectangle au **bon** ratio par
 //! construction.
+//!
+//! # Les feuilles (2026-11-03)
+//!
+//! Chaque tuile dit combien de feuilles recto verso son classeur demande, et
+//! sur combien de pages — le détail au survol —, et la ligne des compteurs
+//! les additionne **par grille** : de quoi dimensionner l'achat des vrais
+//! classeurs. Les chiffres viennent de [`ygo_app::accueil::Classeur::feuilles`]
+//! et de [`ygo_app::accueil::texte_feuilles_par_grille`].
 
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -104,6 +112,9 @@ pub struct EcranAccueil {
     couvertures: HashMap<String, Couverture>,
     total: usize,
     possedees: usize,
+    /// Les feuilles à prévoir pour tous les classeurs, par grille — relues
+    /// avec les compteurs, jamais à chaque image.
+    feuilles: String,
 
     francais: bool,
     filtre: String,
@@ -162,6 +173,8 @@ pub struct EcranAccueil {
     creations_csv: Vec<String>,
     /// Ce que le panneau a fait, à afficher.
     message_csv: Option<(String, bool)>,
+    /// Un passage aux listes d'envies Cardmarket a été demandé.
+    envies: bool,
 
     /// La valeur des possédées de chaque classeur, au dernier chiffrage.
     valeurs: Option<Valorisation>,
@@ -206,6 +219,7 @@ impl EcranAccueil {
         let classeurs = accueil::lister(&paths, grille_defaut);
         let duree_lecture = lecture.elapsed();
         let (total, possedees) = accueil::totaux(&classeurs);
+        let feuilles = accueil::texte_feuilles_par_grille(&classeurs);
 
         let images = Instant::now();
         let couvertures = charger_couvertures(&classeurs);
@@ -225,6 +239,7 @@ impl EcranAccueil {
             couvertures,
             total,
             possedees,
+            feuilles,
             francais,
             filtre: String::new(),
             ordre: Ordre::default(),
@@ -243,6 +258,7 @@ impl EcranAccueil {
             csv: PanneauCsv::nouveau("accueil", &paths_corbeille),
             creations_csv: Vec::new(),
             message_csv: None,
+            envies: false,
             valeurs: None,
             chiffrage: Calcul::default(),
             rechiffrer: false,
@@ -280,6 +296,11 @@ impl EcranAccueil {
     /// Reprend la demande de création d'un classeur.
     pub fn demande_creation(&mut self) -> bool {
         std::mem::take(&mut self.creation)
+    }
+
+    /// Reprend la demande d'ouverture des listes d'envies Cardmarket.
+    pub fn demande_envies(&mut self) -> bool {
+        std::mem::take(&mut self.envies)
     }
 
     /// Reprend la demande d'ouverture des statistiques.
@@ -355,6 +376,9 @@ impl EcranAccueil {
         let (total, possedees) = accueil::totaux(&self.classeurs);
         self.total = total;
         self.possedees = possedees;
+        // Un classeur créé, supprimé, ou dont la grille a changé dans ses
+        // réglages, change les feuilles.
+        self.feuilles = accueil::texte_feuilles_par_grille(&self.classeurs);
         // Une suppression vient d'y déposer un classeur, une restauration
         // vient d'en retirer un : le bouton doit suivre.
         self.corbeille = ygo_app::suppression::contenu_corbeille(&self.paths).len();
@@ -453,6 +477,7 @@ impl eframe::App for EcranAccueil {
         }
         let paths = self.paths.clone();
         self.relever_les_valeurs(racine.ctx());
+        // Un CSV déposé ouvre l'import : un seul panneau à droite à la fois.
         self.csv.capter_depot(racine.ctx(), &paths);
         self.barre_du_haut(racine);
         self.barre_du_bas(racine);
@@ -696,6 +721,17 @@ impl EcranAccueil {
                     }
                     ui.add_space(8.0);
                     if ui
+                        .button("Listes d'envies…")
+                        .on_hover_text(
+                            "Les cartes qui manquent aux classeurs, prêtes à coller dans une \
+                             liste d'envies Cardmarket — de la moins chère à la plus chère",
+                        )
+                        .clicked()
+                    {
+                        self.envies = true;
+                    }
+                    ui.add_space(8.0);
+                    if ui
                         .button("Exporter…")
                         .on_hover_text(
                             "Vers Scanflip, ou vers une autre installation de \
@@ -779,7 +815,7 @@ impl EcranAccueil {
             // « 550 possédée(s) (33,8 %) » s'écrivait par-dessus « Trier
             // par », et les deux devenaient illisibles.
             ui.add_space(2.0);
-            let mut compteurs = format!(
+            let compteurs = format!(
                 "{} classeur(s) · {} cartes · {} possédée(s) ({:.1} %)",
                 self.classeurs.len(),
                 self.total,
@@ -789,15 +825,23 @@ impl EcranAccueil {
             // La valeur de tous les classeurs, au bout de la ligne ; son
             // détail au survol.
             let total = self.valeurs.as_ref().map(|v| (v.total(), v.prix_du.as_str()));
-            match total.and_then(|(v, du)| Some((valeur::montant(&v)?, valeur::detail(&v, du)))) {
-                Some((montant, detail)) => {
-                    compteurs.push_str(&format!(" · {montant}"));
-                    ui.label(compteurs).on_hover_text(detail);
+            let valeur =
+                total.and_then(|(v, du)| Some((valeur::montant(&v)?, valeur::detail(&v, du))));
+            // Des libellés côte à côte plutôt qu'une seule chaîne : chacun
+            // garde son infobulle — les feuilles, ce qu'elles comptent ; la
+            // valeur, son détail. L'espacement nul les lit comme une ligne.
+            ui.horizontal(|ui| {
+                ui.spacing_mut().item_spacing.x = 0.0;
+                ui.label(compteurs);
+                ui.label(format!(" · {}", self.feuilles)).on_hover_text(
+                    "Les feuilles à prévoir pour ranger tous les classeurs : une feuille \
+                     porte deux pages, recto et verso. Comptées par grille — une feuille \
+                     3×3 n'est pas une feuille 4×3.",
+                );
+                if let Some((montant, detail)) = valeur {
+                    ui.label(format!(" · {montant}")).on_hover_text(detail);
                 }
-                None => {
-                    ui.label(compteurs);
-                }
-            }
+            });
             if let Some((texte, erreur)) = self.message_csv.clone() {
                 ui.add_space(4.0);
                 ui.horizontal(|ui| {
@@ -995,6 +1039,14 @@ impl EcranAccueil {
                             ))
                             .weak(),
                         );
+                        // Les feuilles recto verso, juste au-dessus de la
+                        // grille dont elles dépendent : c'est le chiffre qui
+                        // dimensionne le vrai classeur à acheter.
+                        ui.small(format!(
+                            "{} · {}",
+                            ygo_app::classeur::texte_feuilles(classeur.feuilles()),
+                            ygo_app::classeur::texte_pages(classeur.pages())
+                        ));
                         ui.horizontal(|ui| {
                             ui.small(format!("{} / {}", classeur.possedees, classeur.total));
                             ui.with_layout(
@@ -1026,9 +1078,10 @@ impl EcranAccueil {
             ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
         }
         let mut aide = format!(
-            "Ouvrir {} — {}",
+            "Ouvrir {} — {}\n{}",
             classeur.code,
-            classeur.nom_affiche(self.francais)
+            classeur.nom_affiche(self.francais),
+            classeur.detail_feuilles()
         );
         if let (Some(v), Some(valeurs)) = (self.valeur_de(&classeur.code), &self.valeurs) {
             let detail = valeur::detail(&v, &valeurs.prix_du);

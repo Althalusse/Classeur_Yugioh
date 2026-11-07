@@ -174,6 +174,7 @@ async fn executer() -> anyhow::Result<bool> {
         "cardmarket" => {
             cmd_cardmarket(&cible.context("chemin de l'installation attendu")?, reste).await
         }
+        "envies" => cmd_envies(&cible.context("chemin de l'installation attendu")?, reste),
         "comparer" => {
             let reference = cible.context("base de référence attendue")?;
             let candidate = reste
@@ -327,6 +328,14 @@ USAGE
         [--detail]                    une ligne par carte : lien, prix, raison
         [--valeur]                    les 30 lignes possédées qui pèsent le plus dans
                                       la valeur affichée par l'application
+  ygo-cli envies <installation>    les listes d'envies Cardmarket des cartes manquantes,
+                                   une par classeur, du moins cher au plus cher, à
+                                   coller dans « Ajouter une decklist » (aucun réseau) ;
+                                   Cardmarket s'arrête à 150 entrées par liste
+        [--classeur CODE]             un classeur ; répétable — tous par défaut
+        [--par-rarete]                une liste par rareté dans chaque classeur
+        [--sortie DOSSIER]            écrit chaque liste dans un fichier .txt
+        [--texte]                     affiche aussi le texte de chaque liste
   ygo-cli comparer <référence> <candidate>
                                    compare deux cardinfo.db table par table
   ygo-cli --version
@@ -3265,6 +3274,138 @@ fn cmd_classeur(installation: &Path, code: &str, args: &[String]) -> anyhow::Res
 // importer / exporter / inventaire
 // ─────────────────────────────────────────────────────────────────────────────
 
+/// `envies` : les listes d'envies Cardmarket des cartes manquantes
+/// (`ygo_app::envies`) — le banc de l'écran « Listes d'envies », sans écran.
+///
+/// Sans `--classeur`, tous les classeurs, comme l'accueil ; avec, ceux-là
+/// seulement (l'option se répète). Une liste par classeur ; `--par-rarete`,
+/// une par rareté dans chaque classeur. `--sortie` écrit un fichier `.txt`
+/// par liste à créer sur Cardmarket — 150 entrées au plus chacun —, nommé
+/// comme elle.
+fn cmd_envies(installation: &Path, args: &[String]) -> anyhow::Result<bool> {
+    use ygo_app::cardmarket::euros;
+    use ygo_app::envies;
+
+    let paths = Paths::depuis_racine(installation);
+    let mut codes: Vec<String> = args
+        .windows(2)
+        .filter(|p| p.first().is_some_and(|a| a == "--classeur"))
+        .filter_map(|p| p.get(1).map(|c| c.trim().to_uppercase()))
+        .collect();
+    if codes.is_empty() {
+        codes = paths.classeurs_existants();
+    }
+    let texte = args.iter().any(|a| a == "--texte");
+    let sortie = valeur(args, "--sortie").map(PathBuf::from);
+
+    let regroupement = if args.iter().any(|a| a == "--par-rarete") {
+        envies::Regroupement::ParRarete
+    } else {
+        envies::Regroupement::ParClasseur
+    };
+
+    let Some(e) = envies::preparer(&paths, &codes, regroupement)? else {
+        println!("Pas d'index Cardmarket ou de base des cartes : lancez d'abord `cardmarket --telecharger`.");
+        return Ok(false);
+    };
+    println!(
+        "{} classeur(s) · {} carte(s) manquante(s) · {} à coller en {} entrée(s), {} liste(s) Cardmarket · {} à vérifier · prix du {}",
+        e.classeurs.len(),
+        e.manquantes(),
+        e.cartes(),
+        e.entrees(),
+        e.listes(),
+        e.a_verifier.len(),
+        e.prix_du
+    );
+    for code in &e.illisibles {
+        println!("  illisible : {code}");
+    }
+    if let Some(dossier) = &sortie {
+        std::fs::create_dir_all(dossier)
+            .with_context(|| format!("dossier {} non créé", dossier.display()))?;
+    }
+    for groupe in &e.groupes {
+        let prix = groupe.extremes().map_or_else(
+            || "aucun prix".to_owned(),
+            |(bas, haut)| format!("de {} à {}", euros(bas.into()), euros(haut.into())),
+        );
+        println!(
+            "{} · langue « {} » · {} carte(s) en {} entrée(s) · {prix} · ≈ {}{}",
+            groupe.nom,
+            groupe.langue.libelle(),
+            groupe.cartes(),
+            groupe.entrees.len(),
+            euros(groupe.valeur()),
+            match groupe.sans_prix() {
+                0 => String::new(),
+                n => format!(" · {n} sans prix"),
+            }
+        );
+        for (i, tranche) in groupe.tranches().enumerate() {
+            let nom = groupe.nom_de_tranche(i);
+            if groupe.listes() > 1 {
+                println!(
+                    "  liste Cardmarket « {nom} » : {} / {} entrées",
+                    tranche.len(),
+                    envies::ENTREES_PAR_LISTE
+                );
+            }
+            if let Some(dossier) = &sortie {
+                let fichier = dossier.join(nom_de_fichier_d_envies(&nom));
+                std::fs::write(&fichier, envies::texte_de(tranche))
+                    .with_context(|| format!("{} non écrit", fichier.display()))?;
+                println!("  → {}", fichier.display());
+            }
+            if texte {
+                print!("{}", envies::texte_de(tranche));
+                if i + 1 < groupe.listes() {
+                    println!(
+                        "--- Cardmarket s'arrête ici ({} entrées) : la suite dans « {} » ---",
+                        envies::ENTREES_PAR_LISTE,
+                        groupe.nom_de_tranche(i + 1)
+                    );
+                }
+            }
+        }
+    }
+    if !e.a_verifier.is_empty() {
+        println!("À vérifier :");
+        for a in &e.a_verifier {
+            println!(
+                "  {:8} {:14} {:40} {} — {}",
+                a.origine.classeur,
+                a.origine.set_code,
+                traquer(&a.origine.version, 40),
+                traquer(&a.nom, 40),
+                a.motif.explication()
+            );
+        }
+    }
+    Ok(true)
+}
+
+/// Le fichier d'une liste d'envies : son nom, sans les caractères que
+/// Windows refuse, `.txt` — 70 caractères au plus, extension comprise.
+fn nom_de_fichier_d_envies(nom: &str) -> String {
+    let propre: String = nom
+        .chars()
+        .map(|c| match c {
+            '/' | '\\' | ':' | '*' | '?' | '"' | '<' | '>' | '|' => '_',
+            '·' => '-',
+            c => c,
+        })
+        .collect();
+    let propre: String = propre
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join("_")
+        .chars()
+        .take(66)
+        .collect();
+    format!("{propre}.txt")
+}
+
 /// L'argument qui suit `nom`, s'il existe.
 fn valeur<'a>(args: &'a [String], nom: &str) -> Option<&'a String> {
     args.iter()
@@ -3968,7 +4109,7 @@ fn jauge(pourcentage: f64) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::place_du_numero;
+    use super::{nom_de_fichier_d_envies, place_du_numero};
 
     /// Une carte FR et sa jumelle EN ont la même place, quels que soient
     /// l'époque et le format du code.
@@ -3982,5 +4123,16 @@ mod tests {
         assert_eq!(place_du_numero("LOB-F001"), place_du_numero("LOB-001"));
         assert_ne!(place_du_numero("RA05-FR136"), place_du_numero("RA05-FR137"));
         assert_eq!(place_du_numero("PROMO"), None);
+    }
+
+    /// Le fichier d'une liste porte son nom, lisible sous Windows.
+    #[test]
+    fn le_fichier_d_une_liste_d_envies_porte_son_nom() {
+        assert_eq!(nom_de_fichier_d_envies("LOCH-JP 1/2"), "LOCH-JP_1_2.txt");
+        assert_eq!(
+            nom_de_fichier_d_envies("RA02 · Secret Rare 2/3"),
+            "RA02_-_Secret_Rare_2_3.txt"
+        );
+        assert!(nom_de_fichier_d_envies(&"X".repeat(200)).chars().count() <= 70);
     }
 }

@@ -5,7 +5,7 @@ classeur : chaque tirage à sa place, avec sa rareté, son illustration et son
 édition, et pour chaque carte possédée, l'état de chaque exemplaire.
 
 Application de bureau pour **Windows**, écrite en **Rust** (interface egui).
-Version actuelle : **2.0.14**.
+Version actuelle : **2.0.15**.
 
 > Projet de fan, non officiel, sans lien avec Konami ni avec Cardmarket.
 > *Yu-Gi-Oh!* et les illustrations des cartes appartiennent à leurs ayants
@@ -35,7 +35,9 @@ Version actuelle : **2.0.14**.
   défaut, une carte qui entre dans la collection est Mint, avec l'édition que
   la base connaît pour ce tirage.
 - **L'inventaire** — toute la collection, tous classeurs confondus : tri,
-  filtres, sélection multiple, actions en masse, détail par exemplaire.
+  filtres, sélection multiple, actions en masse, détail par exemplaire ;
+  double-clic sur une ligne pour la fiche de la carte, qu'on feuillette
+  ensuite ligne à ligne.
 - **Import / export CSV** — deux formats au choix, tous deux sans perte
   d'état ni d'édition : **Scanflip** (les onze colonnes de Scanflip, sans les
   classeurs japonais — Scanflip ne connaît pas l'OCG) et **Application**
@@ -54,13 +56,24 @@ Version actuelle : **2.0.14**.
   carte du classeur, qui se trie par prix croissant ou décroissant. Et la
   **valeur estimée** des cartes possédées : sur chaque classeur, dans les
   statistiques, et carte par carte dans l'inventaire (colonnes prix et
-  valeur). Prix indicatifs, toutes langues, éditions et états confondus.
+  valeur — un clic sur le prix, ou le clic droit, ouvre la page Cardmarket
+  de la carte). Prix indicatifs, toutes langues, éditions et états confondus.
   Le lien vers les annonces ne montre que celles dans la langue de vos
   cartes (français par défaut ; réglable dans les Options et par classeur).
   Les sets trop récents pour la base (créés via YGOPRODeck) ont eux aussi
   leurs liens et leurs prix, et la version exacte est retrouvée même quand
   Cardmarket a saisi un set dans le désordre : les prix de la carte la
   désignent.
+- **Listes d'envies Cardmarket** — une page à part, classeur par classeur
+  (ou rareté par rareté dans chaque classeur, au choix), avec les cartes qui
+  manquent prêtes à coller dans une liste d'envies Cardmarket (« Ajouter une
+  decklist ») : de la moins chère à la plus chère, et un repère bien visible
+  là où Cardmarket s'arrête (150 entrées par liste). Les lignes se
+  sélectionnent et se copient, ou d'un bouton par liste Cardmarket ;
+  l'assistant d'achat de Cardmarket trouve ensuite qui les vend. Une carte
+  dont la version n'est pas sûre est mise de côté, avec son lien de
+  recherche. Toujours à jour : une carte ajoutée à son classeur sort de la
+  liste.
 - **Noms français officiels** — jamais inventés : une carte sans nom français
   officiel garde son nom anglais.
 - **Statistiques**, **corbeille** (un classeur supprimé se restaure), **fiche

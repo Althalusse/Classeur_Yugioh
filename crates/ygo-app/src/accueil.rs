@@ -18,11 +18,13 @@
 //! C'est aussi ce qui permet d'écrire l'écran **deux fois** — une fois par
 //! framework candidat — sans dupliquer une seule règle métier.
 
+use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use rusqlite::Connection;
 use ygo_core::paths::Paths;
 
+use crate::classeur::Grille;
 use crate::error::Result;
 
 /// Un classeur, tel que l'accueil le montre.
@@ -38,6 +40,11 @@ pub struct Classeur {
     pub total: usize,
     /// Nombre de cartes possédées.
     pub possedees: usize,
+    /// Nombre de cartes que l'écran du classeur montre — une image ou un
+    /// ajout manuel ([`crate::classeur::nb_affichees`]). Pages et feuilles se
+    /// comptent sur elles, pas sur `total` : une ligne sans case à l'écran
+    /// n'en a pas dans le vrai classeur non plus.
+    pub affichees: usize,
     /// Colonnes de la grille d'affichage.
     pub colonnes: u8,
     /// Lignes de la grille d'affichage.
@@ -75,6 +82,36 @@ impl Classeur {
         } else {
             &self.nom
         }
+    }
+
+    /// La grille d'une page de ce classeur.
+    #[must_use]
+    pub fn grille(&self) -> Grille {
+        Grille {
+            colonnes: self.colonnes,
+            lignes: self.lignes,
+        }
+    }
+
+    /// Les pages qu'occupent ses cartes, dans sa grille.
+    #[must_use]
+    pub fn pages(&self) -> usize {
+        crate::classeur::nb_pages(self.affichees, self.grille())
+    }
+
+    /// Les feuilles recto verso qu'il faut pour le ranger.
+    ///
+    /// Dérivées, comme [`pourcentage`](Self::pourcentage) : elles ne peuvent
+    /// pas contredire le compte et la grille dont elles viennent.
+    #[must_use]
+    pub fn feuilles(&self) -> usize {
+        crate::classeur::nb_feuilles(self.affichees, self.grille())
+    }
+
+    /// Le compte de feuilles en une phrase, pour l'infobulle.
+    #[must_use]
+    pub fn detail_feuilles(&self) -> String {
+        crate::classeur::detail_feuilles(self.affichees, self.grille())
     }
 }
 
@@ -115,6 +152,8 @@ pub struct MetaClasseur {
     pub total: usize,
     /// Nombre de cartes possédées.
     pub possedees: usize,
+    /// Nombre de cartes que l'écran du classeur montre.
+    pub affichees: usize,
     /// Colonnes de la grille.
     pub colonnes: u8,
     /// Lignes de la grille.
@@ -194,6 +233,10 @@ fn lire_meta(conn: &Connection, grille_defaut: (u8, u8)) -> Result<MetaClasseur>
         })
         .unwrap_or(0);
 
+    // Le critère de l'écran du classeur, pas un second écrit ici : les
+    // feuilles de la tuile sont celles que le classeur ouvert annonce.
+    let affichees = crate::classeur::nb_affichees(conn).unwrap_or(cartes);
+
     let set_name: Option<String> = conn
         .query_row(
             "SELECT set_name FROM cards WHERE set_name IS NOT NULL AND set_name != '' LIMIT 1",
@@ -205,6 +248,7 @@ fn lire_meta(conn: &Connection, grille_defaut: (u8, u8)) -> Result<MetaClasseur>
     Ok(MetaClasseur {
         total: cartes,
         possedees,
+        affichees,
         colonnes,
         lignes,
         image_id,
@@ -399,6 +443,7 @@ pub fn lister(paths: &Paths, grille_defaut: (u8, u8)) -> Vec<Classeur> {
                 nom_fr: nom_fr.unwrap_or_else(|| code.clone()),
                 total: meta.total,
                 possedees: meta.possedees,
+                affichees: meta.affichees,
                 colonnes: meta.colonnes,
                 lignes: meta.lignes,
                 image_id: meta.image_id,
@@ -416,6 +461,48 @@ pub fn totaux(classeurs: &[Classeur]) -> (usize, usize) {
     classeurs
         .iter()
         .fold((0, 0), |(t, p), c| (t + c.total, p + c.possedees))
+}
+
+/// Les feuilles à prévoir pour ranger tous les classeurs, **par grille**.
+///
+/// Une feuille 3×3 et une feuille 4×3 ne sont pas le même article : les
+/// additionner donnerait un chiffre qu'aucun rayon ne vend. Rangées dans
+/// l'ordre des grilles ; un classeur sans carte n'en demande aucune.
+#[must_use]
+pub fn feuilles_par_grille(classeurs: &[Classeur]) -> Vec<(Grille, usize)> {
+    let mut par_grille: BTreeMap<(u8, u8), usize> = BTreeMap::new();
+    for c in classeurs {
+        let feuilles = c.feuilles();
+        if feuilles > 0 {
+            *par_grille.entry((c.colonnes, c.lignes)).or_default() += feuilles;
+        }
+    }
+    par_grille
+        .into_iter()
+        .map(|((colonnes, lignes), feuilles)| (Grille { colonnes, lignes }, feuilles))
+        .collect()
+}
+
+/// Les feuilles de toute l'installation, en une ligne : « 290 feuilles
+/// 3×3 », « 280 feuilles 3×3 + 12 feuilles 4×3 », « aucune feuille ».
+#[must_use]
+pub fn texte_feuilles_par_grille(classeurs: &[Classeur]) -> String {
+    let par_grille = feuilles_par_grille(classeurs);
+    if par_grille.is_empty() {
+        return crate::classeur::texte_feuilles(0);
+    }
+    par_grille
+        .iter()
+        .map(|(g, n)| {
+            format!(
+                "{} {}×{}",
+                crate::classeur::texte_feuilles(*n),
+                g.colonnes,
+                g.lignes
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(" + ")
 }
 
 /// Dans quel ordre l'accueil range les classeurs.
@@ -824,6 +911,130 @@ mod tests {
         assert!((c.pourcentage() - 37.5).abs() < 1e-9);
     }
 
+    // ── Les feuilles ────────────────────────────────────────────────────────
+
+    /// Un classeur dont `illustrees` lignes ont une image et `sans_image`
+    /// n'en ont pas — ni URL, ni identifiant, ni ajout manuel.
+    fn classeur_mixte(
+        paths: &Paths,
+        code: &str,
+        illustrees: usize,
+        sans_image: usize,
+    ) -> Connection {
+        std::fs::create_dir_all(paths.dossier_classeur(code)).unwrap();
+        let conn = ygo_db::connexion::ouvrir(paths.classeur_db(code)).unwrap();
+        ygo_db::schema::creer_tout(&conn, ygo_db::schema::DDL_CLASSEUR).unwrap();
+        for i in 0..illustrees + sans_image {
+            #[allow(clippy::cast_possible_wrap)]
+            let id = (i < illustrees).then_some(1_000 + i as i64);
+            conn.execute(
+                "INSERT INTO cards (name, set_code, rarity, set_name, card_image_id) \
+                 VALUES (?1, ?2, 'Common', 'Le Set', ?3)",
+                rusqlite::params![format!("Carte {i}"), format!("{code}-{i:03}"), id],
+            )
+            .unwrap();
+        }
+        conn
+    }
+
+    /// La tuile compte ses feuilles sur ce que le classeur ouvert montre, pas
+    /// sur toutes ses lignes : sans quoi elle en annoncerait une de trop.
+    #[test]
+    fn les_feuilles_se_comptent_sur_ce_que_le_classeur_montre() {
+        let (_d, paths) = installation();
+        let conn = classeur_mixte(&paths, "LDK2", 135, 4);
+        let montrees = crate::classeur::charger(
+            &conn,
+            false,
+            ygo_core::config::SourceImage::Ygoprodeck,
+            ygo_core::config::ORDRE_TRI_DEFAUT,
+            &ygo_core::rarity::Priorites::default(),
+        )
+        .unwrap();
+        drop(conn);
+
+        let c = &lister(&paths, (3, 3))[0];
+        assert_eq!(c.total, 139, "le compte de lignes ne change pas");
+        assert_eq!(c.affichees, 135);
+        assert_eq!(c.affichees, montrees.len(), "le même critère que l'écran");
+        assert_eq!(c.pages(), 15, "139 lignes en feraient 16");
+        assert_eq!(c.feuilles(), 8);
+        assert_eq!(
+            c.detail_feuilles(),
+            "135 cartes en 3×3 : 15 pages, soit 8 feuilles recto verso"
+        );
+    }
+
+    #[test]
+    fn les_feuilles_suivent_la_grille_du_classeur() {
+        let (_d, paths) = installation();
+        let conn = classeur_mixte(&paths, "GRAND", 41, 0);
+        conn.execute(
+            "INSERT INTO meta (key, value) VALUES ('colonnes', '4'), ('lignes', '5')",
+            [],
+        )
+        .unwrap();
+        drop(conn);
+        drop(classeur_mixte(&paths, "PETIT", 41, 0));
+
+        let liste = lister(&paths, (3, 3));
+        let grand = liste.iter().find(|c| c.code == "GRAND").unwrap();
+        let petit = liste.iter().find(|c| c.code == "PETIT").unwrap();
+        assert_eq!(
+            (grand.pages(), grand.feuilles()),
+            (3, 2),
+            "20 cases par page"
+        );
+        assert_eq!(
+            (petit.pages(), petit.feuilles()),
+            (5, 3),
+            "9 cases par page"
+        );
+    }
+
+    #[test]
+    fn un_classeur_vide_ou_sans_base_ne_demande_aucune_feuille() {
+        let (_d, paths) = installation();
+        drop(classeur_mixte(&paths, "VIDE", 0, 0));
+        std::fs::create_dir_all(paths.dossier_classeur("RESIDU")).unwrap();
+        for c in lister(&paths, (3, 3)) {
+            assert_eq!(c.feuilles(), 0, "{}", c.code);
+        }
+    }
+
+    /// Les feuilles s'additionnent par grille, jamais toutes ensemble.
+    #[test]
+    fn les_feuilles_se_totalisent_par_grille() {
+        let mut paysage = classeur_test("RA02", 100, 0, "Rarity Collection II");
+        paysage.colonnes = 4; // 12 cases : 9 pages, 5 feuilles
+        let jeu = vec![
+            classeur_test("LDK2", 135, 0, "Legendary Decks II"), // 8 feuilles
+            classeur_test("RA04", 986, 0, "Rarity Collection IV"), // 55 feuilles
+            paysage,
+            classeur_test("VIDE", 0, 0, "Vide"),
+        ];
+        let par_grille = feuilles_par_grille(&jeu);
+        assert_eq!(
+            par_grille
+                .iter()
+                .map(|(g, n)| ((g.colonnes, g.lignes), *n))
+                .collect::<Vec<_>>(),
+            [((3, 3), 63), ((4, 3), 5)],
+            "le classeur vide n'ouvre pas de ligne"
+        );
+        assert_eq!(
+            texte_feuilles_par_grille(&jeu),
+            "63 feuilles 3×3 + 5 feuilles 4×3"
+        );
+        assert_eq!(texte_feuilles_par_grille(&jeu[..1]), "8 feuilles 3×3");
+        assert_eq!(
+            texte_feuilles_par_grille(&[classeur_test("LC06", 5, 0, "Promo")]),
+            "1 feuille 3×3"
+        );
+        assert_eq!(texte_feuilles_par_grille(&[]), "aucune feuille");
+        assert_eq!(texte_feuilles_par_grille(&jeu[3..]), "aucune feuille");
+    }
+
     #[test]
     fn le_nom_affiche_suit_la_langue_demandee() {
         let c = Classeur {
@@ -832,6 +1043,7 @@ mod tests {
             nom_fr: "Collection Rareté 5".to_owned(),
             total: 1,
             possedees: 0,
+            affichees: 1,
             colonnes: 3,
             lignes: 3,
             image_id: None,
@@ -849,6 +1061,7 @@ mod tests {
             nom_fr: format!("{nom} (fr)"),
             total,
             possedees,
+            affichees: total,
             colonnes: 3,
             lignes: 3,
             image_id: None,
