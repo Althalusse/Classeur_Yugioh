@@ -26,6 +26,13 @@
 //! lignes de LOCH collées le 2026-11-06 sont toutes entrées, chacune sur la
 //! bonne carte et la bonne version.
 //!
+//! Le nom de l'extension doit être **exactement** celui de Cardmarket (essai
+//! du 2026-11-16) : un autre — « 25th Anniversary » pour MP24, ou même le
+//! code « (MP24) » — est ignoré sans message, et la carte est prise dans
+//! toutes les extensions ; un code ou un numéro sans parenthèses
+//! (« MP24-EN150 ») la rend introuvable. Ce nom est celui relevé sur
+//! Cardmarket, sinon celui deviné des produits scellés (`crate::cardmarket`).
+//!
 //! Le collage ne porte ni l'état, ni la langue, ni le prix : ils se règlent
 //! ensuite sur Cardmarket, par la « Modification en masse » de la liste.
 //!

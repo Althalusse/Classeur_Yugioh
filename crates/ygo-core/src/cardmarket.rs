@@ -813,6 +813,9 @@ struct Table {
     commune_en_dernier: HashMap<String, String>,
     #[serde(default)]
     libelles: Libelles,
+    /// Par extension, son nom exact chez Cardmarket, relevé sur ses pages.
+    #[serde(default)]
+    noms_d_extension: HashMap<String, String>,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -908,6 +911,30 @@ pub fn commune_en_dernier(id_extension: i64) -> bool {
     table()
         .commune_en_dernier
         .contains_key(&id_extension.to_string())
+}
+
+/// Le nom exact d'une extension chez Cardmarket, quand il a été relevé sur
+/// ses pages produit (« Printed in ») — `None` sinon.
+///
+/// C'est le seul nom qu'une liste d'envies reconnaisse entre parenthèses :
+/// un autre, même le code du set (« (MP24) »), est ignoré sans message et la
+/// carte est prise dans toutes les extensions (essai du 2026-11-16). Il passe
+/// donc devant le nom deviné des produits scellés.
+///
+/// ```
+/// use ygo_core::cardmarket::nom_d_extension;
+/// // MP24 : ses produits disaient « 25th Anniversary », ignoré par Cardmarket.
+/// assert_eq!(nom_d_extension(5735), Some("25th Anniversary Tin: Dueling Mirrors"));
+/// // SDLI : le produit s'appelle « Structure Deck: Realm of Light », pas l'extension.
+/// assert_eq!(nom_d_extension(1486), Some("Structure Deck: The Realm of Light"));
+/// assert_eq!(nom_d_extension(1), None);
+/// ```
+#[must_use]
+pub fn nom_d_extension(id_extension: i64) -> Option<&'static str> {
+    table()
+        .noms_d_extension
+        .get(&id_extension.to_string())
+        .map(String::as_str)
 }
 
 /// Les extensions dont un ordre a été confirmé.
@@ -1699,6 +1726,8 @@ mod tests {
         assert!(ids.len() >= 30, "{} extensions", ids.len());
         assert!(ids.contains(&6508), "LOCH");
         assert!(ids.contains(&6069), "BLMM");
+        assert!(table().noms_d_extension.len() >= 23);
+        assert_eq!(nom_d_extension(6159), Some("2025 Mega-Pack Tin"));
     }
 
     /// Les pages du 2026-10-21, telles que l'utilisateur les a relevées.

@@ -1,5 +1,5 @@
 {
-  "_doc": "Ordres des versions relevés sur les pages Cardmarket (captures de l'utilisateur, octobre 2026), par idExpansion Cardmarket. Chaque liste donne les versions d'UNE carte, dans les noms de cardinfo.db, de V.1 à V.n. Une paire de versions présente dans une liste vaut pour tout le set. Deux versions de même rareté se distinguent par une précision entre parenthèses, lue au fichier d'image de la ligne du classeur : « (illustration 2) » pour la deuxième illustration (suffixe Yugipedia -AA, -B, -2), « (Overframe) » pour l'illustration qui déborde du cadre (-EA). Quand une liste montre une illustration alternative juste après son originale (RA02, RA04), toute alternative du set suit son originale ; ailleurs, seules les versions relevées sont placées (RA05 range ses alternatives en tête). « illustrations_saisies_a_part » : sets dont l'ordre de création des produits ne dit pas lequel est l'illustration alternative — le rang V.n reste sûr, pas le produit. Les libellés disent comment Cardmarket écrit une version quand il ne l'écrit pas comme la base. « commune_en_dernier » : sets dont toute version passe devant la Common (une règle de paire, pas l'ordre complet d'une carte : elle ne dit rien d'une version que nous ne connaissons pas).",
+  "_doc": "Ordres des versions relevés sur les pages Cardmarket (captures de l'utilisateur, octobre 2026), par idExpansion Cardmarket. Chaque liste donne les versions d'UNE carte, dans les noms de cardinfo.db, de V.1 à V.n. Une paire de versions présente dans une liste vaut pour tout le set. Deux versions de même rareté se distinguent par une précision entre parenthèses, lue au fichier d'image de la ligne du classeur : « (illustration 2) » pour la deuxième illustration (suffixe Yugipedia -AA, -B, -2), « (Overframe) » pour l'illustration qui déborde du cadre (-EA). Quand une liste montre une illustration alternative juste après son originale (RA02, RA04), toute alternative du set suit son originale ; ailleurs, seules les versions relevées sont placées (RA05 range ses alternatives en tête). « illustrations_saisies_a_part » : sets dont l'ordre de création des produits ne dit pas lequel est l'illustration alternative — le rang V.n reste sûr, pas le produit. Les libellés disent comment Cardmarket écrit une version quand il ne l'écrit pas comme la base. « commune_en_dernier » : sets dont toute version passe devant la Common (une règle de paire, pas l'ordre complet d'une carte : elle ne dit rien d'une version que nous ne connaissons pas). « noms_d_extension » : le nom exact de l'extension chez Cardmarket, relevé le 2026-11-16 sur ses pages produit (« Printed in »). C'est le seul qu'une liste d'envies reconnaisse entre parenthèses : un autre — même le code du set, « (MP24) » — est ignoré sans message, et la carte est prise dans toutes les extensions. Il passe devant le nom deviné des produits scellés (SDLI : le produit s'appelle « Structure Deck: Realm of Light », l'extension garde « The »).",
   "ordres": {
     "5404": [["Super Rare", "Ultra Rare", "Secret Rare", "Platinum Secret Rare", "Quarter Century Secret Rare", "Collector's Rare", "Ultimate Rare"]],
     "5604": [
@@ -94,5 +94,30 @@
       "6566": { "Prismatic Secret Rare": "Secret Parallel Rare" },
       "4592": { "Ultra Parallel Rare": "Ultra Rare", "Super Parallel Rare": "Super Rare" }
     }
+  },
+  "noms_d_extension": {
+    "1486": "Structure Deck: The Realm of Light",
+    "1734": "Legendary Decks II",
+    "2066": "Legendary Collection Kaiba Mega Pack",
+    "2067": "Legendary Collection Kaiba",
+    "4220": "Egyptian God Deck: Obelisk the Tormentor",
+    "4221": "Egyptian God Deck: Slifer the Sky Dragon",
+    "5440": "Valiant Smashers",
+    "5604": "25th Anniversary Rarity Collection II",
+    "5687": "The Infinite Forbidden",
+    "5735": "25th Anniversary Tin: Dueling Mirrors",
+    "5753": "The Infinite Forbidden (OCG)",
+    "5909": "Structure Deck: Blue-Eyes White Destiny",
+    "5989": "Quarter Century Stampede",
+    "6159": "2025 Mega-Pack Tin",
+    "6336": "THE CHRONICLES DECK: The Fallen & The Virtuous (All-Foil Edition)",
+    "6370": "Legendary 5D's Decks",
+    "6424": "Rarity Collection 5",
+    "6429": "THE CHRONICLES DECK: Spirit Charmers (All-Foil Edition)",
+    "6489": "Legendary Modern Decks 2026",
+    "6508": "Limit Over Collection: The Heroes",
+    "6512": "Limit Over Collection: The Rivals",
+    "6566": "Chaos Origins (OCG)",
+    "6590": "Magnificent Monsters"
   }
 }

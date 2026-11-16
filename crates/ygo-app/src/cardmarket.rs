@@ -93,7 +93,10 @@ use crate::error::Result;
 /// ([`Prix::reference`]), plus à la seule tendance.
 /// 3 (2026-10-22) : une extension que ses cartes ne rapprochent pas l'est par
 /// le nom de son set (`rapprocher_par_le_nom` : CORI).
-pub const VERSION_INDEX: u32 = 3;
+/// 4 (2026-11-16) : le nom de l'extension, que porte la liste d'envies, est
+/// celui relevé sur Cardmarket ou se devine mieux (`libelle_extension`) —
+/// MP24 s'appelait « 25th Anniversary », nom que Cardmarket ignore.
+pub const VERSION_INDEX: u32 = 4;
 
 /// Nom du fichier d'index.
 pub const NOM_INDEX: &str = "index.json";
@@ -698,7 +701,7 @@ pub fn assembler(
             .get(id_ext)
             .is_some_and(|v| v.iter().any(|n| est_libelle_ocg(n)));
         let scelles_de_l_ext = noms_scelles.get(id_ext).map_or(&[][..], Vec::as_slice);
-        let libelle = libelle_extension(scelles_de_l_ext);
+        let libelle = libelle_de_l_extension(*id_ext, scelles_de_l_ext);
         let rapprochee = rapprocher(noms, ocg, &inverse, &tirages_par_locale, base)
             .or_else(|| rapprocher_par_le_nom(noms, libelle.as_deref(), scelles_de_l_ext, base));
         let Some((sl, jaccard)) = rapprochee else {
@@ -880,10 +883,51 @@ fn est_libelle_ocg(nom: &str) -> bool {
         .any(|m| nom.contains(m))
 }
 
-/// Le nom d'une extension, tiré du plus court de ses produits scellés
-/// débarrassé de « Booster Box », « Display »…
+/// Le nom d'une extension pour Cardmarket : celui relevé sur ses pages
+/// ([`regles::nom_d_extension`]), sinon celui deviné de ses produits scellés.
+fn libelle_de_l_extension(id_extension: i64, scelles: &[&str]) -> Option<String> {
+    regles::nom_d_extension(id_extension)
+        .map(str::to_owned)
+        .or_else(|| libelle_extension(scelles))
+}
+
+/// Le nom d'une extension deviné de ses produits scellés : celui que la
+/// plupart portent une fois ôté ce qui dit l'emballage (« Booster Box »,
+/// « Display », « (12 Booster Boxes) »…) ; à égalité, le plus court, puis le
+/// premier venu.
+///
+/// L'emballage ne s'ôte qu'en **fin** de nom : couper au premier « Tin »
+/// venu faisait de MP24 « 25th Anniversary », un nom que Cardmarket ignore.
+/// « Tin » et « Deck » restent, ils font partie du nom des extensions de
+/// boîtes et de decks (« Legendary 5D's Decks »). Une parenthèse finale ne
+/// part que si elle parle d'emballage : « (OCG) », « (Japanese) » ou
+/// « (All-Foil Edition) » restent.
+///
+/// Le nom deviné peut rester faux — « 2025 Mega-Pack » pour « 2025 Mega-Pack
+/// Tin », « Structure Deck: Realm of Light » pour « …The Realm of Light » :
+/// les noms relevés passent devant ([`libelle_de_l_extension`]).
 fn libelle_extension(noms: &[&str]) -> Option<String> {
-    const SUFFIXES: [&str; 14] = [
+    let mut votes: Vec<(String, usize)> = Vec::new();
+    for nom in noms {
+        let Some(n) = nom_sans_emballage(nom) else {
+            continue;
+        };
+        match votes.iter_mut().find(|(v, _)| *v == n) {
+            Some((_, compte)) => *compte += 1,
+            None => votes.push((n, 1)),
+        }
+    }
+    votes
+        .into_iter()
+        .enumerate()
+        .max_by_key(|(i, (n, compte))| (*compte, std::cmp::Reverse((n.len(), *i))))
+        .map(|(_, (n, _))| n)
+}
+
+/// Un nom de produit scellé sans ce qui dit son emballage, en fin de nom :
+/// « 24x Rarity Collection 5 Booster » → « Rarity Collection 5 ».
+fn nom_sans_emballage(nom: &str) -> Option<String> {
+    const EMBALLAGES: [&str; 14] = [
         " Booster Box",
         " Booster",
         " Display",
@@ -892,31 +936,46 @@ fn libelle_extension(noms: &[&str]) -> Option<String> {
         " Card Pack",
         " Bundle",
         " Blister",
-        " Tin",
         " Box",
         ": Special Edition",
         " Special Edition",
         " +1 Bonus Pack",
-        " Deck",
+        " EU Version",
+        " US Version",
     ];
-    noms.iter()
-        .filter_map(|n| {
-            let mut x = n.trim();
-            // « 24x Booster » : le nombre devant ne fait pas partie du nom.
-            if let Some((tete, reste)) = x.split_once("x ") {
-                if !tete.is_empty() && tete.chars().all(|c| c.is_ascii_digit()) {
-                    x = reste;
-                }
+    // Les mots qui font d'une parenthèse finale une mention d'emballage :
+    // « (12 Booster Boxes) », « (2024 Reprint) », « (US Version) »…
+    const MOTS: [&str; 24] = [
+        "booster", "boosters", "box", "boxes", "bundle", "bundles", "card", "cards", "case",
+        "cases", "deck", "decks", "display", "displays", "pack", "packs", "reprint", "sealed",
+        "set", "sets", "tin", "tins", "tuckbox", "version",
+    ];
+    let mut x = nom.trim();
+    // « 24x Booster » : le nombre devant ne fait pas partie du nom.
+    if let Some((tete, reste)) = x.split_once("x ") {
+        if !tete.is_empty() && tete.chars().all(|c| c.is_ascii_digit()) {
+            x = reste;
+        }
+    }
+    loop {
+        let avant = x;
+        if let Some((tete, dedans)) = x.strip_suffix(')').and_then(|s| s.rsplit_once('(')) {
+            let emballage = dedans
+                .split(|c: char| !c.is_ascii_alphanumeric())
+                .any(|m| MOTS.iter().any(|e| m.eq_ignore_ascii_case(e)));
+            if emballage {
+                x = tete;
             }
-            for s in SUFFIXES {
-                if let Some(i) = x.find(s) {
-                    x = x.get(..i).unwrap_or(x);
-                }
-            }
-            let x = x.trim().trim_matches(['-', ':', ' ']);
-            (!x.is_empty()).then(|| x.to_owned())
-        })
-        .min_by_key(String::len)
+        }
+        if let Some(reste) = EMBALLAGES.iter().find_map(|s| x.strip_suffix(s)) {
+            x = reste;
+        }
+        x = x.trim().trim_matches(['-', ':', ' ']);
+        if x == avant {
+            break;
+        }
+    }
+    (!x.is_empty()).then(|| x.to_owned())
 }
 
 /// Les témoins du sens de saisie : pour chaque carte dont les versions ont
@@ -1011,12 +1070,22 @@ pub fn ecrire(paths: &Paths, index: &Index) -> Result<()> {
 }
 
 /// Relit l'index ; `None` s'il manque, ne se lit pas ou date d'un autre
-/// format.
+/// format. Les noms d'extension relevés sur Cardmarket
+/// ([`regles::nom_d_extension`]) y remplacent ceux qu'il a devinés.
 #[must_use]
 pub fn lire(paths: &Paths) -> Option<Index> {
     let octets = std::fs::read(chemin_index(paths)).ok()?;
-    let index: Index = serde_json::from_slice(&octets).ok()?;
-    (index.version == VERSION_INDEX).then_some(index)
+    let mut index: Index = serde_json::from_slice(&octets).ok()?;
+    if index.version != VERSION_INDEX {
+        return None;
+    }
+    // Un nom relevé après la construction de l'index vaut tout de suite.
+    for e in &mut index.extensions {
+        if let Some(nom) = regles::nom_d_extension(e.id) {
+            e.libelle = Some(nom.to_owned());
+        }
+    }
+    Some(index)
 }
 
 /// L'index en mémoire, avec ses tables de recherche.
@@ -3928,6 +3997,131 @@ pub(crate) mod tests {
             Some("Rarity Collection 5")
         );
         assert_eq!(libelle_extension(&[]), None);
+    }
+
+    /// Les produits scellés du fichier Cardmarket du 2026-11-02, tels quels.
+    #[test]
+    fn le_nom_devine_garde_ce_qui_n_est_pas_l_emballage() {
+        let devine = |noms: &[&str]| libelle_extension(noms).unwrap_or_default();
+        // MP24 : « Tin » au milieu du nom ne coupe plus rien.
+        assert_eq!(
+            devine(&[
+                "25th Anniversary Tin: Dueling Mirrors",
+                "25th Anniversary Tin: Dueling Mirrors Case (12 Tins)",
+                "25th Anniversary Tin: Dueling Mirrors Mega Pack Booster",
+            ]),
+            "25th Anniversary Tin: Dueling Mirrors"
+        );
+        // LDK2 : le nom que portent le plus de produits, réédition ôtée.
+        assert_eq!(
+            devine(&[
+                "Legendary Decks II Box Set",
+                "Legendary Decks II: Yugi Deck Card Pack",
+                "Legendary Decks II: Kaiba Deck Card Pack",
+                "Legendary Decks II: Joey Deck Card Pack (2024 Reprint)",
+                "Legendary Decks II Box Set (2024 Reprint)",
+            ]),
+            "Legendary Decks II"
+        );
+        // L5DD : à égalité, le plus court ; « Decks » reste.
+        assert_eq!(
+            devine(&[
+                "Legendary 5D's Decks",
+                "Legendary 5D's Deck: Yusei Deck",
+                "Legendary 5D's Decks: Promo Pack",
+            ]),
+            "Legendary 5D's Decks"
+        );
+        assert_eq!(
+            devine(&[
+                "Structure Deck: Blue-Eyes White Destiny",
+                "Structure Deck: Blue-Eyes White Destiny Display (8 Structure Decks)",
+                "Structure Deck: Blue-Eyes White Destiny Card Pack",
+            ]),
+            "Structure Deck: Blue-Eyes White Destiny"
+        );
+        assert_eq!(
+            devine(&[
+                "Magnificent Monsters Box",
+                "Magnificent Monsters EU Version Case (12 Boxes)",
+                "Magnificent Monsters US Version Case (10 Boxes)",
+                "Magnificent Monsters Booster",
+            ]),
+            "Magnificent Monsters"
+        );
+        assert_eq!(
+            devine(&[
+                "25th Anniversary Rarity Collection II Booster",
+                "25th Anniversary Rarity Collection II Booster Box (EU Version - 24 Packs)",
+                "25th Anniversary Rarity Collection II: Special 2-Pack Tuckbox",
+            ]),
+            "25th Anniversary Rarity Collection II"
+        );
+        // Une parenthèse qui ne parle pas d'emballage reste.
+        assert_eq!(
+            devine(&[
+                "THE CHRONICLES DECK: The Fallen & The Virtuous (All-Foil Edition)",
+                "THE CHRONICLES DECK: The Fallen & The Virtuous (All-Foil Edition) Display (8 Structure Decks)",
+            ]),
+            "THE CHRONICLES DECK: The Fallen & The Virtuous (All-Foil Edition)"
+        );
+        assert_eq!(
+            devine(&[
+                "The Infinite Forbidden (OCG) Booster",
+                "The Infinite Forbidden (OCG) Booster Box"
+            ]),
+            "The Infinite Forbidden (OCG)"
+        );
+    }
+
+    #[test]
+    fn le_nom_releve_passe_devant_le_nom_devine() {
+        // MP25 : deviné « 2025 Mega-Pack », Cardmarket dit « 2025 Mega-Pack Tin ».
+        let mp25 = [
+            "2025 Mega Pack Booster",
+            "2025 Mega-Pack Tin",
+            "2025 Mega-Pack Tin Case (12 Tins)",
+            "2025 Mega-Pack Bundle",
+            "2025 Mega-Pack Bundle Case (12x Bundle)",
+        ];
+        assert_eq!(libelle_extension(&mp25).as_deref(), Some("2025 Mega-Pack"));
+        assert_eq!(
+            libelle_de_l_extension(6159, &mp25).as_deref(),
+            Some("2025 Mega-Pack Tin")
+        );
+        // SDLI : le produit a perdu « The », pas l'extension.
+        let sdli = [
+            "Structure Deck: Realm of Light",
+            "Structure Deck: Realm of Light Card Pack",
+            "Structure Deck: Realm of Light (2024 Reprint)",
+        ];
+        assert_eq!(
+            libelle_de_l_extension(1486, &sdli).as_deref(),
+            Some("Structure Deck: The Realm of Light")
+        );
+        // Sans relevé, le nom deviné.
+        assert_eq!(
+            libelle_de_l_extension(1, &sdli).as_deref(),
+            Some("Structure Deck: Realm of Light")
+        );
+        assert_eq!(libelle_de_l_extension(1, &[]), None);
+    }
+
+    #[test]
+    fn un_index_deja_construit_prend_les_noms_releves() {
+        let dir = tempfile::tempdir().unwrap();
+        let paths = Paths::depuis_racine(dir.path());
+        std::fs::create_dir_all(paths.bdd()).unwrap();
+        let mut index = index_de_test();
+        index.extensions[0].id = 5735;
+        index.extensions[0].libelle = Some("25th Anniversary".to_owned());
+        ecrire(&paths, &index).unwrap();
+        let relu = lire(&paths).unwrap();
+        assert_eq!(
+            relu.extensions[0].libelle.as_deref(),
+            Some("25th Anniversary Tin: Dueling Mirrors")
+        );
+        assert_eq!(relu.extensions[1], index.extensions[1]);
     }
 
     #[test]

@@ -778,7 +778,10 @@ pub fn consignes(langues: &[LangueDeLaListe]) -> Vec<String> {
     };
     vec![
         "1. Mes envies : créez une liste — « Copier le nom » donne celui proposé.".to_owned(),
-        "2. Collez la liste dans « Ajouter une decklist », puis ajoutez.".to_owned(),
+        "2. Collez la liste dans « Ajouter une decklist », puis ajoutez. Dans le message vert, \
+         chaque carte doit être suivie de son extension entre parenthèses : sans elle, Cardmarket \
+         n'a pas reconnu l'extension et cherchera la carte dans toutes."
+            .to_owned(),
         format!(
             "3. Modification en masse : cochez les cartes, choisissez l'état minimum et {langue}, \
              puis « Modify Selected »."
@@ -862,6 +865,7 @@ mod tests {
         assert_eq!(titre_de_langue(FR), "Langue à régler : Français");
         assert!(titre_de_langue(LangueDeLaListe::Indifferente).contains("Indifférent"));
         assert!(consignes(&[FR])[2].contains("« Langues » : Français"));
+        assert!(consignes(&[FR])[1].contains("message vert"));
         assert!(consignes(&[FR, LangueDeLaListe::Indifferente])[2].contains("chaque liste"));
         assert!(resume_du_classeur(&[&g]).ends_with("150 entrées max par liste"));
         assert_eq!(place_restante(1), "Place restante dans cette liste : 149");
